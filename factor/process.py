@@ -7,6 +7,7 @@ import shutil
 import numpy as np
 import logging
 import pickle
+import json
 import collections
 import casacore.tables as pt
 from lofarpipe.support.data_map import DataMap
@@ -56,7 +57,17 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
 
     """
     # Read parset
-    parset = factor.parset.parset_read(parset_file)
+    if parset_file.endswith(".json"):
+        # Read already parsed file from a json file
+        with open(parset_file) as json_data:
+            parset = json.load(json_data)
+    else:
+        # Read parset
+        parset = factor.parset.parset_read(parset_file)
+        # Dump parset data into a json file
+        json_parset_file_name = os.path.splitext(parset_file)[0]+'.json'
+        with open(json_parset_file_name, 'w') as json_data:
+            json.dump(parset, json_data)
 
     # Set up logger
     parset['logging_level'] = logging_level
