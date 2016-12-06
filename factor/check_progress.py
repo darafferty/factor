@@ -101,7 +101,13 @@ def load_directions(parset_file):
     Return directions for a run and any checkfactor-specific options
     """
     # Read parset
-    parset = factor.parset.parset_read(parset_file, use_log_file=False)
+    if parset_file.endswith(".json"):
+        # Read already parsed file from a json file
+        with open(parset_file) as json_data:
+            parset = json.load(json_data)
+    else:
+        # Read parset
+        parset = factor.parset.parset_read(parset_file, use_log_file=False)
     options = parset['checkfactor']
 
     # Figure out whether reimaging is going to be done and if so how
