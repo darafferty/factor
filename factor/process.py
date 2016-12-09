@@ -61,6 +61,9 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
         # Read already parsed file from a json file
         with open(parset_file) as json_data:
             parset = json.load(json_data)
+            # TODO: Solve problem with data types
+    elif parset_file.endswith(".pckl"):
+        parset = pickle.load(open(parset_file, "r"))
     else:
         # Read parset
         parset = factor.parset.parset_read(parset_file)
@@ -68,6 +71,11 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
         json_parset_file_name = os.path.splitext(parset_file)[0]+'.json'
         with open(json_parset_file_name, 'w') as json_data:
             json.dump(parset, json_data)
+        # Dump parset data into a pickle file
+        pckl_parset_file_name = os.path.splitext(parset_file)[0]+'.pckl'
+        with open(pckl_parset_file_name, 'w') as pckl_data:
+            pickle.dump(parset, pckl_data)
+
 
     # Set up logger
     parset['logging_level'] = logging_level
@@ -77,7 +85,17 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     scheduler = _set_up_compute_parameters(parset, dry_run)
 
     # Prepare vis data
-    bands = _set_up_bands(parset, test_run)
+    pckl_band_file_name = os.path.splitext(parset_file)[0]+'_band.pckl'
+    if parset['cache_band_data']:
+        # Load band data from cache file
+        bands = pickle.load(open(pckl_band_file_name, "r"))
+    else:
+        # Read band data
+        bands = _set_up_bands(parset, test_run)
+        # Dump band data into a json file
+        pckl_band_file_name = os.path.splitext(parset_file)[0]+'_band.pckl'
+        with open(pckl_band_file_name, 'w') as pckl_data:
+            pickle.dump(band, pckl_data)
 
     # Set up directions and groups
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,

@@ -105,9 +105,20 @@ def load_directions(parset_file):
         # Read already parsed file from a json file
         with open(parset_file) as json_data:
             parset = json.load(json_data)
+            # TODO: Solve problem with data types
+    elif parset_file.endswith(".pckl"):
+        parset = pickle.load(open(parset_file, "r"))
     else:
         # Read parset
         parset = factor.parset.parset_read(parset_file, use_log_file=False)
+        # Dump parset data into a json file
+        json_parset_file_name = os.path.splitext(parset_file)[0]+'.json'
+        with open(json_parset_file_name, 'w') as json_data:
+            json.dump(parset, json_data)
+        # Dump parset data into a pickle file
+        pckl_parset_file_name = os.path.splitext(parset_file)[0]+'.pckl'
+        with open(pckl_parset_file_name, 'w') as pckl_data:
+            pickle.dump(parset, pckl_data)
     options = parset['checkfactor']
 
     # Figure out whether reimaging is going to be done and if so how
