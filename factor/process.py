@@ -85,17 +85,19 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     scheduler = _set_up_compute_parameters(parset, dry_run)
 
     # Prepare vis data
-    pckl_band_file_name = os.path.splitext(parset_file)[0]+'_band.pckl'
-    if parset['cache_band_data']:
+    pckl_data_file_name = os.path.splitext(parset_file)[0]+'_data.pckl'
+    if parset['cache_data']:
         # Load band data from cache file
-        bands = pickle.load(open(pckl_band_file_name, "r"))
+        directions, direction_groups = pickle.load(open(pckl_data_file_name, "r"))
     else:
         # Read band data
         bands = _set_up_bands(parset, test_run)
+        # Set up directions and groups
+        directions, direction_groups = _set_up_directions(parset, bands, dry_run,
+            test_run, reset_directions, reset_operations)
         # Dump band data into a json file
-        pckl_band_file_name = os.path.splitext(parset_file)[0]+'_band.pckl'
-        with open(pckl_band_file_name, 'w') as pckl_data:
-            pickle.dump(band, pckl_data)
+        with open(pckl_data_file_name, 'w') as pckl_data:
+            pickle.dump((directions, direction_groups), pckl_data)
 
     # Set up directions and groups
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,

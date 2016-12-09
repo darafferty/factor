@@ -250,13 +250,13 @@ def get_global_options(parset):
     if 'selfcal_robust' in parset_dict:
         parset._sections['imaging']['selfcal_robust'] = parset_dict['selfcal_robust']
 
-    # Save cache with the original band data (default = False). Enabling this
+    # Save cache with the original input data (default = False). Enabling this
     # option will allow to remove (or unmount) the original data and use the 
     # processed data that can be already found in the "chucks" directory
-    if 'cache_band_data' in parset_dict:
-        parset_dict['cache_band_data'] = parset.getboolean('global', 'cache_band_data')
+    if 'cache_data' in parset_dict:
+        parset_dict['cache_data'] = parset.getboolean('global', 'cache_data')
     else:
-        parset_dict['cache_band_data'] = False
+        parset_dict['cache_data'] = False
 
     # Check for unused options
     given_options = parset.options('global')
@@ -268,7 +268,7 @@ def get_global_options(parset):
         'preaverage_flux_jy', 'multiscale_selfcal', 'skymodel_extension',
         'max_peak_smearing', 'tec_block_mhz', 'selfcal_cellsize_arcsec',
         'selfcal_robust', 'use_compression', 'flag_abstime', 'flag_baseline',
-        'flag_freqrange', 'cache_band_data']
+        'flag_freqrange', 'cache_data']
     allowed_options.extend(['direction_specific', 'calibration_specific',
         'imaging_specific', 'cluster_specific']) # add dicts needed for deprecated options
     deprecated_options_imaging = ['make_mosaic', 'facet_imager',
