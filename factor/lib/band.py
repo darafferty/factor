@@ -109,10 +109,14 @@ class Band(object):
             sec_el = 1.0 / np.sin(self.mean_el_rad)
             self.fwhm_deg = 1.1 * ((3.0e8 / self.freq) / self.diam) * 180. / np.pi * sec_el
 
-            # cut input files into chunks if needed
-            self.chunk_input_files(chunk_size_sec, local_dir=local_dir,
-                                   test_run=test_run, use_compression=use_compression,
-                                   min_fraction=min_fraction)
+            good_files = []
+            for MS_id in xrange(self.numMS):
+                if find_unflagged_fraction(self.files[MS_id]) < min_fraction:
+                    self.log.debug('File {} not used because it contains too little unflagged'
+                                   ' data'.format(os.path.basename(self.files[MS_id])))
+                    continue
+                good_files.append(self.files[MS_id])
+            self.files = good_files
             if len(self.files) == 0:
                 self.log.warn('No data left after checking input files for band: {}. '
                                'Probably too little unflagged data.'.format(self.name))
