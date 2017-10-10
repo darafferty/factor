@@ -18,7 +18,7 @@ create_ms_map.control.filename    = input_files_single.mapfile
 {% block add_sub_parms %}
 # subtract model from original data, length = nfiles
 sub_model.control.type        = add_subtract_columns
-sub_model.control.mapfiles_in = [{{ input_files_single_mapfile }},{{ models_mapfile }}]
+sub_model.control.mapfiles_in = [create_ms_map.output.mapfile,{{ models_mapfile }}]
 sub_model.control.inputkeys   = [file1,file2]
 sub_model.argument.flags      = [file1,file2,{{ subtracted_data_colname }},DATA,CORRECTED_DATA,subtract,False]
 {% endblock add_sub_parms %}
