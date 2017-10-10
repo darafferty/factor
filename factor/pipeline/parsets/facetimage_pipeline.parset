@@ -8,64 +8,6 @@ update_mapfile_hosts.control.type        = updateHosts
 update_mapfile_hosts.control.mapfile_dir = input.output.mapfile_dir
 update_mapfile_hosts.control.hosts       = {{ hosts }}
 
-{% if use_existing_data %}
-# beginning of use-existing-data block
-# update host entry in existing image_data_mapfile, length = 1
-update_image_data_mapfile_hosts.control.kind       = plugin
-update_image_data_mapfile_hosts.control.type       = updateHosts
-update_image_data_mapfile_hosts.control.mapfile_in = {{ image_data_mapfile }}
-update_image_data_mapfile_hosts.control.hosts      = {{ hosts }}
-
-{% if average_image_data %}
-# existing data can be averaged further
-
-# make an uncompressed mapfile of the concatenated data, length = nfiles
-# note: these MSs include any dummy MS files inserted to fill gaps or pad
-concat_averaged_uncompressed_map.control.kind        = plugin
-concat_averaged_uncompressed_map.control.type        = uncompressMapfile
-concat_averaged_uncompressed_map.control.mapfile_in  = {{ image_data_mapfile }}
-concat_averaged_uncompressed_map.control.mapfile_dir = input.output.mapfile_dir
-concat_averaged_uncompressed_map.control.hosts       = {{ hosts }}
-concat_averaged_uncompressed_map.control.filename    = concat_averaged_uncompressed.mapfile
-
-# average, length = nfiles
-# Note: throughout this parset, we compress only the weights to avoid adding compression
-# noise to the data
-average_image_data.control.type                                 = dppp
-average_image_data.control.mapfile_in                           = concat_averaged_uncompressed_map.output.mapfile
-average_image_data.control.inputkey                             = msin
-average_image_data.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
-average_image_data.argument.msin.datacolumn                     = DATA
-average_image_data.argument.msout.overwrite                     = True
-average_image_data.argument.msout.writefullresflag              = False
-{% if local_dir is not none %}
-average_image_data.argument.local_scratch_dir                   = {{ local_dir }}
-{% endif %}
-average_image_data.argument.steps                               = [avg]
-average_image_data.argument.avg.type                            = squash
-average_image_data.argument.avg.freqstep                        = {{ facetimage_freqstep }}
-average_image_data.argument.avg.timestep                        = {{ facetimage_timestep }}
-{% if use_compression %}
-average_image_data.argument.msout.storagemanager                = "Dysco"
-average_image_data.argument.msout.storagemanager.databitrate    = 0
-average_image_data.argument.msout.storagemanager.weightbitrate  = 12
-average_image_data.argument.msout.storagemanager.distribution   = "TruncatedGaussian"
-average_image_data.argument.msout.storagemanager.disttruncation = 1.5
-average_image_data.argument.msout.storagemanager.normalization  = "AF"
-{% endif %}
-
-# make a compressed mapfile of the reaveraged data, length = 1
-concat_reaveraged_compressed_map.control.kind        = plugin
-concat_reaveraged_compressed_map.control.type        = compressMapfile
-concat_reaveraged_compressed_map.control.mapfile_in  = average_image_data.output.mapfile
-concat_reaveraged_compressed_map.control.mapfile_dir = input.output.mapfile_dir
-concat_reaveraged_compressed_map.control.filename    = concat_reaveraged_compressed.mapfile
-{% endif %}
-
-# end of average-existing-data block
-{% else %}
-# beginning of no-existing-data block
-
 # create a mapfile with all single MSs from supplied list, length = nfiles
 create_ms_map.control.kind        = plugin
 create_ms_map.control.type        = addListMapfile
@@ -82,89 +24,37 @@ create_msmulti_map.control.files       = {{ ms_files_grouped }}
 create_msmulti_map.control.mapfile_dir = input.output.mapfile_dir
 create_msmulti_map.control.filename    = input_files_grouped.mapfile
 
-# expand mapfile of the dir-dependent parmDB to all files, length = nfiles
-expand_merged_parmdb_map.control.kind             = plugin
-expand_merged_parmdb_map.control.type             = expandMapfile
-expand_merged_parmdb_map.control.mapfile_in       = {{ converted_parmdb_mapfile }}
-expand_merged_parmdb_map.control.mapfile_to_match = create_ms_map.output.mapfile
-expand_merged_parmdb_map.control.mapfile_dir      = input.output.mapfile_dir
-expand_merged_parmdb_map.control.filename         = expand_merged_parmdbs.mapfile
-
-{% if not selfcal_ok %}
-
-# create a mapfile with the current skymodels from supplied list, length = nbands
-create_full_skymodels_map.control.kind        = plugin
-create_full_skymodels_map.control.type        = addListMapfile
-create_full_skymodels_map.control.hosts       = {{ hosts }}
-create_full_skymodels_map.control.files       = {{ skymodels }}
-create_full_skymodels_map.control.mapfile_dir = input.output.mapfile_dir
-create_full_skymodels_map.control.filename    = full_skymodels.mapfile
-
-# extract the skymodel for this facet from global skymodel, length = nbands
-make_facet_skymodels_all.control.type       = make_facet_skymodel
-make_facet_skymodels_all.control.mapfile_in = create_full_skymodels_map.output.mapfile
-make_facet_skymodels_all.control.inputkey   = fullmodelfile
-make_facet_skymodels_all.control.outputkey  = outfile
-make_facet_skymodels_all.argument.flags     = [fullmodelfile,outfile,{{ vertices_file }}]
-
-# convert the facet skymodel into a sourcedb, length = nbands
-make_sourcedb_all_facet_sources.control.type       = make_sourcedb
-make_sourcedb_all_facet_sources.control.mapfile_in = make_facet_skymodels_all.output.mapfile
-make_sourcedb_all_facet_sources.control.inputkey   = in
-make_sourcedb_all_facet_sources.argument.format    = <
-make_sourcedb_all_facet_sources.argument.outtype   = blob
-make_sourcedb_all_facet_sources.argument.append    = False
-
-# create a mapfile with the direction-independent parmDBs from supplied list, length = nfiles
+# create a mapfile with the dde h5parms from supplied list, length = 1
 create_parmdb_map.control.kind        = plugin
 create_parmdb_map.control.type        = addListMapfile
 create_parmdb_map.control.hosts       = {{ hosts }}
-create_parmdb_map.control.files       = {{ dir_indep_parmDBs }}
+create_parmdb_map.control.files       = {{ dde_h5parm }}
 create_parmdb_map.control.mapfile_dir = input.output.mapfile_dir
 create_parmdb_map.control.filename    = dir_indep_instrument_parmdbs.mapfile
 
-{% endif %}
-
-# expand the sourcedb mapfile so that there is one entry for every file, length = nfiles
-expand_sourcedb_all_facet_sources.control.kind           = plugin
-expand_sourcedb_all_facet_sources.control.type           = mapfileSingleToGroup
-{% if not selfcal_ok %}
-expand_sourcedb_all_facet_sources.control.mapfile_in     = make_sourcedb_all_facet_sources.output.mapfile
-{% else %}
-expand_sourcedb_all_facet_sources.control.mapfile_in     = {{ sourcedb_new_facet_sources }}
-{% endif %}
-expand_sourcedb_all_facet_sources.control.mapfile_groups = create_msmulti_map.output.mapfile
-expand_sourcedb_all_facet_sources.control.mapfile_dir    = input.output.mapfile_dir
-expand_sourcedb_all_facet_sources.control.filename       = expand_sourcedb_all_facet_sources.mapfile
+# expand mapfile of the dir-dependent parmDB to all files, length = nfiles
+expand_parmdb_map.control.kind             = plugin
+expand_parmdb_map.control.type             = expandMapfile
+expand_parmdb_map.control.mapfile_in       = create_parmdb_map.output.mapfile
+expand_parmdb_map.control.mapfile_to_match = create_ms_map.output.mapfile
+expand_parmdb_map.control.mapfile_dir      = input.output.mapfile_dir
+expand_parmdb_map.control.filename         = expand_parmdbs.mapfile
 
 # add the model visibilities, shift, apply the direction-dependent solutions, and average, length = nfiles
 prepare_imaging_data.control.type                                 = dppp
-{% if not selfcal_ok %}
-prepare_imaging_data.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_sourcedb_all_facet_sources.output.mapfile,create_parmdb_map.output.mapfile,expand_merged_parmdb_map.output.mapfile]
-prepare_imaging_data.control.inputkeys                            = [msin,sourcedb,dir_indep_parmdb,dir_dep_parmdb]
-{% else %}
-prepare_imaging_data.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_sourcedb_all_facet_sources.output.mapfile,expand_merged_parmdb_map.output.mapfile]
-prepare_imaging_data.control.inputkeys                            = [msin,sourcedb,dir_dep_parmdb]
-{% endif %}
+prepare_imaging_data.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_parmdb_map.output.mapfile]
+prepare_imaging_data.control.inputkeys                            = [msin,dde_parmdb]
 prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
-prepare_imaging_data.argument.msin.datacolumn                     = CORRECTED_DATA
+prepare_imaging_data.argument.msin.datacolumn                     = {{ subtracted_data_colname }}
 prepare_imaging_data.argument.msout.overwrite                     = True
 prepare_imaging_data.argument.msout.writefullresflag              = False
 {% if local_dir is not none %}
 prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir }}
 {% endif %}
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
-prepare_imaging_data.argument.steps                               = [add,flag,shift,correct,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,correct1,correct2,flagzero,avg]
 {% else %}
-prepare_imaging_data.argument.steps                               = [add,shift,correct,flagzero,avg]
-{% endif %}
-prepare_imaging_data.argument.add.type                            = predict
-prepare_imaging_data.argument.add.sourcedb                        = sourcedb
-prepare_imaging_data.argument.add.operation                       = add
-{% if not selfcal_ok %}
-prepare_imaging_data.argument.add.applycal.parmdb                 = dir_indep_parmdb
-{% else %}
-prepare_imaging_data.argument.add.applycal.parmdb                 = dir_dep_parmdb
+prepare_imaging_data.argument.steps                               = [shift,correct1,correct2,flagzero,avg]
 {% endif %}
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 prepare_imaging_data.argument.flag.type                           = preflagger
@@ -181,9 +71,14 @@ prepare_imaging_data.argument.flag.flag_freqrange.freqrange       = {{ flag_freq
 {% endif %}
 prepare_imaging_data.argument.shift.type                          = phaseshifter
 prepare_imaging_data.argument.shift.phasecenter                   = [{{ facet_ra }}deg, {{ facet_dec }}deg]
-prepare_imaging_data.argument.correct.type                        = applycal
-prepare_imaging_data.argument.correct.parmdb                      = dir_dep_parmdb
-prepare_imaging_data.argument.correct.invert                      = True
+prepare_imaging_data.argument.correct1.type                        = applycal
+prepare_imaging_data.argument.correct1.parmdb                      = dde_parmdb
+prepare_imaging_data.argument.correct1.correction                  = tec000
+prepare_imaging_data.argument.correct1.direction                   = {{ direction_name }}
+prepare_imaging_data.argument.correct2.type                        = applycal
+prepare_imaging_data.argument.correct2.parmdb                      = dde_parmdb
+prepare_imaging_data.argument.correct2.correction                  = scalarphase000
+prepare_imaging_data.argument.correct2.direction                   = {{ direction_name }}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
 prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20
 prepare_imaging_data.argument.avg.type                            = squash
@@ -226,11 +121,7 @@ premask.argument.make_blank_image      = True
 
 # do the first round of imaging, length = 1
 wsclean_image_full.control.type                   = wsclean
-{% if average_image_data %}
-wsclean_image_full.control.mapfiles_in            = [concat_reaveraged_compressed_map.output.mapfile,premask.output.mapfile]
-{% else %}
 wsclean_image_full.control.mapfiles_in            = [{{ image_data_mapfile }},premask.output.mapfile]
-{% endif %}
 wsclean_image_full.control.inputkeys              = [msfile,fitsmask]
 {% if wsclean_nchannels > 1 %}
 wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fitbeam,-reorder,-local-rms,-joinchannels,msfile]
@@ -285,3 +176,45 @@ adjust_wsclean_mapfile2.control.mapfile_in  = create_imagebase_map2.output.mapfi
 adjust_wsclean_mapfile2.control.append      = {{ wsclean_suffix }}
 adjust_wsclean_mapfile2.control.mapfile_dir = input.output.mapfile_dir
 adjust_wsclean_mapfile2.control.filename    = final_image.mapfile
+
+# convert the new sky model into a sourcedb, length = nbands
+make_sourcedb_new_facet_sources.control.type       = make_sourcedb
+make_sourcedb_new_facet_sources.control.mapfile_in = wsclean_image_full.output.wsclean_image_full-sources.txt.mapfile
+make_sourcedb_new_facet_sources.control.inputkey   = in
+make_sourcedb_new_facet_sources.argument.format    = <
+make_sourcedb_new_facet_sources.argument.outtype   = blob
+make_sourcedb_new_facet_sources.argument.append    = False
+
+# expand the sourcedb mapfile so that there is one entry for every file, length = nfiles
+expand_sourcedb_new_facet_sources.control.kind           = plugin
+expand_sourcedb_new_facet_sources.control.type           = mapfileSingleToGroup
+expand_sourcedb_new_facet_sources.control.mapfile_in     = make_sourcedb_new_facet_sources.output.mapfile
+expand_sourcedb_new_facet_sources.control.mapfile_groups = create_msmulti_map.output.mapfile
+expand_sourcedb_new_facet_sources.control.mapfile_dir    = input.output.mapfile_dir
+expand_sourcedb_new_facet_sources.control.filename       = expand_sourcedb_new_facet_sources.mapfile
+
+# predict the new models, length = nfiles
+# compress weights only
+predict_models.control.type                                 = dppp
+predict_models.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_sourcedb_new_facet_sources.output.mapfile,expand_parmdb_map.output.mapfile]
+predict_models.control.inputkeys                            = [msin,dir_dep_sourcedb,dir_dep_parmdb]
+predict_models.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
+predict_models.argument.msin.datacolumn                     = DATA
+predict_models.argument.msout.overwrite                     = True
+predict_models.argument.msout.writefullresflag              = False
+{% if local_dir is not none %}
+predict_models.argument.local_scratch_dir                   = {{ local_dir }}
+{% endif %}
+predict_models.argument.steps                               = [pred_new,subtract_old]
+predict_models.argument.pred_new.type                       = predict
+predict_models.argument.pred_new.sourcedb                   = dir_dep_sourcedb
+predict_models.argument.pred_new.applycal.parmdb            = dir_dep_parmdb
+predict_models.argument.pred_new.operation                  = replace
+{% if use_compression %}
+predict_models.argument.msout.storagemanager                = "Dysco"
+predict_models.argument.msout.storagemanager.databitrate    = 0
+predict_models.argument.msout.storagemanager.weightbitrate  = 12
+predict_models.argument.msout.storagemanager.distribution   = "TruncatedGaussian"
+predict_models.argument.msout.storagemanager.disttruncation = 1.5
+predict_models.argument.msout.storagemanager.normalization  = "AF"
+{% endif %}

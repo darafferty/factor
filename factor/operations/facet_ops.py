@@ -254,8 +254,8 @@ class FacetSub(Operation):
         Finalize this operation
         """
         # Delete the full-resolution model-difference files
-        if hasattr(self.direction, 'diff_models_field_mapfile'):
-            self.direction.cleanup_mapfiles.append(self.direction.diff_models_field_mapfile)
+        if hasattr(self.direction, 'models_field_mapfile'):
+            self.direction.cleanup_mapfiles.append(self.direction.models_field_mapfile)
         self.log.debug('Cleaning up files (direction: {})'.format(self.direction.name))
         self.direction.cleanup()
         self.cleanup()
@@ -310,7 +310,7 @@ class FacetImage(Operation):
 
     """
     def __init__(self, parset, bands, direction, cellsize_arcsec, robust,
-        taper_arcsec, min_uv_lambda):
+        taper_arcsec, min_uv_lambda, iter=0):
         # Set name from the facet imaging parameters. If the parameters are all
         # the same as those used for selfcal, just use 'FacetImage'; otherwise,
         # append the parameters
@@ -318,18 +318,16 @@ class FacetImage(Operation):
         if (cellsize_arcsec != parset['imaging_specific']['selfcal_cellsize_arcsec'] or
             robust != selfcal_robust or taper_arcsec != 0.0 or
             min_uv_lambda != parset['imaging_specific']['selfcal_min_uv_lambda']):
-            name = 'FacetImage_c{0}r{1}t{2}u{3}'.format(round(cellsize_arcsec, 1),
-                    round(robust, 2), round(taper_arcsec, 1), round(min_uv_lambda, 1))
+            name = 'FacetImage_c{0}r{1}t{2}u{3}_i{4}'.format(round(cellsize_arcsec, 1),
+                    round(robust, 2), round(taper_arcsec, 1), round(min_uv_lambda, 1),
+                    iter)
         else:
-            name = 'FacetImage'
+            name = 'FacetImage_i{0}'.format(iter)
         super(FacetImage, self).__init__(parset, bands, direction,
             name=name)
 
         # Set the pipeline parset to use
-        if parset['imaging_specific']['automask_facet_image']:
-            self.pipeline_parset_template = 'facetimage_pipeline.parset'
-        else:
-            self.pipeline_parset_template = 'facetimage_noautomask_pipeline.parset'
+        self.pipeline_parset_template = 'facetimage_pipeline.parset'
 
         # Set flag for full-resolution run (used in finalize() to ensure that averaging
         # of the calibrated data is not too much for use by later imaging runs)
@@ -365,15 +363,13 @@ class FacetImage(Operation):
         for bandfiles in ms_files:
             for filename in bandfiles:
                 ms_files_single.append(filename)
-        dir_indep_parmDBs = []
+        dde_h5parm = []
         for band in self.bands:
-            for parmdb in band.dirindparmdbs:
-                dir_indep_parmDBs.append(parmdb)
-        skymodels = [band.skymodel_dirindep for band in self.bands]
+            for parmdb in band.h5parmdb:
+                dde_h5parm.append(parmdb)
         self.parms_dict.update({'ms_files_single': ms_files_single,
                                 'ms_files_grouped' : str(ms_files),
-                                'skymodels': skymodels,
-                                'dir_indep_parmDBs': dir_indep_parmDBs})
+                                'dde_h5parm': dde_h5parm})
 
 
     def finalize(self):
@@ -392,21 +388,10 @@ class FacetImage(Operation):
                 'final_image.mapfile')}
             self.direction.facet_premask_mapfile = {self.name.lower(): os.path.join(self.pipeline_mapfile_dir,
                 'premask.mapfile')}
+        # Store mapfile for new models, needed by facetsub op
+        self.direction.models_field_mapfile = os.path.join(self.pipeline_mapfile_dir,
+            'predict_models.mapfile')
 
-        # Store the image_data_mapfile for use by other imaging runs. We do not
-        # update this if use_existing_data is True, as in this case it should
-        # point to the mapfile of the existing data for this direction. Also, we
-        # set this only if this is a full-res imaging run, to ensure that the
-        # averaging is not too much for use by later imaging runs
-        if not self.direction.use_existing_data and self.full_res:
-            self.direction.image_data_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                'imaging_input.mapfile')
-
-            # We also need to save the averaging steps for these data, so that
-            # for the next imaging run, we can determine new averaging steps
-            # that will give the correct cumulative averaging
-            self.direction.full_res_facetimage_freqstep = self.direction.facetimage_freqstep
-            self.direction.full_res_facetimage_timestep = self.direction.facetimage_timestep
 
         # Delete temp data
         self.direction.cleanup_mapfiles = [

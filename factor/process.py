@@ -74,220 +74,33 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,
     test_run, reset_directions, reset_operations)
 
-    # Run peeling operations on outlier directions and any facets
-    # for which the calibrator is to be peeled
+    # Run imaging operations on directions
+    niter = 5
     set_sub_data_colname = True
-    set_preapply_flag = True
-    peel_directions = [d for d in directions if d.is_outlier]
-    peel_directions.extend([d for d in directions if d.peel_calibrator])
-    if len(peel_directions) > 0:
-        log.info('Peeling {0} direction(s)'.format(len(peel_directions)))
+    for i in range(niter):
+        log.info('Imaging {0} direction(s)'.format(
+            len(directions)))
 
-        # Set flag for first non-outlier direction (if any) to create preapply parmdb
-        for d in peel_directions:
-            if not d.is_outlier:
-                d.create_preapply_parmdb = True
-                break
+        # Update thresholds
+        for d in directions:
+            d.set_imaging_parameters(parset, bands, iter=i)
 
-        # Reset if needed
-        direction_group_reset = [d for d in peel_directions if d.do_reset]
-        direction_group_reset_facetsub = [d for d in direction_group_reset if
-            'facetsub' in d.reset_operations]
-        if len(direction_group_reset_facetsub) > 0:
-            for d in direction_group_reset_facetsub:
-                if ('facetsubreset' in d.completed_operations or
-                    'facetsubreset' in reset_operations):
-                    # Reset a previous reset, but only if it completed successfully
-                    # or is explicitly specified for reset (to allow one to resume
-                    # facetsubreset instead of always resetting and restarting it)
-                    d.reset_state('facetsubreset')
-            ops = [FacetSubReset(parset, bands, d) for d in direction_group_reset_facetsub]
-            for op in ops:
-                scheduler.run(op)
-        for d in direction_group_reset:
-            d.reset_state(['outlierpeel', 'facetpeel', 'facetsub'])
-
-        # Do the peeling
-        for d in peel_directions:
-            if d.is_outlier:
-                op = OutlierPeel(parset, bands, d)
-            else:
-                op = FacetPeel(parset, bands, d)
-            scheduler.run(op)
-
-            # Check whether direction went through peeling successfully. If so,
-            # subtract and set various flags if needed. If not successful, exit
-            if d.selfcal_ok:
-                # Subtract improved model(s) with DDE calibration
-                op = FacetSub(parset, bands, d)
-                scheduler.run(op)
-
-                # Set the name of the subtracted data column for subsequent directions
-                if set_sub_data_colname:
-                    for direction in directions:
-                        direction.subtracted_data_colname = 'CORRECTED_DATA'
-                    set_sub_data_colname = False
-
-                # Set the flag for preapplication of selfcal solutions, but only
-                # if this direction is not an outlier (as its solutions are likely
-                # too different to be useful)
-                if (set_preapply_flag and
-                    parset['calibration_specific']['preapply_first_cal_phases'] and
-                    not d.is_outlier):
-                    for direction in directions:
-                        if direction.name != d.name:
-                            direction.preapply_phase_cal = True
-                            direction.preapply_parmdb_mapfile = d.preapply_parmdb_mapfile
-                    set_preapply_flag = False
-            else:
-                log.error('Peeling failed for direction {0}.'.format(d.name))
-                log.info('Exiting...')
-                sys.exit(1)
-
-    if stop_after: log.debug('Will stop after processing {} selfcal-groups.'.format(stop_after))
-    # Run selfcal and subtract operations on direction groups
-    for gindx, direction_group in enumerate(direction_groups):
-        if stop_after and gindx >= stop_after:
-            log.warn('Stopping after having processed {} groups.'.format(stop_after))
-            log.info('Exiting...')
-            sys.exit(0)
-
-        log.info('Self calibrating {0} direction(s) in Group {1}'.format(
-            len(direction_group), gindx+1))
-
-        # Set up reset of any directions that need it. If the direction has
-        # already been through the facetsub operation, we must undo the
-        # changes with the facetsubreset operation
-        direction_group_reset = [d for d in direction_group if d.do_reset]
-        direction_group_reset_facetsub = [d for d in direction_group_reset if
-            'facetsub' in d.reset_operations]
-        if len(direction_group_reset_facetsub) > 0:
-            for d in direction_group_reset_facetsub:
-                # Set subtracted data column to ensure we are using the new one
-                d.subtracted_data_colname = 'CORRECTED_DATA'
-
-                if ('facetsubreset' in d.completed_operations or
-                    'facetsubreset' in reset_operations):
-                    # Reset a previous reset, but only if it completed successfully
-                    # or is explicitly specified for reset (to allow one to resume
-                    # facetsubreset instead of always resetting and restarting it)
-                    d.reset_state('facetsubreset')
-            ops = [FacetSubReset(parset, bands, d) for d in direction_group_reset_facetsub]
-            for op in ops:
-                scheduler.run(op)
-        for d in direction_group_reset:
-            d.reset_state(['facetselfcal', 'facetsub'])
-
-        # Set flag for first direction to create preapply parmdb
-        if set_preapply_flag:
-            direction_group[0].create_preapply_parmdb = True
-
-        # Do selfcal on calibrator only
-        ops = [FacetSelfcal(parset, bands, d) for d in direction_group]
+        # Image
+        ops = [FacetImage(parset, bands, d, iter=i) for d in directions]
         scheduler.run(ops)
 
-        if dry_run:
-            # For dryrun, skip selfcal verification
-            for d in direction_group:
-                d.selfcal_ok = True
-        direction_group_ok = [d for d in direction_group if d.selfcal_ok]
         if set_sub_data_colname:
             # Set the name of the subtracted data column for remaining
-            # directions (if needed)
-            if len(direction_group_ok) > 0:
-                for d in directions:
-                    if d.name != direction_group_ok[0].name:
-                        d.subtracted_data_colname = 'CORRECTED_DATA'
-                set_sub_data_colname = False
-        if set_preapply_flag:
-            # Set the flag for preapplication of selfcal solutions (if needed)
-            if len(direction_group_ok) > 0:
-                if parset['calibration_specific']['preapply_first_cal_phases']:
-                    for d in directions:
-                        if d.name != direction_group_ok[0].name:
-                            d.preapply_phase_cal = True
-                            d.preapply_parmdb_mapfile = direction_group_ok[0].preapply_parmdb_mapfile
-                set_preapply_flag = False
+            # directions
+            for d in directions:
+                if d.name != directions[0].name:
+                    d.subtracted_data_colname = 'CORRECTED_DATA'
+            set_sub_data_colname = False
 
-        # Subtract final model(s) for directions for which selfcal went OK
-        ops = [FacetSub(parset, bands, d) for d in direction_group_ok]
+        # Subtract model
+        ops = [FacetSub(parset, bands, d) for d in directions]
         for op in ops:
             scheduler.run(op)
-
-        # Handle directions in this group for which selfcal failed
-        selfcal_ok = [d.selfcal_ok for d in direction_group]
-        for d in direction_group:
-            if not d.selfcal_ok:
-                log.warn('Self calibration failed for direction {0}.'.format(d.name))
-        if not all(selfcal_ok) and parset['calibration_specific']['exit_on_selfcal_failure']:
-            log.info('Exiting...')
-            sys.exit(1)
-
-    # Check that at least one direction went through selfcal successfully. If
-    # not, exit
-    if len([d for d in directions if d.selfcal_ok]) == 0:
-        log.warn('Self calibration failed for all directions. Exiting...')
-        sys.exit(1)
-
-    # Image facets for each set of cellsize, robust, taper, and uv cut settings
-    cellsizes = parset['imaging_specific']['facet_cellsize_arcsec']
-    tapers = parset['imaging_specific']['facet_taper_arcsec']
-    robusts = parset['imaging_specific']['facet_robust']
-    min_uvs = parset['imaging_specific']['facet_min_uv_lambda']
-    selfcal_robust = parset['imaging_specific']['selfcal_robust']
-    nimages = len(cellsizes)
-    dirs_with_selfcal = [d for d in directions if d.selfcal_ok]
-    if parset['imaging_specific']['image_target_only']:
-        dirs_with_selfcal_to_image = [d for d in dirs_with_selfcal if not d.is_patch
-            and not d.is_outlier and d.contains_target]
-        dirs_without_selfcal_to_image = [d for d in directions if not d.selfcal_ok and not
-            d.is_patch and not d.is_outlier and d.contains_target]
-    else:
-        dirs_with_selfcal_to_image = [d for d in dirs_with_selfcal if not d.is_patch
-            and not d.is_outlier]
-        dirs_without_selfcal_to_image = [d for d in directions if not d.selfcal_ok and not
-            d.is_patch and not d.is_outlier]
-    if len(dirs_without_selfcal_to_image) > 0:
-        log.info('Imaging the following direction(s) with nearest self calibration solutions:')
-        log.info('{0}'.format([d.name for d in dirs_without_selfcal_to_image]))
-    for d in dirs_without_selfcal_to_image:
-        # Search for nearest direction with successful selfcal
-        nearest, sep = factor.directions.find_nearest(d, dirs_with_selfcal)
-        log.debug('Using solutions from direction {0} for direction {1} '
-            '(separation = {2} deg).'.format(nearest.name, d.name, sep))
-        d.converted_parmdb_mapfile = nearest.converted_parmdb_mapfile
-        d.save_state()
-    if len(dirs_with_selfcal_to_image + dirs_without_selfcal_to_image) > 0:
-        for image_indx, (cellsize_arcsec, taper_arcsec, robust, min_uv_lambda) in enumerate(
-            zip(cellsizes, tapers, robusts, min_uvs)):
-
-            # Always image directions that did not go through selfcal
-            dirs_to_image = dirs_without_selfcal_to_image[:]
-
-            # Only reimage facets with selfcal imaging parameters if reimage_selfcal flag is set
-            full_res_im, opname = _get_image_type_and_name(cellsize_arcsec, taper_arcsec,
-                robust, selfcal_robust, min_uv_lambda, parset)
-            if full_res_im:
-                dirs_to_image += dirs_with_selfcal_to_image
-            else:
-                dirs_to_image += dirs_with_selfcal_to_image
-
-            if len(dirs_to_image) > 0:
-                log.info('Imaging with cellsize = {0} arcsec, robust = {1}, '
-                    'taper = {2} arcsec, min_uv = {3} lambda'.format(cellsize_arcsec,
-                    robust, taper_arcsec, min_uv_lambda))
-                log.info('Imaging the following direction(s):')
-                log.info('{0}'.format([d.name for d in dirs_to_image]))
-
-            # Reset facetimage op for any directions that need it
-            directions_reset = [d for d in dirs_to_image if d.do_reset]
-            for d in directions_reset:
-                d.reset_state(opname)
-
-            # Do facet imaging
-            ops = [FacetImage(parset, bands, d, cellsize_arcsec, robust,
-                taper_arcsec, min_uv_lambda) for d in dirs_to_image]
-            scheduler.run(ops)
 
         # Mosaic the final facet images together
         if parset['imaging_specific']['make_mosaic']:
@@ -682,15 +495,9 @@ def _set_up_directions(parset, bands, dry_run=False, test_run=False,
         direction.field_ra = bands[0].ra
         direction.field_dec = bands[0].dec
 
-        # Set initial name of column that contains SUBTRACTED_DATA_ALL
-        if parset['use_compression']:
-            # Since we compressed the input data, SUBTRACTED_DATA_ALL is now
-            # the DATA column
-            direction.subtracted_data_colname = 'DATA'
-            direction.use_compression = True
-        else:
-            direction.subtracted_data_colname = 'SUBTRACTED_DATA_ALL'
-            direction.use_compression = False
+        # Set initial name of column that contains DATA
+        direction.subtracted_data_colname = 'DATA'
+        direction.use_compression = True
 
         # Set any flagging parameters
         direction.flag_abstime = parset['flag_abstime']
