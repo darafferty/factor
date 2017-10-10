@@ -81,10 +81,6 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
         log.info('Imaging {0} direction(s)'.format(
             len(directions)))
 
-        # Update thresholds
-        for d in directions:
-            d.set_imaging_parameters(parset, bands, iter=i)
-
         # Image
         ops = [FacetImage(parset, bands, d, iter=i) for d in directions]
         scheduler.run(ops)
