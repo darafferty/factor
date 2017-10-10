@@ -264,7 +264,7 @@ class Band(object):
         # This may be come an option, so I kept the code for the time being. AH 14.3.2016
         check_all_unflagged = False
         if check_all_unflagged:
-            for f newfiles[:]:
+            for f in newfiles[:]:
                 if self.find_unflagged_fraction(f) < min_fraction:
                     newfiles.remove(f)
                     self.log.debug('Skipping file {0} in further processing '
