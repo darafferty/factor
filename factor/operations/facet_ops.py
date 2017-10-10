@@ -262,7 +262,7 @@ class FacetSub(Operation):
         """
         # Delete the full-resolution model files
         if hasattr(self.direction, 'models_mapfile'):
-            self.direction.cleanup_mapfiles.append(self.direction.models_field_mapfile)
+            self.direction.cleanup_mapfiles.append(self.direction.models_mapfile)
         self.log.debug('Cleaning up files (direction: {})'.format(self.direction.name))
         self.direction.cleanup()
         self.cleanup()
