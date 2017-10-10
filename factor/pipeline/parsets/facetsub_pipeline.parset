@@ -5,7 +5,7 @@ pipeline.pluginpath = {{ pipeline_dir }}/plugins
 # update hosts information in old mapfile, length = nfiles
 update_models_hosts.control.kind       = plugin
 update_models_hosts.control.type       = updateHosts
-update_models_hosts.control.mapfile_in = {{ models_field_mapfile }}
+update_models_hosts.control.mapfile_in = {{ models_mapfile }}
 update_models_hosts.control.hosts      = {{ hosts }}
 
 # update hosts information in old mapfile, length = nfiles
@@ -17,7 +17,7 @@ update_input_bands_hosts.control.hosts      = {{ hosts }}
 {% block add_sub_parms %}
 # subtract model from original data, length = nfiles
 sub_model.control.type        = add_subtract_columns
-sub_model.control.mapfiles_in = [{{ input_files_single_mapfile }},{{ models_field_mapfile }}]
+sub_model.control.mapfiles_in = [{{ input_files_single_mapfile }},{{ models_mapfile }}]
 sub_model.control.inputkeys   = [file1,file2]
 sub_model.argument.flags      = [file1,file2,{{ subtracted_data_colname }},DATA,CORRECTED_DATA,subtract]
 {% endblock add_sub_parms %}

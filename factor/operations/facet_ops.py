@@ -390,7 +390,7 @@ class FacetImage(Operation):
                 'premask.mapfile')}
         # Store mapfile for new models, needed by facetsub op
         self.direction.models_field_mapfile = os.path.join(self.pipeline_mapfile_dir,
-            'predict_models.mapfile')
+            'corrupt_models.mapfile')
 
 
         # Delete temp data
