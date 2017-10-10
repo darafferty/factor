@@ -85,7 +85,7 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
         ops = [FacetImage(parset, bands, d,
             parset['imaging_specific']['selfcal_cellsize_arcsec'],
             parset['imaging_specific']['selfcal_robust'], 0.0,
-            parset['imaging_specific']['selfcal_min_uv_lambda']
+            parset['imaging_specific']['selfcal_min_uv_lambda'],
             iter=i) for d in directions]
         scheduler.run(ops)
 
