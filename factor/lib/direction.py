@@ -546,7 +546,7 @@ class Direction(object):
         """
         Returns list of source sizes in arcmin
         """
-        if skymodel is not None:
+        if self.skymodel is not None:
             skymodel = self.skymodel.copy()
             if cal_only:
                 dist = skymodel.getDistance(self.ra, self.dec, byPatch=True)
