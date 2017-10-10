@@ -574,28 +574,31 @@ class Direction(object):
             Jy per beam for calibrator
 
         """
-        dist = self.skymodel.getDistance(self.ra, self.dec)
-        skymodel = self.skymodel.copy()
-        skymodel.select(dist < self.cal_radius_deg)
+        if self.skymodel is not None:
+            dist = self.skymodel.getDistance(self.ra, self.dec)
+            skymodel = self.skymodel.copy()
+            skymodel.select(dist < self.cal_radius_deg)
 
-        # Generate image grid with 1 pix = FWHM / 4
-        x, y, midRA, midDec  = skymodel._getXY(crdelt=fwhmArcsec/4.0/3600.0)
-        fluxes_jy = skymodel.getColValues('I', units='Jy')
-        sizeX = int(np.ceil(1.2 * (max(x) - min(x)))) + 1
-        sizeY = int(np.ceil(1.2 * (max(y) - min(y)))) + 1
-        image = np.zeros((sizeX, sizeY))
-        xint = np.array(x, dtype=int)
-        xint += -1 * min(xint)
-        yint = np.array(y, dtype=int)
-        yint += -1 * min(yint)
-        for xi, yi, f in zip(xint, yint, fluxes_jy):
-            image[xi, yi] = f
+            # Generate image grid with 1 pix = FWHM / 4
+            x, y, midRA, midDec  = skymodel._getXY(crdelt=fwhmArcsec/4.0/3600.0)
+            fluxes_jy = skymodel.getColValues('I', units='Jy')
+            sizeX = int(np.ceil(1.2 * (max(x) - min(x)))) + 1
+            sizeY = int(np.ceil(1.2 * (max(y) - min(y)))) + 1
+            image = np.zeros((sizeX, sizeY))
+            xint = np.array(x, dtype=int)
+            xint += -1 * min(xint)
+            yint = np.array(y, dtype=int)
+            yint += -1 * min(yint)
+            for xi, yi, f in zip(xint, yint, fluxes_jy):
+                image[xi, yi] = f
 
-        # Convolve with Gaussian of FWHM = 4 pixels
-        image_blur = gaussian_filter(image, [4.0/2.35482, 4.0/2.35482])
-        beam_area_pix = 1.1331*(4.0)**2
+            # Convolve with Gaussian of FWHM = 4 pixels
+            image_blur = gaussian_filter(image, [4.0/2.35482, 4.0/2.35482])
+            beam_area_pix = 1.1331*(4.0)**2
 
-        return np.sum(fluxes_jy), np.max(image_blur)*beam_area_pix
+            return np.sum(fluxes_jy), np.max(image_blur)*beam_area_pix
+        else:
+            return 1.0, 1.0
 
 
     def set_averaging_steps_and_solution_intervals(self, chan_width_hz, nchan,
