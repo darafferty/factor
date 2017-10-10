@@ -110,7 +110,7 @@ class Band(object):
             self.fwhm_deg = 1.1 * ((3.0e8 / self.freq) / self.diam) * 180. / np.pi * sec_el
 
             # cut input files into chunks if needed
-            self.chunk_input_files(chunk_size_sec, dirindparmdb, local_dir=local_dir,
+            self.chunk_input_files(chunk_size_sec, local_dir=local_dir,
                                    test_run=test_run, use_compression=use_compression,
                                    min_fraction=min_fraction)
             if len(self.files) == 0:
@@ -162,7 +162,7 @@ class Band(object):
         self.log.debug('Missing channels: {}'.format(self.missing_channels))
 
 
-    def chunk_input_files(self, chunksize, dirindparmdb, local_dir=None,
+    def chunk_input_files(self, chunksize, local_dir=None,
         test_run=False, min_fraction=0.5, use_compression=False):
         """
         Make copies of input files that are smaller than 2*chunksize
@@ -175,8 +175,6 @@ class Band(object):
         ----------
         chunksize : float
             length of a chunk in seconds
-        dirindparmdb : str
-            Name of direction-independent instrument parmdb inside the new chunk files
         local_dir : str
             Path to local scratch directory for temp output. The file is then
             copied to the original output directory
@@ -190,7 +188,6 @@ class Band(object):
 
         """
         newfiles = []
-        newdirindparmdbs = []
         for MS_id in xrange(self.numMS):
             nchunks = 1
             tab = pt.table(self.files[MS_id], ack=False)
@@ -230,11 +227,9 @@ class Band(object):
                 pool = multiprocessing.Pool()
                 results = pool.map(process_chunk_star,
                     itertools.izip(itertools.repeat(self.files[MS_id]),
-                    itertools.repeat(self.dirindparmdbs[MS_id]),
                     range(nchunks), itertools.repeat(nchunks),
                     itertools.repeat(mystarttime),
                     itertools.repeat(myendtime), itertools.repeat(chunksize),
-                    itertools.repeat(dirindparmdb),
                     itertools.repeat(colnames_to_keep),
                     itertools.repeat(newdirname),
                     itertools.repeat(local_dir),
@@ -243,15 +238,13 @@ class Band(object):
                 pool.close()
                 pool.join()
 
-                for chunk_file, chunk_parmdb in results:
-                    if bool(chunk_file) and bool(chunk_parmdb) :
+                for chunk_file in results:
+                    if bool(chunk_file):
                         newfiles.append(chunk_file)
-                        newdirindparmdbs.append(chunk_parmdb)
             else:
                 # Make symlinks for the files
                 chunk_name = '{0}_chunk0.ms'.format(os.path.splitext(os.path.basename(self.files[MS_id]))[0])
                 chunk_file = os.path.join(newdirname, chunk_name)
-                newdirindparmdb = os.path.join(chunk_file, dirindparmdb)
 
                 if not os.path.exists(chunk_file):
                     # It's a "new" file, check that the chunk has at least min_fraction
@@ -264,21 +257,16 @@ class Band(object):
                         continue
                     os.symlink(self.files[MS_id], chunk_file)
 
-                if not os.path.exists(newdirindparmdb):
-                    os.symlink(self.dirindparmdbs[MS_id], newdirindparmdb)
-
                 newfiles.append(chunk_file)
-                newdirindparmdbs.append(newdirindparmdb)
 
         # Check that each file has at least min_fraction unflagged data. If not, remove
         # it from the file list.
         # This may be come an option, so I kept the code for the time being. AH 14.3.2016
         check_all_unflagged = False
         if check_all_unflagged:
-            for f, p in zip(newfiles[:], newdirindparmdbs[:]):
+            for f newfiles[:]:
                 if self.find_unflagged_fraction(f) < min_fraction:
                     newfiles.remove(f)
-                    newdirindparmdbs.remove(p)
                     self.log.debug('Skipping file {0} in further processing '
                         '(unflagged fraction < {1}%)'.format(f, min_fraction*100.0))
 
@@ -286,7 +274,6 @@ class Band(object):
             return
         self.files = newfiles
         self.msnames = [ os.path.basename(MS) for MS in self.files ]
-        self.dirindparmdbs = newdirindparmdbs
         self.numMS = len(self.files)
 
 
@@ -401,7 +388,7 @@ def process_chunk_star(inputs):
     return process_chunk(*inputs)
 
 
-def process_chunk(ms_file, ms_parmdb, chunkid, nchunks, mystarttime, myendtime, chunksize, dirindparmdb,
+def process_chunk(ms_file, chunkid, nchunks, mystarttime, myendtime, chunksize,
     colnames_to_keep, newdirname, local_dir=None, min_fraction=0.1, use_compression=True):
     """
     Processes one time chunk of input ms_file and returns new file names
@@ -441,8 +428,6 @@ def process_chunk(ms_file, ms_parmdb, chunkid, nchunks, mystarttime, myendtime, 
     -------
     chunk_file : str
         Filename of chunk MS or None
-    newdirindparmdb : str
-        Filename of direction-independent instrument parmdb for chunk_file or None
 
     """
     log = logging.getLogger('factor:MS-chunker')
@@ -491,8 +476,6 @@ def process_chunk(ms_file, ms_parmdb, chunkid, nchunks, mystarttime, myendtime, 
             copy = True
     else:
         copy = True
-
-    newdirindparmdb = os.path.join(chunk_file, dirindparmdb)
 
     if copy:
         log.debug('Going to copy {0} samples to file {1}'.format(str(len(seltab)),chunk_file))
@@ -572,7 +555,6 @@ def process_chunk(ms_file, ms_parmdb, chunkid, nchunks, mystarttime, myendtime, 
                 shutil.rmtree(chunk_file)
             chunk_file = chunk_file_original
 
-        shutil.copytree(ms_parmdb, newdirindparmdb)
     else:
         log.debug('Chunk {} exists with correct length, not copying!'.format(chunk_name))
 
@@ -589,4 +571,4 @@ def process_chunk(ms_file, ms_parmdb, chunkid, nchunks, mystarttime, myendtime, 
         tab.close()
         return (None, None)
 
-    return (chunk_file, newdirindparmdb)
+    return chunk_file
