@@ -271,19 +271,8 @@ def _set_up_bands(parset, test_run=False):
     for MSkey in msdict.keys():
         # Check for any sky models specified by user
         # there only needs to be a skymodel specified for one file in each band
-        skymodel_dirindep = None
-        for ms in msdict[MSkey]:
-            msbase = os.path.basename(ms)
-            if msbase in parset['ms_specific']:
-                if 'init_skymodel' in parset['ms_specific'][msbase]:
-                    skymodel_dirindep = parset['ms_specific'][msbase]['init_skymodel']
-                    if not os.path.exists(skymodel_dirindep):
-                        log.error('Sky model specified in parset for band {} was '
-                            'not found. Exiting...'.format(msbase))
-                        sys.exit(1)
-                    break
-        band = Band(msdict[MSkey], parset['dir_working'], parset['parmdb_name'],
-            skymodel_dirindep, local_dir=parset['cluster_specific']['dir_local'],
+        band = Band(msdict[MSkey], parset['dir_working'],
+            local_dir=parset['cluster_specific']['dir_local'],
             test_run=test_run, chunk_size_sec=parset['chunk_size_sec'],
             use_compression=parset['use_compression'],
             min_fraction=parset['min_fraction_per_band'])
@@ -344,15 +333,6 @@ def _set_up_bands(parset, test_run=False):
             not factor.directions.approx_equal(dec, dec_list[0], tol=pos_tol_deg)):
             log.error('Input bands do not have a common phase center. Exiting...')
             sys.exit(1)
-
-    # Determine whether any bands lack an initial sky model
-    bands_no_skymodel = [b for b in bands if b.skymodel_dirindep is None]
-    if len(bands_no_skymodel) > 0:
-        band_names = ', '.join([b.name for b in bands_no_skymodel])
-        log.error('A direction-indpendent sky model was not found for the '
-            'following bands: {}'.format(band_names))
-        log.info('Exiting...')
-        sys.exit(1)
 
     return bands
 

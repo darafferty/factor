@@ -42,15 +42,14 @@ class Band(object):
         to be kept
 
     """
-    def __init__(self, MSfiles, factor_working_dir, dirindparmdb,
-        skymodel_dirindep=None, local_dir=None, test_run=False, check_files=True,
+    def __init__(self, MSfiles, factor_working_dir,
+        local_dir=None, test_run=False, check_files=True,
         process_files=False, chunk_size_sec=2400.0, use_compression=False,
         min_fraction=0.5):
 
         self.files = MSfiles
         self.msnames = [ MS.split('/')[-1] for MS in self.files ]
         self.working_dir = factor_working_dir
-        self.dirindparmdbs = [ os.path.join(MS, dirindparmdb) for MS in self.files ]
         self.numMS = len(self.files)
 
         # Get the frequency info and set name
@@ -74,7 +73,6 @@ class Band(object):
         # Do some checks if desired
         if process_files or not has_state:
             self.check_freqs()
-            self.check_parmdb()
 
             # Get the field RA and Dec
             obs = pt.table(self.files[0]+'::FIELD', ack=False)
@@ -112,20 +110,6 @@ class Band(object):
             sec_el = 1.0 / np.sin(self.mean_el_rad)
             self.fwhm_deg = 1.1 * ((3.0e8 / self.freq) / self.diam) * 180. / np.pi * sec_el
 
-            # Check for SUBTRACTED_DATA_ALL column in original datasets
-            self.has_sub_data = True
-            self.has_sub_data_new = False
-            for MSid in xrange(self.numMS):
-                tab = pt.table(self.files[MSid], ack=False)
-                if not 'SUBTRACTED_DATA_ALL' in tab.colnames():
-                    self.log.error('SUBTRACTED_DATA_ALL column not found in file '
-                        '{}'.format(self.files[MSid]))
-                    self.has_sub_data = False
-                tab.close()
-            if not self.has_sub_data:
-                self.log.info('Exiting...')
-                sys.exit(1)
-
             # cut input files into chunks if needed
             self.chunk_input_files(chunk_size_sec, dirindparmdb, local_dir=local_dir,
                                    test_run=test_run, use_compression=use_compression,
@@ -154,124 +138,6 @@ class Band(object):
         self.save_state()
 
         self.log.debug("Using {0} files.".format(len(self.files)))
-        if skymodel_dirindep != None:
-            if not os.path.exists(skymodel_dirindep):
-                self.log.debug("Could not find Skymodel: {}".format(skymodel_dirindep))
-            else:
-                self.log.debug("Using Skymodel: {}".format(os.path.basename(skymodel_dirindep)))
-
-
-    def check_parmdb(self):
-        """
-        Checks the dir-indep instrument parmdb for various problems
-        """
-        for pdb_id in xrange(self.numMS):
-            # Check for special BBS table name "instrument"
-            if os.path.basename(self.dirindparmdbs[pdb_id]) == 'instrument':
-                self.dirindparmdbs[pdb_id] += '_dirindep'
-                if not os.path.exists(self.dirindparmdbs[pdb_id]):
-                    if not os.path.exists(os.path.join(self.files[pdb_id], 'instrument')):
-                        self.log.critical('Direction-independent instument parmdb not found '
-                            'for band {0}'.format(self.files[pdb_id]))
-                        sys.exit(1)
-                    self.log.warn('Direction-independent instument parmdb for band {0} is '
-                        'named "instrument". Copying to "instrument_dirindep" so that BBS '
-                        'will not overwrite this table...'.format(self.files[pdb_id]))
-                    os.system('cp -r {0} {1}'.format(os.path.join(self.files[pdb_id],
-                        'instrument'), self.dirindparmdbs[pdb_id]))
-            if not os.path.exists(self.dirindparmdbs[pdb_id]):
-                self.log.critical('Direction-independent instrument parmdb "{0}" not found '
-                    'for band {1}'.format(self.dirindparmdbs[pdb_id], self.files[pdb_id]))
-                sys.exit(1)
-
-            # Check whether there are ampl/phase or real/imag
-            try:
-                pdb = lofar.parmdb.parmdb(self.dirindparmdbs[pdb_id])
-                solname = pdb.getNames()[0]
-            except IndexError:
-                self.log.critical('Direction-independent instument parmdb appears to be empty '
-                            'for band {0}'.format(self.files[pdb_id]))
-                sys.exit(1)
-            if solname[0:4] != 'Gain':
-                self.log.critical('Direction-independent instument parmdb contains not-handled value {0} '
-                                  'for band {1}'.format(solname,self.files[pdb_id]))
-                sys.exit(1)
-
-            if 'Real' in solname or 'Imag' in solname:
-                # Convert real/imag to phasors
-                self.log.warn('Direction-independent instument parmdb for band {0} contains '
-                    'real/imaginary values. Converting to phase/amplitude...'.format(self.files[pdb_id]))
-                self.convert_parmdb_to_phasors_id(pdb_id)
-            pdb = False
-
-            # Check that there aren't extra default values in the parmdb, as this
-            # confuses DPPP
-            pdb = lofar.parmdb.parmdb(self.dirindparmdbs[pdb_id])
-            solname = pdb.getNames()[0]
-            defvals = pdb.getDefValues()
-            for v in defvals:
-                if 'Ampl' not in v and 'Phase' not in v:
-                    pdb.deleteDefValues(v)
-            pdb.flush()
-
-
-    def convert_parmdb_to_phasors_id(self, pdb_id=0):
-        """
-        Converts a single instrument parmdb from real/imag to phasors
-
-        Parameters
-        ----------
-        pdb_id : int
-            index of the instrument parmdb to convert
-        """
-        phasors_parmdb_file = self.dirindparmdbs[pdb_id] + '_phasors'
-        pdb_in = lofar.parmdb.parmdb(self.dirindparmdbs[pdb_id])
-        pdb_out = lofar.parmdb.parmdb(phasors_parmdb_file, create=True)
-
-        # Check parmdb for non-handled values
-        solnames = pdb_in.getNames()
-        for name in solnames:
-            if name[0:9] != 'Gain:0:0:' and name[0:9] != 'Gain:1:1:':
-                self.log.critical('Direction-independent instument parmdb contains not-handled value {0} '
-                                  'for band {1}'.format(name,self.files[pdb_id]))
-                sys.exit(1)
-
-        # Get station names
-        stations = set([s.split(':')[-1] for s in pdb_in.getNames()])
-
-        # Calculate and store phase and amp values for each station
-        parms = pdb_in.getValuesGrid('*')
-        for i, s in enumerate(stations):
-            if i == 0:
-                freqs = np.copy(parms['Gain:0:0:Imag:{}'.format(s)]['freqs'])
-                freqwidths = np.copy(parms['Gain:0:0:Imag:{}'.format(s)]['freqwidths'])
-                times = np.copy(parms['Gain:0:0:Imag:{}'.format(s)]['times'])
-                timewidths = np.copy(parms['Gain:0:0:Imag:{}'.format(s)]['timewidths'])
-
-            valIm_00 = np.copy(parms['Gain:0:0:Imag:{}'.format(s)]['values'][:, 0])
-            valIm_11 = np.copy(parms['Gain:1:1:Imag:{}'.format(s)]['values'][:, 0])
-            valRe_00 = np.copy(parms['Gain:0:0:Real:{}'.format(s)]['values'][:, 0])
-            valRe_11 = np.copy(parms['Gain:1:1:Real:{}'.format(s)]['values'][:, 0])
-
-            valAmp_00 = np.sqrt((valRe_00**2) + (valIm_00**2))
-            valAmp_11 = np.sqrt((valRe_11**2) + (valIm_11**2))
-            valPh_00 = np.arctan2(valIm_00, valRe_00)
-            valPh_11 = np.arctan2(valIm_11, valRe_11)
-
-            pdb_out.addValues({'Gain:0:0:Phase:{}'.format(s): {'freqs': freqs, 'freqwidths':
-                freqwidths, 'times': times, 'timewidths': timewidths, 'values': valPh_00[:,np.newaxis]}})
-            pdb_out.addValues({'Gain:1:1:Phase:{}'.format(s): {'freqs': freqs, 'freqwidths':
-                freqwidths, 'times': times, 'timewidths': timewidths, 'values': valPh_11[:,np.newaxis]}})
-            pdb_out.addValues({'Gain:0:0:Ampl:{}'.format(s): {'freqs': freqs, 'freqwidths':
-                freqwidths, 'times': times, 'timewidths': timewidths, 'values': valAmp_00[:,np.newaxis]}})
-            pdb_out.addValues({'Gain:1:1:Ampl:{}'.format(s): {'freqs': freqs, 'freqwidths':
-                freqwidths, 'times': times, 'timewidths': timewidths, 'values': valAmp_11[:,np.newaxis]}})
-
-        # Write values
-        pdb_out.flush()
-        pdb_in = False
-        pdb_out = False
-        self.dirindparmdbs[pdb_id] = phasors_parmdb_file
 
 
     def check_freqs(self):
