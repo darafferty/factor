@@ -546,13 +546,16 @@ class Direction(object):
         """
         Returns list of source sizes in arcmin
         """
-        skymodel = self.skymodel.copy()
-        if cal_only:
-            dist = skymodel.getDistance(self.ra, self.dec, byPatch=True)
-            skymodel.select(dist < self.cal_radius_deg, aggregate=True)
-        sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
+        if skymodel is not None:
+            skymodel = self.skymodel.copy()
+            if cal_only:
+                dist = skymodel.getDistance(self.ra, self.dec, byPatch=True)
+                skymodel.select(dist < self.cal_radius_deg, aggregate=True)
+            sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
 
-        return sizes
+            return sizes
+        else:
+            return 0.1
 
 
     def get_cal_fluxes(self, fwhmArcsec=25.0, threshold=0.1):
