@@ -1,4 +1,4 @@
-pipeline.steps = [update_models_hosts, update_input_bands_hosts, {% block add_sub_steps %} sub_model {% endblock add_sub_steps %}]
+pipeline.steps = [update_models_hosts, create_ms_map, {% block add_sub_steps %} sub_model {% endblock add_sub_steps %}]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
