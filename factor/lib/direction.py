@@ -555,7 +555,7 @@ class Direction(object):
 
             return sizes
         else:
-            return 0.1
+            return None
 
 
     def get_cal_fluxes(self, fwhmArcsec=25.0, threshold=0.1):
