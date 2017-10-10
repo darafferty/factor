@@ -253,7 +253,7 @@ class FacetSub(Operation):
         for bandfiles in ms_files:
             for filename in bandfiles:
                 ms_files_single.append(filename)
-        self.parms_dict.update({'ms_files_single': ms_files_single)
+        self.parms_dict.update({'ms_files_single': ms_files_single})
 
 
     def finalize(self):
