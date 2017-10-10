@@ -392,7 +392,7 @@ class FacetImage(Operation):
         self.direction.models_mapfile = os.path.join(self.pipeline_mapfile_dir,
             'corrupt_models.mapfile')
         self.direction.input_files_single_mapfile = os.path.join(self.pipeline_mapfile_dir,
-            'input_files_single.mapfile')
+            'input_bands.mapfile')
 
 
         # Delete temp data
