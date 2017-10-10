@@ -68,7 +68,6 @@ class Band(object):
 
         # Load state (if any)
         has_state = self.load_state()
-        self.skymodel_dirindep = skymodel_dirindep
 
         # Do some checks if desired
         if process_files or not has_state:
