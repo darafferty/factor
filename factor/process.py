@@ -435,7 +435,8 @@ def _set_up_directions(parset, bands, dry_run=False, test_run=False,
     # Set various direction attributes
     for i, direction in enumerate(directions):
         # Set direction sky model
-        direction.set_skymodel(initial_skymodel.copy())
+        if initial_skymodel is not None:
+            direction.set_skymodel(initial_skymodel.copy())
 
         # Set peeling flag (i.e., facet calibrator should be peeled before facet
         # is imaged)
