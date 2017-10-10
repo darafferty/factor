@@ -411,7 +411,7 @@ class Direction(object):
         # the number of bands. We use 6 times more iterations for the full2
         # image to ensure the imager has a reasonable chance to reach the
         # threshold first (which is set by the masking step)
-        scaling_factor = np.sqrt(np.float(nbands)) * np.sqrt(niter+1)
+        scaling_factor = np.sqrt(np.float(nbands)) * np.sqrt(iter+1)
         scaling_factor_selfcal = np.sqrt(np.float(nbands_selfcal)*frac_bandwidth_selfcal)
         self.wsclean_selfcal_full_image_niter = int(4000 * scaling_factor_selfcal)
         self.wsclean_selfcal_full_image_threshold_jy =  1.5e-3 * 0.7 / scaling_factor_selfcal
