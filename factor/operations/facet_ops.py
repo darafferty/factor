@@ -365,11 +365,11 @@ class FacetImage(Operation):
                 ms_files_single.append(filename)
         dde_h5parm = []
         for band in self.bands:
-            for parmdb in band.h5parmdb:
-                dde_h5parm.append(parmdb)
+            for parmdb in band.h5parms:
+                dde_h5parms.append(parmdb)
         self.parms_dict.update({'ms_files_single': ms_files_single,
                                 'ms_files_grouped' : str(ms_files),
-                                'dde_h5parm': dde_h5parm})
+                                'dde_h5parms': dde_h5parms})
 
 
     def finalize(self):

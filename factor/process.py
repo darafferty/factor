@@ -69,6 +69,8 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
 
     # Prepare vis data
     bands = _set_up_bands(parset, test_run)
+    for band in bands:
+        band.h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_tecandphasePF_correctedlosoto.h5.bkup']
 
     # Set up directions and groups
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,

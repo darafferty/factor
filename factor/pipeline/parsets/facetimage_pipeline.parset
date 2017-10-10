@@ -28,7 +28,7 @@ create_msmulti_map.control.filename    = input_files_grouped.mapfile
 create_parmdb_map.control.kind        = plugin
 create_parmdb_map.control.type        = addListMapfile
 create_parmdb_map.control.hosts       = {{ hosts }}
-create_parmdb_map.control.files       = {{ dde_h5parm }}
+create_parmdb_map.control.files       = {{ dde_h5parms }}
 create_parmdb_map.control.mapfile_dir = input.output.mapfile_dir
 create_parmdb_map.control.filename    = dir_indep_instrument_parmdbs.mapfile
 
