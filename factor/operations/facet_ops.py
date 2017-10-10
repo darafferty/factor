@@ -253,8 +253,8 @@ class FacetSub(Operation):
         """
         Finalize this operation
         """
-        # Delete the full-resolution model-difference files
-        if hasattr(self.direction, 'models_field_mapfile'):
+        # Delete the full-resolution model files
+        if hasattr(self.direction, 'models_mapfile'):
             self.direction.cleanup_mapfiles.append(self.direction.models_field_mapfile)
         self.log.debug('Cleaning up files (direction: {})'.format(self.direction.name))
         self.direction.cleanup()
@@ -389,8 +389,10 @@ class FacetImage(Operation):
             self.direction.facet_premask_mapfile = {self.name.lower(): os.path.join(self.pipeline_mapfile_dir,
                 'premask.mapfile')}
         # Store mapfile for new models, needed by facetsub op
-        self.direction.models_field_mapfile = os.path.join(self.pipeline_mapfile_dir,
+        self.direction.models_mapfile = os.path.join(self.pipeline_mapfile_dir,
             'corrupt_models.mapfile')
+        self.direction.input_files_single_mapfile = os.path.join(self.pipeline_mapfile_dir,
+            'input_files_single.mapfile')
 
 
         # Delete temp data
