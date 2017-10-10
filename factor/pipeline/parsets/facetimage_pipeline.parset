@@ -121,10 +121,10 @@ wsclean_image_full.control.type                   = wsclean
 wsclean_image_full.control.mapfiles_in            = [{{ image_data_mapfile }},premask.output.mapfile]
 wsclean_image_full.control.inputkeys              = [msfile,fitsmask]
 {% if wsclean_nchannels > 1 %}
-wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fitbeam,-reorder,-local-rms,-joinchannels,msfile]
+wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fitbeam,-reorder,-save-source-list,-local-rms,-joinchannels,msfile]
 wsclean_image_full.argument.channelsout           = {{ wsclean_nchannels }}
 {% else %}
-wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fitbeam,-reorder,-local-rms,msfile]
+wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fitbeam,-reorder,-save-source-list,-local-rms,msfile]
 {% endif %}
 wsclean_image_full.argument.fitsmask              = fitsmask
 wsclean_image_full.argument.size                  = {{ facet_imsize }} {{ facet_imsize }}
@@ -142,6 +142,7 @@ wsclean_image_full.argument.multiscale-scales     = {{ facet_multiscale_scales_p
 {% if local_dir is not none %}
 wsclean_image_full.argument.tempdir               = {{ local_dir_parent }}
 {% endif %}
+wsclean_image_full.argument.multiscale-shape      = gaussian
 wsclean_image_full.argument.weighting-rank-filter = 3
 {% if taper_facet_arcsec > 0.0 %}
 wsclean_image_full.argument.taper-gaussian        =  {{ taper_facet_arcsec }}
