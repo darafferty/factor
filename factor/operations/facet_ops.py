@@ -363,7 +363,7 @@ class FacetImage(Operation):
         for bandfiles in ms_files:
             for filename in bandfiles:
                 ms_files_single.append(filename)
-        dde_h5parm = []
+        dde_h5parms = []
         for band in self.bands:
             for parmdb in band.h5parms:
                 dde_h5parms.append(parmdb)
