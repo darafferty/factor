@@ -377,9 +377,7 @@ def _set_up_directions(parset, bands, dry_run=False, test_run=False,
             "selection (if desired)".format(dir_parset['faceting_skymodel']))
         initial_skymodel = lsmtool.load(dir_parset['faceting_skymodel'])
     else:
-        log.info("Building local sky model for source avoidance and DDE calibrator "
-            "selection (if desired)...")
-        initial_skymodel = factor.directions.make_initial_skymodel(ref_band)
+        initial_skymodel = None
 
     log.info('Setting up directions...')
     directions = _initialize_directions(parset, initial_skymodel, ref_band,
@@ -543,7 +541,7 @@ def _initialize_directions(parset, initial_skymodel, ref_band, max_radius_deg=No
 
     """
     dir_parset = parset['direction_specific']
-    s = initial_skymodel.copy()
+    s = None
 
     # First check for user-supplied directions file, then for Factor-generated
     # file from a previous run, then for parameters needed to generate it internally
@@ -565,6 +563,7 @@ def _initialize_directions(parset, initial_skymodel, ref_band, max_radius_deg=No
             # Make directions from dir-indep sky model of highest-frequency
             # band, as it has the smallest field of view
             log.info("No directions file given. Selecting directions internally...")
+            s = initial_skymodel.copy()
 
             # Filter out sources that lie outside of maximum specific radius from phase
             # center
