@@ -63,7 +63,7 @@ class Direction(object):
     	cal_imsize=512, solint_p=1, solint_a=30, dynamic_range='LD',
     	region_selfcal='empty', region_field='empty', peel_skymodel='empty',
     	outlier_do=False, factor_working_dir='', cal_size_deg=None):
-        self.name = name
+        self.name = name.strip('[]')
         self.log = logging.getLogger('factor:{0}'.format(self.name))
         if type(ra) is str:
             ra = Angle(ra).to('deg').value
@@ -411,7 +411,7 @@ class Direction(object):
         # the number of bands. We use 6 times more iterations for the full2
         # image to ensure the imager has a reasonable chance to reach the
         # threshold first (which is set by the masking step)
-        scaling_factor = np.sqrt(np.float(nbands)) * np.sqrt(iter+1)
+        scaling_factor = np.sqrt(np.float(nbands)) * np.sqrt(iter+1) / 2.5 # 2.5 is for 5 iterations
         scaling_factor_selfcal = np.sqrt(np.float(nbands_selfcal)*frac_bandwidth_selfcal)
         self.wsclean_selfcal_full_image_niter = int(4000 * scaling_factor_selfcal)
         self.wsclean_selfcal_full_image_threshold_jy =  1.5e-3 * 0.7 / scaling_factor_selfcal
