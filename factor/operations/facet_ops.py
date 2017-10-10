@@ -248,6 +248,13 @@ class FacetSub(Operation):
         super(FacetSub, self).__init__(parset, bands, direction,
             name='FacetSub')
 
+        ms_files = [band.files for band in self.bands]
+        ms_files_single = []
+        for bandfiles in ms_files:
+            for filename in bandfiles:
+                ms_files_single.append(filename)
+        self.parms_dict.update({'ms_files_single': ms_files_single)
+
 
     def finalize(self):
         """
