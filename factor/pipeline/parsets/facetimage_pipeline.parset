@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, {% if use_existing_data %} update_image_data_mapfile_hosts, {% if average_image_data %} concat_averaged_uncompressed_map, average_image_data, concat_reaveraged_compressed_map, {% endif %} {% else %} create_ms_map, create_msmulti_map, expand_merged_parmdb_map, {% if not selfcal_ok %} create_full_skymodels_map, make_facet_skymodels_all, make_sourcedb_all_facet_sources, create_parmdb_map, {% endif %} expand_sourcedb_all_facet_sources, prepare_imaging_data, create_compressed_mapfile, {% endif %} premask, wsclean_image_full, create_imagebase_map2, adjust_wsclean_mapfile2]
+pipeline.steps = [update_mapfile_hosts, create_ms_map, create_msmulti_map, create_parmdb_map, expand_parmdb_map, prepare_imaging_data, create_compressed_mapfile, premask, wsclean_image_full, create_imagebase_map2, adjust_wsclean_mapfile2, make_sourcedb_new_facet_sources, expand_sourcedb_new_facet_sources, predict_models]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -99,9 +99,6 @@ create_compressed_mapfile.control.type        = compressMapfile
 create_compressed_mapfile.control.mapfile_in  = prepare_imaging_data.output.mapfile
 create_compressed_mapfile.control.mapfile_dir = input.output.mapfile_dir
 create_compressed_mapfile.control.filename    = imaging_input.mapfile
-
-# end of no-existing-data block
-{% endif %}
 
 # Make a preliminary clean mask from the facet region, length = 1
 premask.control.type                   = make_clean_mask
