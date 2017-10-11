@@ -397,7 +397,7 @@ class FacetImage(Operation):
                 'premask.mapfile')}
         # Store mapfile for new models, needed by facetsub op
         self.direction.models_mapfile = os.path.join(self.pipeline_mapfile_dir,
-            'corrupt_models.mapfile')
+            'predict_models.mapfile')
         self.direction.input_files_single_mapfile = os.path.join(self.pipeline_mapfile_dir,
             'input_bands.mapfile')
 
@@ -414,7 +414,7 @@ class FacetImage(Operation):
             # with a different weighting) or for subsequent imaging runs. They
             # are always kept for the target direction
             self.direction.cleanup_mapfiles.extend([
-                os.path.join(self.pipeline_mapfile_dir, 'concat_averaged_input.mapfile'),
+                os.path.join(self.pipeline_mapfile_dir, 'prepare_imaging_data.mapfile'),
                 os.path.join(self.pipeline_mapfile_dir, 'sorted_groups.mapfile_groups')])
         if not self.parset['keep_unavg_facet_data']:
             # Add unaveraged calibrated data for the facet to files to be deleted

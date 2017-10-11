@@ -217,7 +217,7 @@ predict_models.argument.msout.storagemanager.normalization  = "AF"
 {% endif %}
 
 # corrupt the new model vis, length = nfiles
-corrupt_models.control.type                                 = dppp
+corrupt_models.control.type                                 = dppp_inplace
 corrupt_models.control.mapfiles_in                          = [predict_models.output.mapfile,expand_parmdb_map.output.mapfile]
 corrupt_models.control.inputkeys                            = [msin,dde_parmdb]
 corrupt_models.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
