@@ -77,7 +77,7 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     test_run, reset_directions, reset_operations)
 
     # Run imaging operations on directions
-    niter = 5
+    niter = 2
     set_sub_data_colname = True
     for i in range(niter):
         log.info('Imaging {0} direction(s)'.format(
@@ -104,46 +104,46 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
         for op in ops:
             scheduler.run(op)
 
-        # Mosaic the final facet images together
-        if parset['imaging_specific']['make_mosaic']:
-            # Make direction object for the field and load previous state (if any)
-            field = Direction('field', bands[0].ra, bands[0].dec,
-                factor_working_dir=parset['dir_working'])
-            field.load_state()
-            if len(reset_operations) > 0:
-                field.reset_operations = reset_operations
-            else:
-                field.reset_operations = (field.completed_operations[:] +
-                    field.started_operations[:])
+    # Mosaic the final facet images together
+    if parset['imaging_specific']['make_mosaic']:
+        # Make direction object for the field and load previous state (if any)
+        field = Direction('field', bands[0].ra, bands[0].dec,
+            factor_working_dir=parset['dir_working'])
+        field.load_state()
+        if len(reset_operations) > 0:
+            field.reset_operations = reset_operations
+        else:
+            field.reset_operations = (field.completed_operations[:] +
+                field.started_operations[:])
 
-            # Set averaging for primary beam generation
-            field.avgpb_freqstep = bands[0].nchan
-            field.avgpb_timestep = int(120.0 / bands[0].timepersample)
+        # Set averaging for primary beam generation
+        field.avgpb_freqstep = bands[0].nchan
+        field.avgpb_timestep = int(120.0 / bands[0].timepersample)
 
-            for i, (cellsize_arcsec, taper_arcsec, robust, min_uv_lambda) in enumerate(
-                zip(cellsizes, tapers, robusts, min_uvs)):
+        for i, (cellsize_arcsec, taper_arcsec, robust, min_uv_lambda) in enumerate(
+            zip(cellsizes, tapers, robusts, min_uvs)):
 
-                # Reset the field direction if specified
-                full_res_im, opname = _get_image_type_and_name(cellsize_arcsec, taper_arcsec,
-                    robust, selfcal_robust, min_uv_lambda, parset, opbase='fieldmosaic')
-                if 'field' in reset_directions:
-                    field.reset_state(opname)
+            # Reset the field direction if specified
+            full_res_im, opname = _get_image_type_and_name(cellsize_arcsec, taper_arcsec,
+                robust, selfcal_robust, min_uv_lambda, parset, opbase='fieldmosaic')
+            if 'field' in reset_directions:
+                field.reset_state(opname)
 
-                # Specify appropriate image, mask, and vertices file
-                field.facet_image_filenames = []
-                field.facet_vertices_filenames = []
-                full_res_im, opname = _get_image_type_and_name(cellsize_arcsec, taper_arcsec,
-                    robust, selfcal_robust, min_uv_lambda, parset)
-                for d in dirs_to_image:
-                    if not d.is_patch:
-                        facet_image = DataMap.load(d.facet_image_mapfile[opname])[0].file
-                        field.facet_image_filenames.append(facet_image)
-                        field.facet_vertices_filenames.append(d.save_file)
+            # Specify appropriate image, mask, and vertices file
+            field.facet_image_filenames = []
+            field.facet_vertices_filenames = []
+            full_res_im, opname = _get_image_type_and_name(cellsize_arcsec, taper_arcsec,
+                robust, selfcal_robust, min_uv_lambda, parset)
+            for d in dirs_to_image:
+                if not d.is_patch:
+                    facet_image = DataMap.load(d.facet_image_mapfile[opname])[0].file
+                    field.facet_image_filenames.append(facet_image)
+                    field.facet_vertices_filenames.append(d.save_file)
 
-                # Do mosaicking
-                op = FieldMosaic(parset, bands, field, cellsize_arcsec, robust,
-                        taper_arcsec, min_uv_lambda)
-                scheduler.run(op)
+            # Do mosaicking
+            op = FieldMosaic(parset, bands, field, cellsize_arcsec, robust,
+                    taper_arcsec, min_uv_lambda)
+            scheduler.run(op)
 
     log.info("Factor has finished :)")
 
