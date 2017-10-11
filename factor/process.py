@@ -98,7 +98,7 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
                     d.subtracted_data_colname = 'CORRECTED_DATA'
 
         # Subtract model
-        ops = [FacetSub(parset, bands, d) for d in directions]
+        ops = [FacetSub(parset, bands, d, iter=i) for d in directions]
         for op in ops:
             scheduler.run(op)
 

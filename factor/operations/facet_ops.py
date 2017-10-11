@@ -244,9 +244,9 @@ class FacetSub(Operation):
     """
     Operation to subtract improved model of a facet
     """
-    def __init__(self, parset, bands, direction):
+    def __init__(self, parset, bands, direction, iter=0):
         super(FacetSub, self).__init__(parset, bands, direction,
-            name='FacetSub')
+            name='FacetSub_i{0}'.format(iter))
 
         ms_files = [band.files for band in self.bands]
         ms_files_single = []
@@ -333,6 +333,8 @@ class FacetImage(Operation):
         super(FacetImage, self).__init__(parset, bands, direction,
             name=name)
 
+        self.iter = iter
+
         # Set the pipeline parset to use
         self.pipeline_parset_template = 'facetimage_pipeline.parset'
 
@@ -398,6 +400,12 @@ class FacetImage(Operation):
         # Store mapfile for new models, needed by facetsub op
         self.direction.models_mapfile = os.path.join(self.pipeline_mapfile_dir,
             'predict_models.mapfile')
+        if self.iter == 0:
+            self.direction.sourcedb_mapfile = [os.path.join(self.pipeline_mapfile_dir,
+                'make_sourcedb_new_facet_sources.mapfile')]
+        else:
+            self.direction.sourcedb_mapfile.extend([os.path.join(self.pipeline_mapfile_dir,
+                'make_sourcedb_new_facet_sources.mapfile')])
         self.direction.input_files_single_mapfile = os.path.join(self.pipeline_mapfile_dir,
             'input_bands.mapfile')
 
