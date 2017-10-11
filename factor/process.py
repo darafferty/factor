@@ -78,7 +78,6 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
 
     # Run imaging operations on directions
     niter = 2
-    set_sub_data_colname = True
     for i in range(niter):
         log.info('Imaging {0} direction(s)'.format(
             len(directions)))
@@ -91,18 +90,22 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
             iter=i) for d in directions]
         scheduler.run(ops)
 
-        if set_sub_data_colname:
-            # Set the name of the subtracted data column for remaining
-            # directions
+        if i == 0:
+            # Set the name of the subtracted data column for all but first
+            # direction to CORRECTED_DATA
             for d in directions:
                 if d.name != directions[0].name:
                     d.subtracted_data_colname = 'CORRECTED_DATA'
-            set_sub_data_colname = False
 
         # Subtract model
         ops = [FacetSub(parset, bands, d) for d in directions]
         for op in ops:
             scheduler.run(op)
+
+        # After first subtract, use CORRECTED_DATA for all directions
+        if i == 0:
+            for d in directions:
+                d.subtracted_data_colname = 'CORRECTED_DATA'
 
     # Mosaic the final facet images together
     if parset['imaging_specific']['make_mosaic']:
