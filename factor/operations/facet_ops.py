@@ -249,7 +249,7 @@ class FacetSub(Operation):
             name='FacetSub_i{0}'.format(iter))
 
         # Set the pipeline parset to use
-        self.pipeline_parset_template = 'facetimage_pipeline.parset'
+        self.pipeline_parset_template = 'facetsub_pipeline.parset'
 
         ms_files = [band.files for band in self.bands]
         ms_files_single = []
