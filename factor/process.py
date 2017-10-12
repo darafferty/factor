@@ -68,13 +68,18 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     scheduler = _set_up_compute_parameters(parset, dry_run)
 
     # Prepare vis data
-    bands = _set_up_bands(parset, test_run)
     for band in bands:
-        band.h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_tecandphasePF_correctedlosoto.h5.bkup']
+        band.fastphase_h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_tecandphasePF_correctedlosoto.h5.bkup']
+        band.slowgain_h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_slowgain_correctedlosoto60chans.h5.bkup']
 
     # Set up directions and groups
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,
     test_run, reset_directions, reset_operations)
+
+    # Generate screens
+    fastphase_h5parm = bands[0].fastphase_h5parms[0]
+    slowgain_h5parm = bands[0].slowgain_h5parms[0]
+    generate_screens(fastphase_h5parm, slowgain_h5parm, bands)
 
     # Run imaging operations on directions
     niter = 2

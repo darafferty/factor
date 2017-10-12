@@ -377,7 +377,7 @@ class FacetImage(Operation):
                 ms_files_single.append(filename)
         dde_h5parms = []
         for band in self.bands:
-            for parmdb in band.h5parms:
+            for parmdb in band.fastphase_h5parms:
                 dde_h5parms.append(parmdb)
         self.parms_dict.update({'ms_files_single': ms_files_single,
                                 'ms_files_grouped' : str(ms_files),
