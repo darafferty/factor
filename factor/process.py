@@ -78,9 +78,11 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     test_run, reset_directions, reset_operations)
 
     # Generate screens
-    fastphase_h5parm = bands[0].fastphase_h5parms[0]
-    slowgain_h5parm = bands[0].slowgain_h5parms[0]
-    generate_screens(fastphase_h5parm, slowgain_h5parm, bands)
+    fit_screens = False
+    if fit_screens:
+        fastphase_h5parm = bands[0].fastphase_h5parms[0]
+        slowgain_h5parm = bands[0].slowgain_h5parms[0]
+        generate_screens(fastphase_h5parm, slowgain_h5parm, bands)
 
     # Run imaging operations on directions
     niter = 2
