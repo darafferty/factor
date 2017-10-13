@@ -13,7 +13,7 @@ import scipy.interpolate
 log = logging.getLogger('factor:screens')
 
 
-def generate_screens(fastphase_h5parm, slowgain_h5parm, bands):
+def generate_screens(fastphase_h5parm, slowgain_h5parm, bands, use_slow=False):
     """
     Generate screens from input solutions
     """
@@ -48,29 +48,31 @@ def generate_screens(fastphase_h5parm, slowgain_h5parm, bands):
             axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
             station_names, source_names, np.array([freq])], vals=r, weights=w)
 
-    # estimate weights, first from past phases to get relative weights direction-to-direction,
-    # then from slow phases to get time evolution of weights
-    soltab = solset_slow.getSoltab('phase000')
-    operations.reweight.run(soltab, 'window', nmedian=7, nstddev=11, flagBad=True)
-    slow_times = soltab.time[:]
-    slow_weights_phase = np.average(soltab.weight[:], axis=1) # average over frequency
-    slow_weights_phase = np.average(slow_weights_phase, axis=-1) # average over pol
+    # estimate weights
+    if use_slow:
+        soltab = solset_slow.getSoltab('phase000')
+        operations.reweight.run(soltab, 'window', nmedian=7, nstddev=11, flagBad=True)
+        slow_times = soltab.time[:]
+        slow_weights_phase = np.average(soltab.weight[:], axis=1) # average over frequency
+        slow_weights_phase = np.average(slow_weights_phase, axis=-1) # average over pol
 
     soltab_freq1 = solset_fast.getSoltab('totalphase140MHz')
-    operations.reweight.run(soltab_freq1, 'window', nmedian=3, nstddev=251, flagBad=True)
-    fast_times = soltab_freq1.time[:]
-    w = scipy.interpolate.interp1d(slow_times, slow_weights_phase, kind='linear',
-        axis=0, fill_value='extrapolate')(fast_times)
-    wr = np.reshape(w, soltab_freq1.weight[:].shape)
-    wr = wr * np.median(soltab_freq1.weight[:], axis=0)/np.median(wr, axis=0)
-    soltab_freq1.setValues(wr, weight=True)
+    operations.reweight.run(soltab_freq1, 'window', nmedian=3, nstddev=501, flagBad=True)
+    if use_slow:
+        fast_times = soltab_freq1.time[:]
+        w = scipy.interpolate.interp1d(slow_times, slow_weights_phase, kind='linear',
+            axis=0, fill_value='extrapolate')(fast_times)
+        wr = np.reshape(w, soltab_freq1.weight[:].shape)
+        wr = wr * np.median(soltab_freq1.weight[:], axis=0)/np.median(wr, axis=0)
+        soltab_freq1.setValues(wr, weight=True)
 
     soltab_freq2 = solset_fast.getSoltab('totalphase160MHz')
-    operations.reweight.run(soltab_freq2, 'window', nmedian=3, nstddev=251, flagBad=True)
-    fast_times = soltab_freq2.time[:]
-    wr = np.reshape(w, soltab_freq2.weight[:].shape)
-    wr = wr * np.median(soltab_freq2.weight[:], axis=0)/np.median(wr, axis=0)
-    soltab_freq2.setValues(wr, weight=True)
+    operations.reweight.run(soltab_freq2, 'window', nmedian=3, nstddev=501, flagBad=True)
+    if use_slow:
+        fast_times = soltab_freq2.time[:]
+        wr = np.reshape(w, soltab_freq2.weight[:].shape)
+        wr = wr * np.median(soltab_freq2.weight[:], axis=0)/np.median(wr, axis=0)
+        soltab_freq2.setValues(wr, weight=True)
 
     # fit screens
     operations.phasescreen.run(soltab_freq1, 'phasescreen140MHz', niter=3, nsigma=3)
@@ -82,8 +84,8 @@ def generate_screens(fastphase_h5parm, slowgain_h5parm, bands):
         operations.plotscreen.run(soltab_freq2, prefix='160MHzphase')
 
     # Calculate phases at one or more frequencies
-    soltab1 = solset.getSoltab('phasescreen140MHz')
-    soltab2 = solset.getSoltab('phasescreen160MHz')
+    soltab_freq1 = solset_fast.getSoltab('phasescreen140MHz')
+    soltab_freq2 = solset_fast.getSoltab('phasescreen160MHz')
     source_dict = solset_fast.getSou()
     frequencies = []
     for band in bands:

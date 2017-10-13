@@ -68,6 +68,7 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     scheduler = _set_up_compute_parameters(parset, dry_run)
 
     # Prepare vis data
+    bands = _set_up_bands(parset, test_run)
     for band in bands:
         band.fastphase_h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_tecandphasePF_correctedlosoto.h5.bkup']
         band.slowgain_h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_slowgain_correctedlosoto60chans.h5.bkup']
