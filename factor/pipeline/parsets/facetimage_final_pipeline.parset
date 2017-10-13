@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_ms_map, create_msmulti_map, create_parmdb_map, expand_parmdb_map, prepare_imaging_data, create_compressed_mapfile, premask, wsclean_image_full, create_imagebase_map2, adjust_wsclean_mapfile2, make_sourcedb_new_facet_sources, expand_sourcedb_new_facet_sources, predict_models, corrupt_models]
+pipeline.steps = [update_mapfile_hosts, create_ms_map, create_msmulti_map, create_parmdb_map, expand_parmdb_map, prepare_imaging_data, create_compressed_mapfile, premask, wsclean_image_full, create_imagebase_map2, adjust_wsclean_mapfile2]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -40,7 +40,7 @@ expand_parmdb_map.control.mapfile_to_match = create_ms_map.output.mapfile
 expand_parmdb_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_parmdb_map.control.filename         = expand_parmdbs.mapfile
 
-# shift, apply the direction-dependent solutions, and average, length = nfiles
+# add the model visibilities, shift, apply the direction-dependent solutions, and average, length = nfiles
 prepare_imaging_data.control.type                                 = dppp
 prepare_imaging_data.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_parmdb_map.output.mapfile]
 prepare_imaging_data.control.inputkeys                            = [msin,dde_parmdb]
@@ -116,7 +116,7 @@ premask.argument.cellsize_deg          = {{ cellsize_facet_deg }}
 premask.argument.region_file           = {{ region_field }}
 premask.argument.make_blank_image      = True
 
-# do the imaging, length = 1
+# do the first round of imaging, length = 1
 wsclean_image_full.control.type                   = wsclean
 wsclean_image_full.control.mapfiles_in            = [{{ image_data_mapfile }},premask.output.mapfile]
 wsclean_image_full.control.inputkeys              = [msfile,fitsmask]
@@ -174,63 +174,3 @@ adjust_wsclean_mapfile2.control.mapfile_in  = create_imagebase_map2.output.mapfi
 adjust_wsclean_mapfile2.control.append      = {{ wsclean_suffix }}
 adjust_wsclean_mapfile2.control.mapfile_dir = input.output.mapfile_dir
 adjust_wsclean_mapfile2.control.filename    = final_image.mapfile
-
-# convert the new sky model into a sourcedb, length = nbands
-make_sourcedb_new_facet_sources.control.type       = make_sourcedb
-make_sourcedb_new_facet_sources.control.mapfile_in = wsclean_image_full.output.wsclean_image_full-sources.txt.mapfile
-make_sourcedb_new_facet_sources.control.inputkey   = in
-make_sourcedb_new_facet_sources.argument.format    = <
-make_sourcedb_new_facet_sources.argument.outtype   = blob
-make_sourcedb_new_facet_sources.argument.append    = False
-
-# expand the sourcedb mapfile so that there is one entry for every file, length = nfiles
-expand_sourcedb_new_facet_sources.control.kind           = plugin
-expand_sourcedb_new_facet_sources.control.type           = mapfileSingleToGroup
-expand_sourcedb_new_facet_sources.control.mapfile_in     = make_sourcedb_new_facet_sources.output.mapfile
-expand_sourcedb_new_facet_sources.control.mapfile_groups = create_msmulti_map.output.mapfile
-expand_sourcedb_new_facet_sources.control.mapfile_dir    = input.output.mapfile_dir
-expand_sourcedb_new_facet_sources.control.filename       = expand_sourcedb_new_facet_sources.mapfile
-
-# predict the new models, length = nfiles
-# compress weights only
-predict_models.control.type                                 = dppp
-predict_models.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_sourcedb_new_facet_sources.output.mapfile]
-predict_models.control.inputkeys                            = [msin,dir_dep_sourcedb]
-predict_models.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
-predict_models.argument.msin.datacolumn                     = DATA
-predict_models.argument.msout.overwrite                     = True
-predict_models.argument.msout.writefullresflag              = False
-{% if local_dir is not none %}
-predict_models.argument.local_scratch_dir                   = {{ local_dir }}
-{% endif %}
-predict_models.argument.steps                               = [pred_new]
-predict_models.argument.pred_new.type                       = predict
-predict_models.argument.pred_new.sourcedb                   = dir_dep_sourcedb
-predict_models.argument.pred_new.operation                  = replace
-{% if use_compression %}
-predict_models.argument.msout.storagemanager                = "Dysco"
-predict_models.argument.msout.storagemanager.databitrate    = 0
-predict_models.argument.msout.storagemanager.weightbitrate  = 12
-predict_models.argument.msout.storagemanager.distribution   = "TruncatedGaussian"
-predict_models.argument.msout.storagemanager.disttruncation = 1.5
-predict_models.argument.msout.storagemanager.normalization  = "AF"
-{% endif %}
-
-# corrupt the new model vis, length = nfiles
-corrupt_models.control.type                                 = dppp_inplace
-corrupt_models.control.mapfiles_in                          = [predict_models.output.mapfile,expand_parmdb_map.output.mapfile]
-corrupt_models.control.inputkeys                            = [msin,dde_parmdb]
-corrupt_models.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
-corrupt_models.argument.msin.datacolumn                     = DATA
-corrupt_models.argument.msout                               = .
-corrupt_models.argument.steps                               = [corrupt1,corrupt2]
-corrupt_models.argument.corrupt1.type                        = applycal
-corrupt_models.argument.corrupt1.parmdb                      = dde_parmdb
-corrupt_models.argument.corrupt1.correction                  = tec000
-corrupt_models.argument.corrupt1.direction                   = [{{ name }}]
-corrupt_models.argument.corrupt1.invert                      = False
-corrupt_models.argument.corrupt2.type                        = applycal
-corrupt_models.argument.corrupt2.parmdb                      = dde_parmdb
-corrupt_models.argument.corrupt2.correction                  = scalarphase000
-corrupt_models.argument.corrupt2.direction                   = [{{ name }}]
-corrupt_models.argument.corrupt2.invert                      = False

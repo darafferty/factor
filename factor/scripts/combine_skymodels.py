@@ -9,39 +9,41 @@ import sys
 import os
 
 
-def main(model1, model2, skymodel):
+def main(model_list, skymodel):
     """
     Combines makesourcedb sky models
 
     Parameters
     ----------
-    model1 : str
-        Filename of the input makesourcedb sky model 1
-    model2 : str
-        Filename of the input makesourcedb sky model 2
+    model_list : str
+        Filenames of the input makesourcedb sky model 1
     skymodel : str
         Filename of the output makesourcedb sky model
 
     """
-    try:
-        s1 = lsmtool.load(model1)
-    except:
-        # If first sky model is empty or cannot be loaded, just copy second one
-        # to output file
-        os.system('cp -f {0} {1}'.format(model2, skymodel))
-        return
+    model_list = model_list.strip('[]').split(',')
+    model_list  = [f.strip() for f in model_list]
 
-    # Now try to load second sky model and combine with first one
-    try:
-        s2 = lsmtool.load(model2)
+   # First find a model with sources
+    for sm in model_list[:]:
+        model_list.remove(sm)
+        try:
+            s1 = lsmtool.load(sm)
+            break
+        except:
+            pass
 
-        # Combine sky models, keeping all sources
-        s1.ungroup()
-        s2.ungroup()
-        s1.concatenate(s2, keep='all')
-    except:
-        # If second sky model is empty or cannot be loaded, just save s1 to output
-        pass
+    # Now try to load the rest of the sky models and combine with first one
+    for sm in model_list:
+        try:
+            s2 = lsmtool.load(sm)
+
+            # Combine sky models, keeping all sources
+            s1.ungroup()
+            s2.ungroup()
+            s1.concatenate(s2, keep='all')
+        except:
+            pass
 
     s1.write(skymodel, clobber=True)
 

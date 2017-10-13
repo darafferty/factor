@@ -328,18 +328,28 @@ class FacetImage(Operation):
         if (cellsize_arcsec != parset['imaging_specific']['selfcal_cellsize_arcsec'] or
             robust != selfcal_robust or taper_arcsec != 0.0 or
             min_uv_lambda != parset['imaging_specific']['selfcal_min_uv_lambda']):
-            name = 'FacetImage_c{0}r{1}t{2}u{3}_i{4}'.format(round(cellsize_arcsec, 1),
+            if iter == -1:
+                name = 'FacetImage_c{0}r{1}t{2}u{3}_final'.format(round(cellsize_arcsec, 1),
+                    round(robust, 2), round(taper_arcsec, 1), round(min_uv_lambda, 1))
+            else:
+                name = 'FacetImage_c{0}r{1}t{2}u{3}_i{4}'.format(round(cellsize_arcsec, 1),
                     round(robust, 2), round(taper_arcsec, 1), round(min_uv_lambda, 1),
                     iter)
         else:
-            name = 'FacetImage_i{0}'.format(iter)
+            if iter == -1:
+                name = 'FacetImage_final'
+            else:
+                name = 'FacetImage_i{0}'.format(iter)
         super(FacetImage, self).__init__(parset, bands, direction,
             name=name)
 
         self.iter = iter
 
         # Set the pipeline parset to use
-        self.pipeline_parset_template = 'facetimage_pipeline.parset'
+        if iter == -1:
+            self.pipeline_parset_template = 'facetimage_final_pipeline.parset'
+        else:
+            self.pipeline_parset_template = 'facetimage_pipeline.parset'
 
         # Set flag for full-resolution run (used in finalize() to ensure that averaging
         # of the calibrated data is not too much for use by later imaging runs)
@@ -404,11 +414,11 @@ class FacetImage(Operation):
         self.direction.models_mapfile = os.path.join(self.pipeline_mapfile_dir,
             'predict_models.mapfile')
         if self.iter == 0:
-            self.direction.sourcedb_mapfile = [os.path.join(self.pipeline_mapfile_dir,
-                'make_sourcedb_new_facet_sources.mapfile')]
+            self.direction.skymodel_mapfiles = [os.path.join(self.pipeline_mapfile_dir,
+                'wsclean_image_full-sources.txt.mapfile')]
         else:
-            self.direction.sourcedb_mapfile.extend([os.path.join(self.pipeline_mapfile_dir,
-                'make_sourcedb_new_facet_sources.mapfile')])
+            self.direction.skymodel_mapfiles.extend([os.path.join(self.pipeline_mapfile_dir,
+                'wsclean_image_full-sources.txt.mapfile')])
         self.direction.input_files_single_mapfile = os.path.join(self.pipeline_mapfile_dir,
             'input_bands.mapfile')
 
@@ -418,7 +428,7 @@ class FacetImage(Operation):
             os.path.join(self.pipeline_mapfile_dir, 'image1.mapfile'),
             os.path.join(self.pipeline_mapfile_dir, 'add_all_facet_sources.mapfile'),
             os.path.join(self.pipeline_mapfile_dir, 'corrupt_final_model.mapfile')]
-        if ((not self.parset['keep_avg_facet_data'] and self.direction.contains_target) or
+        if ((not self.parset['keep_avg_facet_data'] and not self.direction.contains_target) or
            self.direction.use_existing_data):
             # Add averaged calibrated data for the facet to files to be deleted.
             # These are only needed if the user wants to reimage by hand (e.g.,
