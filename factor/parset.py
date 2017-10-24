@@ -143,6 +143,16 @@ def get_global_options(parset):
     if 'parmdb_name' not in parset_dict:
         parset_dict['parmdb_name'] = 'instrument_directionindependent'
 
+    # H5parm name
+    if 'h5parm_name' not in parset_dict:
+        parset_dict['h5parm_name'] = None
+
+    # Use sceens
+    if 'use_screens' in parset_dict:
+        parset_dict['use_screens'] = parset.getboolean('global', 'use_screens')
+    else:
+        parset_dict['use_screens'] = False
+
     # Extension that when concatenated with the 'extension-stripped' MS path gives
     # a path that is checked if it contains a skymodel
     if 'skymodel_extension' not in parset_dict:
@@ -221,7 +231,7 @@ def get_global_options(parset):
         'exit_on_bad_band', 'parmdb_name', 'interactive', 'keep_avg_facet_data',
         'keep_unavg_facet_data', 'chunk_size_sec', 'skymodel_extension',
         'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
-        'flag_expr']
+        'flag_expr', 'h5parm_name']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [global] section of the '

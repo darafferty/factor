@@ -70,8 +70,7 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     # Prepare vis data
     bands = _set_up_bands(parset, test_run)
     for band in bands:
-        band.fastphase_h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_tecandphasePF_correctedlosoto.h5.bkup']
-        band.slowgain_h5parms = ['/scratch/ws12/david/Screens/NsolutionsDDE_2.5Jy_slowgain_correctedlosoto60chans.h5.bkup']
+        band.fastphase_h5parms = [parset['h5parm_name']]
 
     # Set up directions and groups
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,
@@ -498,6 +497,9 @@ def _set_up_directions(parset, bands, dry_run=False, test_run=False,
         direction.flag_baseline = parset['flag_baseline']
         direction.flag_freqrange = parset['flag_freqrange']
         direction.flag_expr = parset['flag_expr']
+
+        # Set whether to use screens
+        direction.use_screens = parset['use_screens']
 
         # Reset state if specified
         if direction.name in reset_directions:

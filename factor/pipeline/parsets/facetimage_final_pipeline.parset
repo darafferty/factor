@@ -54,7 +54,11 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 prepare_imaging_data.argument.steps                               = [flag,shift,correct1,correct2,flagzero,avg]
 {% else %}
+{% if use_screens %}
+prepare_imaging_data.argument.steps                               = [shift,correct1,flagzero,avg]
+{% if use_screens %}
 prepare_imaging_data.argument.steps                               = [shift,correct1,correct2,flagzero,avg]
+{% endif %}
 {% endif %}
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 prepare_imaging_data.argument.flag.type                           = preflagger
@@ -71,6 +75,12 @@ prepare_imaging_data.argument.flag.flag_freqrange.freqrange       = {{ flag_freq
 {% endif %}
 prepare_imaging_data.argument.shift.type                          = phaseshifter
 prepare_imaging_data.argument.shift.phasecenter                   = [{{ facet_ra }}deg, {{ facet_dec }}deg]
+{% if use_screens %}
+prepare_imaging_data.argument.correct1.type                        = applycal
+prepare_imaging_data.argument.correct1.parmdb                      = dde_parmdb
+prepare_imaging_data.argument.correct1.correction                  = screenphases000
+prepare_imaging_data.argument.correct1.direction                   = [{{ name }}]
+{% else %}
 prepare_imaging_data.argument.correct1.type                        = applycal
 prepare_imaging_data.argument.correct1.parmdb                      = dde_parmdb
 prepare_imaging_data.argument.correct1.correction                  = tec000
@@ -79,6 +89,7 @@ prepare_imaging_data.argument.correct2.type                        = applycal
 prepare_imaging_data.argument.correct2.parmdb                      = dde_parmdb
 prepare_imaging_data.argument.correct2.correction                  = scalarphase000
 prepare_imaging_data.argument.correct2.direction                   = [{{ name }}]
+{% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
 prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20
 prepare_imaging_data.argument.avg.type                            = squash
