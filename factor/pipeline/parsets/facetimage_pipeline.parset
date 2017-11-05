@@ -83,11 +83,11 @@ prepare_imaging_data.argument.correct1.direction                   = [{{ name }}
 {% else %}
 prepare_imaging_data.argument.correct1.type                        = applycal
 prepare_imaging_data.argument.correct1.parmdb                      = dde_parmdb
-prepare_imaging_data.argument.correct1.correction                  = tec000
+prepare_imaging_data.argument.correct1.correction                  = tec_screensols_all_000
 prepare_imaging_data.argument.correct1.direction                   = [{{ name }}]
 prepare_imaging_data.argument.correct2.type                        = applycal
 prepare_imaging_data.argument.correct2.parmdb                      = dde_parmdb
-prepare_imaging_data.argument.correct2.correction                  = scalarphase000
+prepare_imaging_data.argument.correct2.correction                  = scalarphase_screensols_all_000
 prepare_imaging_data.argument.correct2.direction                   = [{{ name }}]
 {% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
@@ -246,9 +246,14 @@ corrupt_models.argument.corrupt1.correction                  = screenphases000
 corrupt_models.argument.corrupt1.direction                   = [{{ name }}]
 corrupt_models.argument.corrupt1.invert                      = False
 {% else %}
+corrupt_models.argument.corrupt1.type                        = applycal
+corrupt_models.argument.corrupt1.parmdb                      = dde_parmdb
+corrupt_models.argument.corrupt1.correction                  = tec_screensols_all_000
+corrupt_models.argument.corrupt1.direction                   = [{{ name }}]
+corrupt_models.argument.corrupt1.invert                      = False
 corrupt_models.argument.corrupt2.type                        = applycal
 corrupt_models.argument.corrupt2.parmdb                      = dde_parmdb
-corrupt_models.argument.corrupt2.correction                  = scalarphase000
+corrupt_models.argument.corrupt2.correction                  = scalarphase_screensols_all_000
 corrupt_models.argument.corrupt2.direction                   = [{{ name }}]
 corrupt_models.argument.corrupt2.invert                      = False
 {% endif %}
