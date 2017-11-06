@@ -56,7 +56,7 @@ prepare_imaging_data.argument.steps                               = [flag,shift,
 {% else %}
 {% if use_screens %}
 prepare_imaging_data.argument.steps                               = [shift,correct1,flagzero,avg]
-{% if use_screens %}
+{% else %}
 prepare_imaging_data.argument.steps                               = [shift,correct1,correct2,flagzero,avg]
 {% endif %}
 {% endif %}
