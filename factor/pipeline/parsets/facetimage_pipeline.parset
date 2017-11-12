@@ -282,12 +282,12 @@ corrupt_models.argument.corrupt2.correction                  = scalarphase_scree
 corrupt_models.argument.corrupt2.direction                   = [{{ name }}]
 corrupt_models.argument.corrupt2.invert                      = False
 {% if apply_amps %}
-corrupt_models.argument.correct3.type                        = applycal
-corrupt_models.argument.correct3.parmdb                      = dde_slow_parmdb
-corrupt_models.argument.correct3.correction                  = phase000
-corrupt_models.argument.correct3.direction                   = [{{ name }}]
-corrupt_models.argument.correct4.type                        = applycal
-corrupt_models.argument.correct4.parmdb                      = dde_slow_parmdb
-corrupt_models.argument.correct4.correction                  = amplitude000
-corrupt_models.argument.correct4.direction                   = [{{ name }}]
+corrupt_models.argument.corrupt3.type                        = applycal
+corrupt_models.argument.corrupt3.parmdb                      = dde_slow_parmdb
+corrupt_models.argument.corrupt3.correction                  = phase000
+corrupt_models.argument.corrupt3.direction                   = [{{ name }}]
+corrupt_models.argument.corrupt4.type                        = applycal
+corrupt_models.argument.corrupt4.parmdb                      = dde_slow_parmdb
+corrupt_models.argument.corrupt4.correction                  = amplitude000
+corrupt_models.argument.corrupt4.direction                   = [{{ name }}]
 {% endif %}
