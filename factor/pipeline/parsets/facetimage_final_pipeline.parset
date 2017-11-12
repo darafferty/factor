@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_ms_map, create_msmulti_map, create_parmdb_map, expand_parmdb_map, prepare_imaging_data, create_compressed_mapfile, premask, wsclean_image_full, create_imagebase_map2, adjust_wsclean_mapfile2]
+pipeline.steps = [update_mapfile_hosts, create_ms_map, create_msmulti_map, create_parmdb_map, {% if apply_amps %} create_slow_parmdb_map, {% endif %} expand_parmdb_map, {% if apply_amps %} expand_slow_parmdb_map, {% endif %} prepare_imaging_data, create_compressed_mapfile, premask, wsclean_image_full, create_imagebase_map2, adjust_wsclean_mapfile2]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
