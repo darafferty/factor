@@ -394,7 +394,7 @@ class FacetImage(Operation):
                 dde_slow_h5parms.append(parmdb)
         self.parms_dict.update({'ms_files_single': ms_files_single,
                                 'ms_files_grouped' : str(ms_files),
-                                'dde_slow_h5parms': dde_slow_h5parms},
+                                'dde_slow_h5parms': dde_slow_h5parms,
                                 'dde_h5parms': dde_h5parms})
 
 
