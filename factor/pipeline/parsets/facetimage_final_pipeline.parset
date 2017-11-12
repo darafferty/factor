@@ -30,7 +30,16 @@ create_parmdb_map.control.type        = addListMapfile
 create_parmdb_map.control.hosts       = {{ hosts }}
 create_parmdb_map.control.files       = {{ dde_h5parms }}
 create_parmdb_map.control.mapfile_dir = input.output.mapfile_dir
-create_parmdb_map.control.filename    = dir_indep_instrument_parmdbs.mapfile
+create_parmdb_map.control.filename    = fast_instrument_parmdbs.mapfile
+
+{% if apply_amps %}
+create_slow_parmdb_map.control.kind        = plugin
+create_slow_parmdb_map.control.type        = addListMapfile
+create_slow_parmdb_map.control.hosts       = {{ hosts }}
+create_slow_parmdb_map.control.files       = {{ dde_slow_h5parms }}
+create_slow_parmdb_map.control.mapfile_dir = input.output.mapfile_dir
+create_slow_parmdb_map.control.filename    = slow_instrument_parmdbs.mapfile
+{% endif %}
 
 # expand mapfile of the dir-dependent parmDB to all files, length = nfiles
 expand_parmdb_map.control.kind             = plugin
@@ -40,10 +49,25 @@ expand_parmdb_map.control.mapfile_to_match = create_ms_map.output.mapfile
 expand_parmdb_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_parmdb_map.control.filename         = expand_parmdbs.mapfile
 
+{% if apply_amps %}
+# expand mapfile of the dir-dependent parmDB to all files, length = nfiles
+expand_slow_parmdb_map.control.kind             = plugin
+expand_slow_parmdb_map.control.type             = expandMapfile
+expand_slow_parmdb_map.control.mapfile_in       = create_slow_parmdb_map.output.mapfile
+expand_slow_parmdb_map.control.mapfile_to_match = create_ms_map.output.mapfile
+expand_slow_parmdb_map.control.mapfile_dir      = input.output.mapfile_dir
+expand_slow_parmdb_map.control.filename         = expand_slow_parmdbs.mapfile
+{% endif %}
+
 # add the model visibilities, shift, apply the direction-dependent solutions, and average, length = nfiles
 prepare_imaging_data.control.type                                 = dppp
+{% if apply_amps %}
+prepare_imaging_data.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_parmdb_map.output.mapfile,expand_slow_parmdb_map.output.mapfile]
+prepare_imaging_data.control.inputkeys                            = [msin,dde_parmdb,dde_slow_parmdb]
+{% else %}
 prepare_imaging_data.control.mapfiles_in                          = [create_ms_map.output.mapfile,expand_parmdb_map.output.mapfile]
 prepare_imaging_data.control.inputkeys                            = [msin,dde_parmdb]
+{% endif %}
 prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
 prepare_imaging_data.argument.msin.datacolumn                     = {{ subtracted_data_colname }}
 prepare_imaging_data.argument.msout.overwrite                     = True
@@ -54,7 +78,7 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 prepare_imaging_data.argument.steps                               = [flag,shift,correct1,correct2,flagzero,avg]
 {% else %}
-{% if use_screens %}
+{% if apply_amps %}
 prepare_imaging_data.argument.steps                               = [shift,correct1,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [shift,correct1,correct2,flagzero,avg]
@@ -75,20 +99,23 @@ prepare_imaging_data.argument.flag.flag_freqrange.freqrange       = {{ flag_freq
 {% endif %}
 prepare_imaging_data.argument.shift.type                          = phaseshifter
 prepare_imaging_data.argument.shift.phasecenter                   = [{{ facet_ra }}deg, {{ facet_dec }}deg]
-{% if use_screens %}
-prepare_imaging_data.argument.correct1.type                        = applycal
-prepare_imaging_data.argument.correct1.parmdb                      = dde_parmdb
-prepare_imaging_data.argument.correct1.correction                  = screenphases000
-prepare_imaging_data.argument.correct1.direction                   = [{{ name }}]
-{% else %}
-prepare_imaging_data.argument.correct1.type                        = applycal
-prepare_imaging_data.argument.correct1.parmdb                      = dde_parmdb
-prepare_imaging_data.argument.correct1.correction                  = tec_screensols000
-prepare_imaging_data.argument.correct1.direction                   = [{{ name }}]
-prepare_imaging_data.argument.correct2.type                        = applycal
-prepare_imaging_data.argument.correct2.parmdb                      = dde_parmdb
-prepare_imaging_data.argument.correct2.correction                  = scalarphase_screensols000
-prepare_imaging_data.argument.correct2.direction                   = [{{ name }}]
+prepare_imaging_data.argument.correct1.type                       = applycal
+prepare_imaging_data.argument.correct1.parmdb                     = dde_parmdb
+prepare_imaging_data.argument.correct1.correction                 = tec_screensols000
+prepare_imaging_data.argument.correct1.direction                  = [{{ name }}]
+prepare_imaging_data.argument.correct2.type                       = applycal
+prepare_imaging_data.argument.correct2.parmdb                     = dde_parmdb
+prepare_imaging_data.argument.correct2.correction                 = scalarphase_screensols000
+prepare_imaging_data.argument.correct2.direction                  = [{{ name }}]
+{% if apply_amps %}
+prepare_imaging_data.argument.correct3.type                       = applycal
+prepare_imaging_data.argument.correct3.parmdb                     = dde_slow_parmdb
+prepare_imaging_data.argument.correct3.correction                 = phase000
+prepare_imaging_data.argument.correct3.direction                  = [{{ name }}]
+prepare_imaging_data.argument.correct4.type                       = applycal
+prepare_imaging_data.argument.correct4.parmdb                     = dde_slow_parmdb
+prepare_imaging_data.argument.correct4.correction                 = amplitude000
+prepare_imaging_data.argument.correct4.direction                  = [{{ name }}]
 {% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
 prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20

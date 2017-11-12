@@ -71,6 +71,7 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     bands = _set_up_bands(parset, test_run)
     for band in bands:
         band.fastphase_h5parms = [parset['h5parm_name']]
+        band.slowgain_h5parms = [parset['slow_h5parm_name']]
 
     # Set up directions and groups
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,
@@ -498,8 +499,8 @@ def _set_up_directions(parset, bands, dry_run=False, test_run=False,
         direction.flag_freqrange = parset['flag_freqrange']
         direction.flag_expr = parset['flag_expr']
 
-        # Set whether to use screens
-        direction.use_screens = parset['use_screens']
+        # Set whether to apply amps
+        direction.apply_amps = parset['apply_amps']
 
         # Reset state if specified
         if direction.name in reset_directions:
