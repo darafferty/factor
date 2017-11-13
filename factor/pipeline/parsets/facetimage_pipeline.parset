@@ -286,8 +286,10 @@ corrupt_models.argument.corrupt3.type                        = applycal
 corrupt_models.argument.corrupt3.parmdb                      = dde_slow_parmdb
 corrupt_models.argument.corrupt3.correction                  = phase000
 corrupt_models.argument.corrupt3.direction                   = [{{ name }}]
+corrupt_models.argument.corrupt3.invert                      = False
 corrupt_models.argument.corrupt4.type                        = applycal
 corrupt_models.argument.corrupt4.parmdb                      = dde_slow_parmdb
 corrupt_models.argument.corrupt4.correction                  = amplitude000
 corrupt_models.argument.corrupt4.direction                   = [{{ name }}]
+corrupt_models.argument.corrupt4.invert                      = False
 {% endif %}
