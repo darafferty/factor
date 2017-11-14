@@ -825,7 +825,7 @@ def find_facet_images(direction):
     if direction.name == 'field':
         mosaic_dir = os.path.join(direction.working_dir, 'results', 'fieldmosaic*',
             direction.name)
-        field_images = glob.glob(os.path.join(mosaic_dir, '*.full-image.make_mosaic'))
+        field_images = glob.glob(os.path.join(mosaic_dir, '*full-image.make_mosaic'))
         fieldmosaic_ops = []
         for field_image in field_images:
             trimed_name = field_image.split('results/fieldmosaic')[1]
