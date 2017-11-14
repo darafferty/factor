@@ -145,7 +145,7 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
 
         # Specify appropriate image, mask, and vertices file
         opname ='facetimage_final'
-        for d in dirs_to_image:
+        for d in directions:
             if not d.is_patch:
                 facet_image = DataMap.load(d.facet_image_mapfile[opname])[0].file
                 field.facet_image_filenames.append(facet_image)
