@@ -79,7 +79,7 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 prepare_imaging_data.argument.steps                               = [flag,shift,correct1,correct2,flagzero,avg]
 {% else %}
 {% if apply_amps %}
-prepare_imaging_data.argument.steps                               = [shift,correct1,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [shift,correct1,correct2,correct3,correct4,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [shift,correct1,correct2,flagzero,avg]
 {% endif %}
