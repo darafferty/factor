@@ -19,7 +19,7 @@ from factor.operations.field_ops import *
 from factor.operations.facet_ops import *
 from factor.lib.scheduler import Scheduler
 from factor.lib.direction import Direction
-from factor.lib.band import Band
+from factor.lib.field import Field
 
 
 log = logging.getLogger('factor')
@@ -67,61 +67,53 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     # Set up clusterdesc, node info, scheduler, etc.
     scheduler = _set_up_compute_parameters(parset, dry_run)
 
-    # Prepare vis data
-    bands = _set_up_bands(parset, test_run)
-    for band in bands:
-        band.fastphase_h5parms = [parset['h5parm_name']]
-        band.slowgain_h5parms = [parset['slow_h5parm_name']]
+    # Prepare field object
+    field = Field(parset)
 
     # Set up directions and groups
     directions, direction_groups = _set_up_directions(parset, bands, dry_run,
     test_run, reset_directions, reset_operations)
 
-    # Generate screens
-    fit_screens = False
-    if fit_screens:
-        fastphase_h5parm = bands[0].fastphase_h5parms[0]
-        slowgain_h5parm = bands[0].slowgain_h5parms[0]
-        generate_screens(fastphase_h5parm, slowgain_h5parm, bands)
-
-    # Run imaging operations on directions
-    niter = 2
-    for i in range(niter):
-        log.info('Imaging {0} direction(s)'.format(
-            len(directions)))
+    # Self calibrate
+    max_selfcal_loops = parset['calibration_specific']['max_selfcal_loops']
+    for i in range(max_selfcal_loops):
+        # Calibrate (and fit screens if desired)
+        scheduler.run(Calibrate(field, iter=i))
 
         # Image
-        ops = [FacetImage(parset, bands, d,
-            parset['imaging_specific']['selfcal_cellsize_arcsec'],
-            parset['imaging_specific']['selfcal_robust'], 0.0,
-            parset['imaging_specific']['selfcal_min_uv_lambda'],
-            iter=i) for d in directions]
+        ops = [Image(field, iter=i) for d in directions]
         scheduler.run(ops)
 
-        if i == 0:
-            # Set the name of the subtracted data column for all but first
-            # direction to CORRECTED_DATA
-            for d in directions:
-                if d.name != directions[0].name:
+        # Run imaging
+        niter = 2
+        for j in range(niter):
+            log.info('Imaging {0} direction(s)'.format(
+                len(directions)))
+
+            # Image
+            ops = [FacetImage(parset, bands, d,
+                parset['imaging_specific']['selfcal_cellsize_arcsec'],
+                parset['imaging_specific']['selfcal_robust'], 0.0,
+                parset['imaging_specific']['selfcal_min_uv_lambda'],
+                iter=j) for d in directions]
+            scheduler.run(ops)
+
+            if j == 0:
+                # Set the name of the subtracted data column for all but first
+                # direction to CORRECTED_DATA
+                for d in directions:
+                    if d.name != directions[0].name:
+                        d.subtracted_data_colname = 'CORRECTED_DATA'
+
+            # Subtract model
+            ops = [FacetSub(parset, bands, d, iter=j) for d in directions]
+            for op in ops:
+                scheduler.run(op)
+
+            # After first subtract, use CORRECTED_DATA for all directions
+            if j == 0:
+                for d in directions:
                     d.subtracted_data_colname = 'CORRECTED_DATA'
-
-        # Subtract model
-        ops = [FacetSub(parset, bands, d, iter=i) for d in directions]
-        for op in ops:
-            scheduler.run(op)
-
-        # After first subtract, use CORRECTED_DATA for all directions
-        if i == 0:
-            for d in directions:
-                d.subtracted_data_colname = 'CORRECTED_DATA'
-
-    # Make final images
-    ops = [FacetImage(parset, bands, d,
-        parset['imaging_specific']['selfcal_cellsize_arcsec'],
-        parset['imaging_specific']['selfcal_robust'], 0.0,
-        parset['imaging_specific']['selfcal_min_uv_lambda'],
-        iter=-1) for d in directions]
-    scheduler.run(ops)
 
     # Mosaic the final residual facet images together
     if parset['imaging_specific']['make_mosaic']:
