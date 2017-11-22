@@ -110,11 +110,11 @@ prepare_imaging_data.argument.correct2.direction                  = [{{ name }}]
 {% if apply_amps %}
 prepare_imaging_data.argument.correct3.type                       = applycal
 prepare_imaging_data.argument.correct3.parmdb                     = dde_slow_parmdb
-prepare_imaging_data.argument.correct3.correction                 = phase000
+prepare_imaging_data.argument.correct3.correction                 = phase_screensols000
 prepare_imaging_data.argument.correct3.direction                  = [{{ name }}]
 prepare_imaging_data.argument.correct4.type                       = applycal
 prepare_imaging_data.argument.correct4.parmdb                     = dde_slow_parmdb
-prepare_imaging_data.argument.correct4.correction                 = amplitude000
+prepare_imaging_data.argument.correct4.correction                 = amplitude_screensols000
 prepare_imaging_data.argument.correct4.direction                  = [{{ name }}]
 {% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
@@ -284,12 +284,12 @@ corrupt_models.argument.corrupt2.invert                      = False
 {% if apply_amps %}
 corrupt_models.argument.corrupt3.type                        = applycal
 corrupt_models.argument.corrupt3.parmdb                      = dde_slow_parmdb
-corrupt_models.argument.corrupt3.correction                  = phase000
+corrupt_models.argument.corrupt3.correction                  = phase_screensols000
 corrupt_models.argument.corrupt3.direction                   = [{{ name }}]
 corrupt_models.argument.corrupt3.invert                      = False
 corrupt_models.argument.corrupt4.type                        = applycal
 corrupt_models.argument.corrupt4.parmdb                      = dde_slow_parmdb
-corrupt_models.argument.corrupt4.correction                  = amplitude000
+corrupt_models.argument.corrupt4.correction                  = amplitude_screensols000
 corrupt_models.argument.corrupt4.direction                   = [{{ name }}]
 corrupt_models.argument.corrupt4.invert                      = False
 {% endif %}
