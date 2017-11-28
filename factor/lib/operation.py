@@ -1,7 +1,7 @@
 """
 General operation library
 
-Contains the master class for all operations
+Contains the master Operation class for all operations
 """
 import os
 import logging
@@ -24,26 +24,26 @@ class Operation(object):
     """
     Generic operation class
 
-    An operation is simply a generic pipeline that performs a part of the facet
-    calibration. The corresponding operation object holds the pipeline settings,
-    populates the pipeline config and parset templates, and updates the direction
-    object with variables needed by later operations.
+    An operation is simply a generic pipeline that performs a part of the
+    processing. The corresponding operation object holds the pipeline settings,
+    populates the pipeline config and parset templates, and updates the
+    direction object with variables needed by later operations.
 
     Parameters
     ----------
     parset : dict
         Parset of operation
-    bands : list of Band objects
-        Bands for this operation
-    direction : Direction object
+    field : Field object
+        Field for this operation
+    direction : Direction object, optional
         Direction for this operation
     name : str, optional
         Name of the operation
 
     """
-    def __init__(self, parset, bands, direction, name=None):
-        self.parset = parset.copy()
-        self.bands = bands
+    def __init__(self, field, direction=None, name=None):
+        self.parset = field.parset.copy()
+        self.field = field
         self.name = name.lower()
         self.parset['op_name'] = name
         self.direction = direction

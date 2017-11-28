@@ -1,5 +1,5 @@
 """
-Definition of the direction class
+Definition of the Facet class
 """
 import os
 import logging
@@ -14,11 +14,11 @@ import sys
 import glob
 
 
-class Direction(object):
+class Facet(object):
     """
-    Generic direction class
+    Generic facet class
 
-    A direction object holds all the parameters needed for an operation in a
+    A fact object holds all the parameters needed for an operation in a
     given direction (facet).
 
     Note:

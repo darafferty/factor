@@ -1,5 +1,5 @@
 """
-Definition of context managers
+Definition of context manager classes
 """
 import time
 import datetime

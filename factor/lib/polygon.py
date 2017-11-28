@@ -1,7 +1,7 @@
 """
 General polygon library
 
-Contains the master class for all facet polygons.
+Contains the master Polygon class for all facet polygons.
 
 Note: code based on:
 http://code.activestate.com/recipes/578381-a-point-in-polygon-program-sw-sloan-algorithm/
@@ -197,7 +197,7 @@ class Polygon:
                         segA,segA+1,self.x[segA], self.y[segA], self.x[segA+1], self.y[segA+1],
                         segB,segB+1,self.x[segB], self.y[segB], self.x[segB+1], self.y[segB+1])
         return num_intersections
-                
+
 def _segments_intersect(Ax, Ay, Bx, By, Cx, Cy, Dx, Dy):
     """
     Check if two line-segments (Ax, Ay) -> (Bx, By) and (Cx, Cy) -> (Dx, Dy)
