@@ -513,7 +513,7 @@ def make_directions_file_from_skymodel(s, flux_min_Jy, size_max_arcmin,
     return directions_file
 
 
-def make_initial_skymodel(band):
+def make_initial_skymodel(field):
     """
     Makes the initial skymodel used to adjust facet edges
 
@@ -534,7 +534,7 @@ def make_initial_skymodel(band):
     lsmtool._logging.setLevel('debug')
 
     # Load sky model
-    s = lsmtool.load(band.skymodel_dirindep)
+    s = lsmtool.load(field.skymodel_file)
 
     # Group clean components by thresholding after convolving model with
     # 1-arcmin beam

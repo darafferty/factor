@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 """
-Script to combine multiple h5parms in time
+Script to combine multiple h5parms in time or frequency
 """
 import argparse
 from argparse import RawTextHelpFormatter
@@ -12,7 +12,7 @@ from losoto.h5parm import h5parm
 
 def main(input_files, output_file, soltype, solsetname='sol000'):
     """
-    Combine multiple h5parms in time
+    Combine multiple h5parms in time or frequency
 
     Parameters
     ----------

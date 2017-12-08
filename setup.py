@@ -7,11 +7,12 @@ description = 'FACTOR: Facet calibration for LOFAR'
 long_description = description
 if os.path.exists('README.md'):
     with open('README.md') as f:
-        long_description=f.read()
+        long_description = f.read()
 
 
 class PyTest(Command):
     user_options = []
+
     def initialize_options(self):
         pass
 
@@ -19,7 +20,8 @@ class PyTest(Command):
         pass
 
     def run(self):
-        import sys,subprocess
+        import sys
+        import subprocess
         errno = subprocess.call([sys.executable, 'runtests.py'])
         raise SystemExit(errno)
 
@@ -31,7 +33,7 @@ setup(
     description=description,
     long_description=long_description,
     platforms='any',
-    classifiers = [
+    classifiers=[
         'Programming Language :: Python',
         'Development Status :: 1 - Alpha',
         'Natural Language :: English',
@@ -42,7 +44,7 @@ setup(
         ],
     install_requires=['numpy', 'scipy', 'astropy', 'jinja2', 'aplpy>=1.0', 'LSMTool>=1.2', ],
     dependency_links=['https://github.com/darafferty/LSMTool'],
-    scripts = ['bin/runfactor','bin/checkfactor','bin/archivefactor','bin/unarchivefactor'],
+    scripts=['bin/runfactor', 'bin/checkfactor', 'bin/archivefactor', 'bin/unarchivefactor'],
     packages=['factor', 'factor.operations', 'factor.lib'],
     package_data={'factor': [
         'parsets/*',
@@ -52,5 +54,5 @@ setup(
         'pipeline/recipes/nodes/*',
         'scripts/*',
         'skymodels/*']},
-    cmdclass = {'test': PyTest},
+    cmdclass={'test': PyTest},
     )

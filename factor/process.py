@@ -10,8 +10,9 @@ import pickle
 import collections
 import casacore.tables as pt
 from lofarpipe.support.data_map import DataMap
+import lsmtool
 import factor
-import factor.facets
+import factor.directions
 import factor.parset
 import factor.cluster
 from factor.operations.outlier_ops import *
@@ -21,22 +22,15 @@ from factor.lib.scheduler import Scheduler
 from factor.lib.direction import Direction
 from factor.lib.field import Field
 
-
 log = logging.getLogger('factor')
 
 
-def run(parset_file, logging_level='info', dry_run=False, test_run=False,
-    reset_facets=[], reset_operations=[], stop_after=0):
+def run(parset_file, logging_level='info'):
     """
     Processes a dataset using facet calibration
 
     This function runs the operations in the correct order and handles all the
-    bookkeeping for the processing: e.g., which operations are needed for each
-    direction (depending on success of selfcal, the order in which they were
-    processed, etc.).
-
-    It also handles the set up of the computing parameters and the generation of
-    DDE calibrators and facets.
+    bookkeeping for the processing
 
     Parameters
     ----------
@@ -44,17 +38,6 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
         Filename of parset containing processing parameters
     logging_level : str, optional
         One of 'degug', 'info', 'warning' in decreasing order of verbosity
-    dry_run : bool, optional
-        If True, do not run pipelines. All parsets, etc. are made as normal
-    test_run : bool, optional
-        If True, use test settings. These settings are for testing purposes
-        only and will not produce useful results
-    reset_facets : list of str, optional
-        List of names of facets to be reset
-    reset_operations : list of str, optional
-        Llist of operations to be reset
-    stop_after : int, optional
-        Stop after processing so many facetselfcal groups.
 
     """
     # Read parset
@@ -64,8 +47,8 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
     parset['logging_level'] = logging_level
     factor._logging.set_level(logging_level)
 
-    # Set up clusterdesc, node info, scheduler, etc.
-    scheduler = _set_up_compute_parameters(parset, dry_run)
+    # Set up scheduler
+    scheduler = _set_up_scheduler(parset)
 
     # Initialize field object
     field = Field(parset)
@@ -75,67 +58,33 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
 
     # Self calibrate
     max_selfcal_loops = parset['calibration_specific']['max_selfcal_loops']
-    for i in range(max_selfcal_loops):
-        # Calibrate (and fit screens if desired)
-        op = Calibrate(field, iter=i)
+    selfcal_modes = ['phase', 'phase', 'phase_amp', 'phase_amp']
+    iter = 0
+    for cal_mode in selfcal_modes:
+    	iter += 1
+
+        # Calibrate
+        op = Calibrate(field, cal_mode, iter=iter)
         scheduler.run(op)
 
         # Image
-#         op = Image(field, iter=i)
-#         scheduler.run(op)
-        niter = 2
-        for j in range(niter):
-            log.info('Imaging {0} direction(s)'.format(
-                len(facets)))
+		ops = [Image(field, sector, iter=iter) for sector in field.sectors]
+		scheduler.run(ops)
 
-            # Image
-            ops = [FacetImage(field, d,
-                parset['imaging_specific']['selfcal_cellsize_arcsec'],
-                parset['imaging_specific']['selfcal_robust'], 0.0,
-                parset['imaging_specific']['selfcal_min_uv_lambda'],
-                iter=j) for d in facets]
-            scheduler.run(ops)
+		# Combine new sky models and group
+		field.skymodel = lsmtool.load(field.combine_skymodels())
+		field.group_skymodel()
 
-            if j == 0:
-                # Set the name of the subtracted data column for all but first
-                # direction to CORRECTED_DATA
-                for d in facets:
-                    if d.name != facets[0].name:
-                        d.subtracted_data_colname = 'CORRECTED_DATA'
+		# Check for convergence or iteration limit
+		converged = field.check_selfcal_convergence()
+		if iter >= max_selfcal_loops or converged:
+			break
 
-            # Subtract model
-            ops = [FacetSub(field, d, iter=j) for d in facets]
-            for op in ops:
-                scheduler.run(op)
-
-            # After first subtract, use CORRECTED_DATA for all facets
-            if j == 0:
-                for d in facets:
-                    d.subtracted_data_colname = 'CORRECTED_DATA'
-
-        # Combine new sky models and group
-        field.skymodel = lsmtool.load(combine_skymodels(facets))
-        field.group_skymodel()
-
-    # Mosaic the final residual facet images together
+    # Mosaic the final sector images together
     if parset['imaging_specific']['make_mosaic']:
-        # Make direction object for the field and load previous state (if any)
-        field = Direction('field', bands[0].ra, bands[0].dec,
-            factor_working_dir=parset['dir_working'])
-        field.load_state()
-        if len(reset_operations) > 0:
-            field.reset_operations = reset_operations
-        else:
-            field.reset_operations = (field.completed_operations[:] +
-                field.started_operations[:])
-
         # Set averaging for primary beam generation
         field.avgpb_freqstep = 20
         field.avgpb_timestep = int(120.0 / bands[0].timepersample)
-
-        # Reset the field direction if specified
-        if 'field' in reset_facets:
-            field.reset_state('fieldmosaic')
 
         # Specify appropriate image, mask, and vertices file
         opname ='facetimage_final'
@@ -149,15 +98,15 @@ def run(parset_file, logging_level='info', dry_run=False, test_run=False,
 
         # Do mosaicking
         op = FieldMosaic(parset, bands, field,
-            parset['imaging_specific']['selfcal_cellsize_arcsec'],
-            parset['imaging_specific']['selfcal_robust'], 0.0,
-            parset['imaging_specific']['selfcal_min_uv_lambda'])
+                         parset['imaging_specific']['selfcal_cellsize_arcsec'],
+                         parset['imaging_specific']['selfcal_robust'], 0.0,
+                         parset['imaging_specific']['selfcal_min_uv_lambda'])
         scheduler.run(op)
 
     log.info("Factor has finished :)")
 
 
-def _set_up_compute_parameters(parset, dry_run=False):
+def _set_up_scheduler(parset):
     """
     Sets up compute parameters and operation scheduler
 
@@ -165,8 +114,6 @@ def _set_up_compute_parameters(parset, dry_run=False):
     ----------
     parset : dict
         Parset containing processing parameters
-    dry_run : bool, optional
-        If True, do not run pipelines. All parsets, etc. are made as normal
 
     Returns
     -------
@@ -178,31 +125,35 @@ def _set_up_compute_parameters(parset, dry_run=False):
 
     cluster_parset = parset['cluster_specific']
     if 'clusterdesc_file' not in cluster_parset:
-        log.warn('Did not find \"clusterdesc_file\" in parset-dict! This shouldn\'t happen, but trying to continue anyhow.')
+        log.warn('Did not find "clusterdesc_file" in parset-dict! This '
+                 'shouldn\'t happen, but trying to continue anyhow.')
         parset['cluster_specific']['clusterdesc'] = 'local.clusterdesc'
     else:
         if (cluster_parset['clusterdesc_file'].lower() == 'pbs' or
-            ('cluster_type' in cluster_parset and cluster_parset['cluster_type'].lower() == 'pbs')):
+            cluster_parset['cluster_type'].lower() == 'pbs'):
             log.info('Using cluster setting: "PBS".')
             cluster_parset['clusterdesc'] = factor.cluster.make_pbs_clusterdesc()
             cluster_parset['clustertype'] = 'pbs'
         elif (cluster_parset['clusterdesc_file'].lower() == 'slurm' or
-            ('cluster_type' in cluster_parset and cluster_parset['cluster_type'].lower() == 'slurm')):
+              cluster_parset['cluster_type'].lower() == 'slurm'):
             log.info('Using cluster setting: "SLURM".')
             cluster_parset['clusterdesc'] = factor.cluster.make_slurm_clusterdesc()
             cluster_parset['clustertype'] = 'slurm'
         elif (cluster_parset['clusterdesc_file'].lower() == 'juropa_slurm' or
-            ('cluster_type' in cluster_parset and cluster_parset['cluster_type'].lower() == 'juropa_slurm')):
-            log.info('Using cluster setting: "JUROPA_slurm" (Single genericpipeline using multiple nodes).')
+              cluster_parset['cluster_type'].lower() == 'juropa_slurm'):
+            log.info('Using cluster setting: "JUROPA_slurm" (Single '
+                     'genericpipeline using multiple nodes).')
             # slurm_srun on JUROPA uses the local.clusterdesc
-            cluster_parset['clusterdesc'] = os.path.join(parset['lofarroot'], 'share', 'local.clusterdesc')
+            cluster_parset['clusterdesc'] = os.path.join(parset['lofarroot'],
+                                                         'share', 'local.clusterdesc')
             cluster_parset['clustertype'] = 'juropa_slurm'
             cluster_parset['node_list'] = ['localhost']
         elif (cluster_parset['clusterdesc_file'].lower() == 'mpirun' or
-            ('cluster_type' in cluster_parset and cluster_parset['cluster_type'].lower() == 'mpirun')):
+              cluster_parset['cluster_type'].lower() == 'mpirun'):
             log.info('Using cluster setting: "mpirun".')
             # mpirun uses the local.clusterdesc?
-            cluster_parset['clusterdesc'] = os.path.join(parset['lofarroot'], 'share', 'local.clusterdesc')
+            cluster_parset['clusterdesc'] = os.path.join(parset['lofarroot'],
+                                                         'share', 'local.clusterdesc')
             cluster_parset['clustertype'] = 'mpirun'
             cluster_parset['node_list'] = ['localhost']
         else:
@@ -220,10 +171,13 @@ def _set_up_compute_parameters(parset, dry_run=False):
             log.debug('Setting limit for number of open files to: {}.'.format(nof_files_limits[1]))
             resource.setrlimit(resource.RLIMIT_NOFILE,(nof_files_limits[1],nof_files_limits[1]))
             nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
-        log.debug('Active limit for number of open files is {0}, maximum limit is {1}.'.format(nof_files_limits[0],nof_files_limits[1]))
+        log.debug('Active limit for number of open files is {0}, maximum limit '
+                  'is {1}.'.format(nof_files_limits[0],nof_files_limits[1]))
         if nof_files_limits[0] < 2048:
-            log.warn('The limit for number of open files is small, this could results in a "Too many open files" problem when running factor.')
-            log.warn('The active limit can be increased to the maximum for the user with: "ulimit -Sn <number>" (bash) or "limit descriptors 1024" (csh).')
+            log.warn('The limit for number of open files is small, this could '
+                     'result in a "Too many open files" problem when running factor.')
+            log.warn('The active limit can be increased to the maximum for the '
+                     'user with: "ulimit -Sn <number>" (bash) or "limit descriptors 1024" (csh).')
     except resource.error:
         log.warn('Cannot check limits for number of open files, what kind of system is this?')
 
@@ -234,16 +188,15 @@ def _set_up_compute_parameters(parset, dry_run=False):
     ndir_simul = len(cluster_parset['node_list']) * cluster_parset['ndir_per_node']
     if parset['direction_specific']['groupings'] is not None:
         ngroup_max = int(max([int(n.items()[0][0]) for n in
-            parset['direction_specific']['groupings']]))
+                              parset['direction_specific']['groupings']]))
     else:
         ngroup_max = 1
     if ndir_simul < ngroup_max:
         log.warn('The maximum number of facets that can be proccessed '
-            'simultaneously ({0}) is less than the number of facets in the '
-            'largest group ({1}). For best performance, these values should be '
-            'equal'.format(ndir_simul, ngroup_max))
-    scheduler = Scheduler(parset['genericpipeline_executable'], max_procs=ndir_simul,
-        dry_run=dry_run)
+                 'simultaneously ({0}) is less than the number of facets in the '
+                 'largest group ({1}). For best performance, these values should be '
+                 'equal'.format(ndir_simul, ngroup_max))
+    scheduler = Scheduler(parset['genericpipeline_executable'], max_procs=ndir_simul)
 
     return scheduler
 
@@ -266,29 +219,26 @@ def _set_up_facets(field):
 
     """
     dir_parset = field.parset['direction_specific']
-
     max_radius_deg = dir_parset['max_radius_deg']
-
     if dir_parset['faceting_skymodel'] is not None:
-        import lsmtool
         log.info("Using {} as sky model for source avoidance and DDE calibrator "
             "selection (if desired)".format(dir_parset['faceting_skymodel']))
         initial_skymodel = lsmtool.load(dir_parset['faceting_skymodel'])
     else:
-        initial_skymodel = field.skymodel
+        initial_skymodel = factor.directions.make_initial_skymodel(field)
 
     log.info('Setting up facets...')
     facets = _initialize_facets(field, initial_skymodel,
         max_radius_deg=max_radius_deg)
 
     # Check with user
-    if parset['interactive']:
+    if field.parset['interactive']:
         print("\nFacet and DDE calibrator regions saved. Please check that they\n"
             "are OK before continuing. You can edit the facets file and\n"
             "continue; FACTOR will pick up any changes to it. Note: if you\n"
             "choose not to continue and you let FACTOR generate the facets\n"
             "internally, you must delete the FACTOR-made facets file\n"
-            "(dir_working/factor_facets.txt) before restarting if you want\n"
+            "(dir_working/factor_directions.txt) before restarting if you want\n"
             "FACTOR to regenerate it\n")
         prompt = "Continue processing (y/n)? "
         answ = raw_input(prompt)
@@ -300,15 +250,8 @@ def _set_up_facets(field):
         else:
             # Continue processing, but first re-initialize the facets to
             # pick up any changes the user made to the facets file
-            facets = _initialize_facets(parset, initial_skymodel,
+            facets = _initialize_facets(field.parset, initial_skymodel,
                 ref_band, max_radius_deg=max_radius_deg, dry_run=dry_run)
-
-    # Warn user if they've specified a direction to reset that does not exist
-    direction_names = [d.name for d in facets]
-    for name in reset_facets:
-        if name not in direction_names and name != 'field':
-            log.warn('Direction {} was specified for resetting but does not '
-                'exist in current list of facets'.format(name))
 
     # Load previously completed operations (if any) and facetsubreset-specific
     # attributes and save the state
@@ -340,7 +283,7 @@ def _set_up_facets(field):
         # is imaged)
         total_flux_jy, peak_flux_jy_bm = direction.get_cal_fluxes()
         effective_flux_jy = peak_flux_jy_bm * (total_flux_jy / peak_flux_jy_bm)**0.667
-        if (effective_flux_jy > parset['calibration_specific']['peel_flux_jy'] or
+        if (effective_flux_jy > field.parset['calibration_specific']['peel_flux_jy'] or
             facet.is_outlier):
             facet.find_peel_skymodel()
             if facet.peel_skymodel is not None:
@@ -360,8 +303,8 @@ def _set_up_facets(field):
                         'instead'.format(direction.name))
 
         # Set full correlation solve
-        if effective_flux_jy > parset['calibration_specific']['solve_all_correlations_flux_jy']:
-            if not parset['calibration_specific']['spline_smooth2d']:
+        if effective_flux_jy > field.parset['calibration_specific']['solve_all_correlations_flux_jy']:
+            if not field.parset['calibration_specific']['spline_smooth2d']:
                 log.error('The option spline_smooth2d must be enabled to use '
                     'XY and YX correlations during the slow gain solve')
                 sys.exit(1)
@@ -369,32 +312,23 @@ def _set_up_facets(field):
 
         # Set field center to that of first band (all bands have the same phase
         # center)
-        direction.field_ra = bands[0].ra
-        direction.field_dec = bands[0].dec
+        direction.field_ra = field.ra
+        direction.field_dec = field.dec
 
         # Set initial name of column that contains DATA
         direction.subtracted_data_colname = 'DATA'
         direction.use_compression = True
 
         # Set any flagging parameters
-        direction.flag_abstime = parset['flag_abstime']
-        direction.flag_baseline = parset['flag_baseline']
-        direction.flag_freqrange = parset['flag_freqrange']
-        direction.flag_expr = parset['flag_expr']
+        direction.flag_abstime = field.parset['flag_abstime']
+        direction.flag_baseline = field.parset['flag_baseline']
+        direction.flag_freqrange = field.parset['flag_freqrange']
+        direction.flag_expr = field.parset['flag_expr']
 
         # Set whether to apply amps
-        direction.apply_amps = parset['apply_amps']
+        direction.apply_amps = field.parset['apply_amps']
 
-        # Reset state if specified
-        if direction.name in reset_facets:
-            direction.do_reset = True
-            if len(reset_operations) > 0:
-                direction.reset_operations = reset_operations
-            else:
-                direction.reset_operations = (direction.completed_operations[:] +
-                    direction.started_operations[:])
-        else:
-            direction.do_reset = False
+        direction.do_reset = False
 
     # Select facets to selfcal, excluding outliers and target
     if target_has_own_facet:
@@ -410,11 +344,7 @@ def _set_up_facets(field):
         if dir_parset['ndir_selfcal'] <= len(selfcal_facets):
             selfcal_facets = selfcal_facets[:dir_parset['ndir_selfcal']]
 
-    # Divide facets into groups for selfcal
-    direction_groups = factor.facets.group_facets(selfcal_facets,
-        n_per_grouping=dir_parset['groupings'], allow_reordering=dir_parset['allow_reordering'])
-
-    return facets, direction_groups
+    return facets
 
 
 def _initialize_facets(field, initial_skymodel, max_radius_deg):
@@ -437,12 +367,12 @@ def _initialize_facets(field, initial_skymodel, max_radius_deg):
 
     # First check for user-supplied facets file, then for Factor-generated
     # file from a previous run, then for parameters needed to generate it internally
-    if 'facets_file' in dir_parset:
-        facets = factor.facets.facets_read(dir_parset['facets_file'],
-            parset['dir_working'])
-    elif os.path.exists(os.path.join(parset['dir_working'], 'factor_facets.txt')):
-        facets = factor.facets.facets_read(os.path.join(parset['dir_working'],
-            'factor_facets.txt'), parset['dir_working'])
+    if 'directions_file' in dir_parset:
+        facets = factor.directions.directions_read(dir_parset['directions_file'],
+            field.parset['dir_working'])
+    elif os.path.exists(os.path.join(field.parset['dir_working'], 'factor_directions.txt')):
+        facets = factor.directions.directions_read(os.path.join(field.parset['dir_working'],
+            'factor_directions.txt'), field.parset['dir_working'])
     else:
         if dir_parset['flux_min_jy'] is None or \
             dir_parset['size_max_arcmin'] is None or \
@@ -461,29 +391,27 @@ def _initialize_facets(field, initial_skymodel, max_radius_deg):
             # center
             if max_radius_deg is None:
                 max_radius_deg = field.fwhm_deg # means a diameter of 2 * FWHM
-            log.info('Removing sources beyond a radius of {0} degrees (corresponding to '
-                'a diameter of {1} * FWHM of the primary beam at {2} MHz)...'.format(
-                max_radius_deg, round(2.0*max_radius_deg/field.fwhm_deg, 1), max(field.endfreq)/1e6))
+            log.info('Removing sources beyond a radius of {0} degrees)...'.format(max_radius_deg))
             dist = s.getDistance(field.ra, field.dec, byPatch=True)
             s.remove(dist > max_radius_deg, aggregate=True)
 
             # Generate the facets file
             if dir_parset['minimize_nonuniformity']:
-                dir_parset['facets_file'] = factor.facets.make_facets_file_from_skymodel_uniform(
+                dir_parset['directions_file'] = factor.directions.make_directions_file_from_skymodel_uniform(
                     s, dir_parset['flux_min_jy'], dir_parset['size_max_arcmin'],
                     dir_parset['separation_max_arcmin'],
-                    facets_max_num=dir_parset['ndir_max'],
-                    interactive=parset['interactive'], ncpu=parset['cluster_specific']['ncpu'],
+                    directions_max_num=dir_parset['ndir_max'],
+                    interactive=parset['interactive'], ncpu=field.parset['cluster_specific']['ncpu'],
                     flux_min_for_merging_Jy=dir_parset['flux_min_for_merging_jy'])
             else:
-                dir_parset['facets_file'] = factor.facets.make_facets_file_from_skymodel(
+                dir_parset['directions_file'] = factor.directions.make_directions_file_from_skymodel(
                     s, dir_parset['flux_min_jy'], dir_parset['size_max_arcmin'],
                     dir_parset['separation_max_arcmin'],
-                    facets_max_num=dir_parset['ndir_max'],
-                    interactive=parset['interactive'],
+                    directions_max_num=dir_parset['ndir_max'],
+                    interactive=field.parset['interactive'],
                     flux_min_for_merging_Jy=dir_parset['flux_min_for_merging_jy'])
-            facets = factor.facets.facets_read(dir_parset['facets_file'],
-                parset['dir_working'])
+            facets = factor.directions.directions_read(dir_parset['directions_file'],
+                field.parset['dir_working'])
 
     # Add the target to the facets list if desired
     target_ra = dir_parset['target_ra']
@@ -493,13 +421,13 @@ def _initialize_facets(field, initial_skymodel, max_radius_deg):
     if target_ra is not None and target_dec is not None and target_radius_arcmin is not None:
         # Make target object
         target = Direction('target', target_ra, target_dec,
-            factor_working_dir=parset['dir_working'])
+            factor_working_dir = field.parset['dir_working'])
         if target_has_own_facet:
             target.contains_target = True
 
             # Check if target is already in facets list because it was
             # selected as a DDE calibrator. If so, remove the duplicate
-            nearest, dist = factor.facets.find_nearest(target, facets)
+            nearest, dist = factor.directions.find_nearest(target, facets)
             if dist < dir_parset['target_radius_arcmin']/60.0:
                 facets.remove(nearest)
 
@@ -507,7 +435,7 @@ def _initialize_facets(field, initial_skymodel, max_radius_deg):
             facets.append(target)
         else:
             # Find direction that contains target
-            nearest, dist = factor.facets.find_nearest(target, facets)
+            nearest, dist = factor.directions.find_nearest(target, facets)
             nearest.contains_target = True
     else:
         if target_has_own_facet:
@@ -516,23 +444,23 @@ def _initialize_facets(field, initial_skymodel, max_radius_deg):
 
     # Set calibrator size (must be done before faceting below is done)
     for d in facets:
-        d.set_cal_size(parset['imaging_specific']['selfcal_cellsize_arcsec'])
+        d.set_cal_size(field.parset['imaging_specific']['selfcal_cellsize_arcsec'])
 
     # Create facets and patches
     faceting_radius_deg = dir_parset['faceting_radius_deg']
     if faceting_radius_deg is None:
-        faceting_radius_deg = 1.25 * ref_band.fwhm_deg / 2.0
-    beam_ratio = 1.0 / np.sin(ref_band.mean_el_rad) # ratio of N-S to E-W beam
-    factor.facets.thiessen(facets, ref_band.ra, ref_band.dec,
+        faceting_radius_deg = 1.25 * field.fwhm_deg / 2.0
+    beam_ratio = 1.0 / np.sin(field.mean_el_rad) # ratio of N-S to E-W beam
+    factor.directions.thiessen(facets, field.ra, field.dec,
         faceting_radius_deg, s=s, check_edges=dir_parset['check_edges'],
         target_ra=target_ra, target_dec=target_dec,
         target_radius_arcmin=target_radius_arcmin, beam_ratio=beam_ratio)
 
     # Make DS9 region files so user can check the facets, etc.
-    ds9_facet_reg_file = os.path.join(parset['dir_working'], 'regions', 'facets_ds9.reg')
-    factor.facets.make_ds9_region_file(facets, ds9_facet_reg_file)
-    ds9_calimage_reg_file = os.path.join(parset['dir_working'], 'regions', 'calimages_ds9.reg')
-    factor.facets.make_ds9_calimage_file(facets, ds9_calimage_reg_file)
+    ds9_facet_reg_file = os.path.join(field.parset['dir_working'], 'regions', 'facets_ds9.reg')
+    factor.directions.make_ds9_region_file(facets, ds9_facet_reg_file)
+    ds9_calimage_reg_file = os.path.join(field.parset['dir_working'], 'regions', 'calimages_ds9.reg')
+    factor.directions.make_ds9_calimage_file(facets, ds9_calimage_reg_file)
 
     return facets
 

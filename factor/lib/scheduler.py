@@ -3,12 +3,10 @@ Module defining the Scheduler class
 """
 import logging
 import multiprocessing
-import signal
 import os
 import sys
 import imp
 import numpy as np
-import shutil
 from collections import Counter
 from factor.lib.context import Timer
 
@@ -16,7 +14,7 @@ log = logging.getLogger('factor:scheduler')
 
 
 def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
-    genericpipeline_executable):
+                          genericpipeline_executable):
     """
     Creates a GenericPipeline object and runs the pipeline
 
@@ -34,7 +32,6 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
         Log file base name
     genericpipeline_executable : str
         Path to genericpipeline.py executable
-
     """
     from lofarpipe.support.pipelinelogging import getSearchingLogger
     from factor.lib.context import RedirectStdStreams
@@ -42,7 +39,7 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
 
     genericpipeline_path = os.path.dirname(genericpipeline_executable)
     loader = imp.load_source('loader', os.path.join(genericpipeline_path,
-        'loader.py'))
+                             'loader.py'))
     gp = imp.load_source('gp', genericpipeline_executable)
 
     # Initalize pipeline object
@@ -62,12 +59,10 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
         handler.setLevel(logging.DEBUG)
 
     # Run the pipeline, redirecting screen output to log files
-    time.sleep(2.0) # pause to allow result_callback() to transfer resources
-    log.info('<-- Operation {0} started (direction: {1})'.format(op_name,
-        direction_name))
-    with open("{0}.out.log".format(logbasename), "wb") as out, \
-        open("{0}.err.log".format(logbasename), "wb") as err:
-        with RedirectStdStreams(stdout=out, stderr=err):
+    time.sleep(2.0)  # pause to allow Scheduler.result_callback() to transfer resources
+    log.info('<-- Operation {0} started (direction: {1})'.format(op_name, direction_name))
+    with open("{0}.log".format(logbasename), "wb") as out:
+        with RedirectStdStreams(stdout=out, stderr=out):
             status = pipeline.run(pipeline.name)
 
     return (op_name, direction_name, status)
@@ -85,19 +80,12 @@ class Scheduler(object):
         Limit the number of parallel processes to this number
     name : str, optional
         Name of the scheduler
-    dry_run : bool, optional
-        If True, the pipelines are not run but all parsets and config files
-        are made as normal
-
     """
-    def __init__(self, genericpipeline_executable, max_procs=1, name='scheduler',
-        dry_run=False):
+    def __init__(self, genericpipeline_executable, max_procs=1, name='scheduler'):
         self.genericpipeline_executable = genericpipeline_executable
         self.max_procs = max_procs
         self.name = name
-        self.dry_run = dry_run
         self.success = True
-
 
     def allocate_resources(self, operation_list=None):
         """
@@ -108,7 +96,6 @@ class Scheduler(object):
         operation_list : list of Operation objects, optional
             Input list of operations over which to distribute the resources. If
             None, self.operation_list is used
-
         """
         if operation_list is None:
             operation_list = self.operation_list
@@ -118,9 +105,8 @@ class Scheduler(object):
         nthread_io = self.operation_list[0].parset['cluster_specific']['nthread_io']
         fmem_max = self.operation_list[0].parset['cluster_specific']['wsclean_fmem']
         ndir_per_node = self.operation_list[0].parset['cluster_specific']['ndir_per_node']
-        nbands = len(self.operation_list[0].bands)
-        ntimes = len(self.operation_list[0].bands[0].files)
-        nfiles = ntimes * nbands
+        ntimes = self.operation_list[0].field.ntimechunks
+        nfreqs = self.operation_list[0].field.nfreqchunks
         nops_simul = self.max_procs
 
         for i in range(int(np.ceil(len(operation_list)/float(nops_simul)))):
@@ -133,7 +119,7 @@ class Scheduler(object):
             else:
                 parts = len(op_group)
                 hosts = [node_list[i*len(node_list)//parts:
-                    (i+1)*len(node_list)//parts] for i in range(parts)]
+                         (i+1)*len(node_list)//parts] for i in range(parts)]
 
             # Find duplicates and divide up available nodes and cores
             h_flat = []
@@ -150,16 +136,15 @@ class Scheduler(object):
 
                 # Maximum number of normal and IO-intensive processes that the
                 # pipeline should run at once
-                op.direction.max_proc_per_node =  max(1, int(np.ceil(ncpu_max /
-                    float(nops_per_node))))
+                op.direction.max_proc_per_node = max(1, int(np.ceil(ncpu_max /
+                                                     float(nops_per_node))))
                 op.direction.max_io_proc_per_node = max(1, int(np.ceil(nthread_io /
-                    float(nops_per_node))))
+                                                        float(nops_per_node))))
 
             # Adjust resources to stay within limits for each node by adding or
             # subtracting CPUs from the most appropriate operation(s). For now,
             # we use the size of the facet image to determine the weights
-            resource_weights = [op.direction.facet_imsize if op.direction.facet_imsize is
-                not None else 0.0 for op in op_group]
+            resource_weights = [1.0] * len(op_group)
             j = 0
             while sum([op.direction.max_proc_per_node for op in op_group]) > ncpu_max * len(hosts):
                 op_take = op_group[resource_weights.index(sorted(resource_weights)[j])]
@@ -172,8 +157,8 @@ class Scheduler(object):
 
             for op in op_group:
                 # Set maximum number of threads for normal and IO-intensive
-                # multithreaded processes (e.g., DPPP jobs) when run once,
-                # nfiles, and ntimes times per step (the most common cases)
+                # multithreaded processes (e.g., DPPP jobs) when run once
+                # or ntimes times per step (the most common cases)
                 op.direction.max_cpus_per_proc_single = op.direction.max_proc_per_node
                 op.direction.max_cpus_per_proc_ntimes = int(np.ceil(
                     op.direction.max_proc_per_node /
@@ -181,12 +166,12 @@ class Scheduler(object):
                 op.direction.max_cpus_per_io_proc_ntimes = int(np.ceil(
                     op.direction.max_proc_per_node /
                     float(min(ntimes, op.direction.max_io_proc_per_node))))
-                op.direction.max_cpus_per_proc_nfiles = int(np.ceil(
+                op.direction.max_cpus_per_proc_nfreqs = int(np.ceil(
                     op.direction.max_proc_per_node /
-                    float(min(nfiles, op.direction.max_proc_per_node))))
-                op.direction.max_cpus_per_io_proc_nfiles = int(np.ceil(
+                    float(min(nfreqs, op.direction.max_proc_per_node))))
+                op.direction.max_cpus_per_io_proc_nfreqs = int(np.ceil(
                     op.direction.max_proc_per_node /
-                    float(min(nfiles, op.direction.max_io_proc_per_node))))
+                    float(min(nfreqs, op.direction.max_io_proc_per_node))))
 
                 # Maximum percentage of memory to give to jobs that allow memory
                 # limits (e.g., WSClean jobs)
@@ -198,16 +183,12 @@ class Scheduler(object):
                 op.direction.max_percent_memory_per_io_proc_ntimes = (fmem_max /
                     float(nops_per_node) * 100.0 /
                     float(min(ntimes, op.direction.max_io_proc_per_node)))
-                op.direction.max_percent_memory_per_proc_nfiles = (fmem_max /
+                op.direction.max_percent_memory_per_proc_nfreqs = (fmem_max /
                     float(nops_per_node) * 100.0 /
-                    float(min(nfiles, op.direction.max_proc_per_node)))
-                op.direction.max_percent_memory_per_io_proc_nfiles = (fmem_max /
+                    float(min(nfreqs, op.direction.max_proc_per_node)))
+                op.direction.max_percent_memory_per_io_proc_nfreqs = (fmem_max /
                     float(nops_per_node) * 100.0 /
-                    float(min(nfiles, op.direction.max_io_proc_per_node)))
-
-                # Save the state
-                op.direction.save_state()
-
+                    float(min(nfreqs, op.direction.max_io_proc_per_node)))
 
     def result_callback(self, result):
         """
@@ -218,11 +199,11 @@ class Scheduler(object):
         # Identify the current operation from the direction name
         try:
             this_op_indx = [op.direction.name for op in self.operation_list].index(direction_name)
-            this_op =  self.operation_list[this_op_indx]
+            this_op = self.operation_list[this_op_indx]
         except ValueError:
             log.warn('Operation {0} (direction: {1}) not in list of active '
-                'operations. This could indicate a problem with the operation'.
-                format(op_name, direction_name))
+                     'operations. This could indicate a problem with the operation'.
+                     format(op_name, direction_name))
             return
 
         # Reallocate resources
@@ -235,20 +216,18 @@ class Scheduler(object):
         # Finalize the operation
         if status == 0:
             log.info('--> Operation {0} completed (direction: '
-                '{1})'.format(op_name, direction_name))
+                     '{1})'.format(op_name, direction_name))
             this_op.finalize()
-            this_op.set_completed()
         else:
             self.success = False
             if this_op.can_restart():
                 log.warning('Operation {0} failed due to error (direction: '
-                    '{1}) but will be automatically resumed'.format(op_name, direction_name))
+                            '{1}) but will be automatically resumed'.format(op_name, direction_name))
             else:
                 log.error('Operation {0} failed due to an error (direction: '
-                    '{1})'.format(op_name, direction_name))
+                          '{1})'.format(op_name, direction_name))
                 import thread
                 thread.interrupt_main()
-
 
     def run(self, operation_list):
         """
@@ -258,59 +237,31 @@ class Scheduler(object):
         ----------
         operation_list : Operation instance or list of Operation instances
             List of operations to process
-
         """
         if type(operation_list) != list:
             operation_list = [operation_list]
 
-        # Finalize completed ops (so that various attributes are set correctly).
-        # The incomplete ops are finalized when complete in self.result_callback()
-        if self.dry_run:
-            completed_ops = operation_list
-        else:
-            completed_ops = [op for op in operation_list if op.check_completed()]
-        for op in completed_ops:
-            op.finalize()
-            op.set_completed()
-
-        # If this is a dry run, return
-        if self.dry_run:
-            return
-
         # Filter out completed ops
-        self.operation_list = [op for op in operation_list if not op.check_completed()]
+        self.operation_list = operation_list
 
         # Run the operation(s)
         n_tries = 0
         while len(self.operation_list) > 0:
             self.allocate_resources()
             with Timer(log, 'operation'):
-                # change signal-handler so that Keyboard-Interrupts go to the master thread
-                original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
                 pool = multiprocessing.Pool(processes=self.max_procs)
-                signal.signal(signal.SIGINT, original_sigint_handler)
                 self.queued_ops = self.operation_list[self.max_procs:]
                 process_list = []
                 for op in self.operation_list:
                     op.setup()
-                    op.set_started()
                     process_list.append(
                         pool.apply_async(call_generic_pipeline, (op.name,
-                            op.direction.name, op.pipeline_parset_file,
-                            op.pipeline_config_file, op.logbasename,
-                            self.genericpipeline_executable),
-                            callback=self.result_callback)
-                        )
-                pool.close() #no more new processes will be started
-                try:
-                    # We need to wait with a timeout, because otherwise all signals are blocked
-                    # *bleeep*ing python multi-threading/processing
-                    for process in process_list:
-                        while not process.ready():
-                            process.wait(30)
-                except KeyboardInterrupt:
-                    log.error("Caught an (Keyboard-)Interrupt, stopping all pipelines.")
-                    pool.terminate()
+                                         op.direction.name, op.pipeline_parset_file,
+                                         op.pipeline_config_file, op.logbasename,
+                                         self.genericpipeline_executable),
+                                         callback=self.result_callback)
+                                        )
+                pool.close()
                 pool.join()
 
             # Check for and handle any failed ops
@@ -320,10 +271,8 @@ class Scheduler(object):
                     op.cleanup()
 
                 # Check whether any failed ops can be restarted automatically
-                ops_can_restart = [op for op in self.operation_list if op.can_restart()
-                    and not op.check_completed()]
-                ops_cannot_restart = [op for op in self.operation_list if not op.can_restart()
-                    and not op.check_completed()]
+                ops_can_restart = [op for op in self.operation_list if op.can_restart()]
+                ops_cannot_restart = [op for op in self.operation_list if not op.can_restart()]
 
                 if len(ops_cannot_restart) == 0:
                     # All failed ops can be restarted, so reset success flag and
@@ -331,7 +280,7 @@ class Scheduler(object):
                     n_tries += 1
                     if n_tries > 3:
                         log.error('One or more operations failed due to an error '
-                            'and automatic restart did not work. Exiting...')
+                                  'and automatic restart did not work. Exiting...')
                         sys.exit(1)
                     self.success = True
                     self.operation_list = ops_can_restart
@@ -341,7 +290,3 @@ class Scheduler(object):
                     sys.exit(1)
             else:
                 self.operation_list = []
-
-
-
-

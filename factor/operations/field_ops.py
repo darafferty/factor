@@ -24,6 +24,38 @@ class Calibrate(Operation):
     def __init__(self, field):
         super(Calibrate, self).__init__(field, name='Calibrate')
 
+        # Define extra parameters needed for this operation
+        self.direction.set_imcal_parameters(parset, bands)
+        ms_filename = sum([obs.calibration_parameters['ms_filename'] for
+            obs in field.observations], [])
+        starttime = sum([obs.calibration_parameters['starttime'] for
+            obs in field.observations], [])
+        ntimes = sum([obs.calibration_parameters['ntimes'] for
+            obs in field.observations], [])
+        solint_fast_timestep = sum([obs.calibration_parameters['solint_fast_timestep'] for
+            obs in field.observations], [])
+        solint_slow_timestep = sum([obs.calibration_parameters['solint_slow_timestep'] for
+            obs in field.observations], [])
+        solint_fast_freqstep = sum([obs.calibration_parameters['solint_fast_freqstep'] for
+            obs in field.observations], [])
+        solint_slow_freqstep = sum([obs.calibration_parameters['solint_slow_freqstep'] for
+            obs in field.observations], [])
+
+        ms_files_single = []
+        for bandfiles in ms_files:
+            for filename in bandfiles:
+                ms_files_single.append(filename)
+        dir_indep_parmDBs = []
+        for band in self.bands:
+            for parmdb in band.dirindparmdbs:
+                dir_indep_parmDBs.append(parmdb)
+        skymodels = [band.skymodel_dirindep for band in self.bands]
+        if self.direction.contains_target:
+            loopcount = max(1, self.parset['calibration_specific']['target_max_selfcal_loops'])
+        else:
+            loopcount = max(1, self.parset['calibration_specific']['max_selfcal_loops'])
+
+
     def finalize(self):
         """
         Finalize this operation

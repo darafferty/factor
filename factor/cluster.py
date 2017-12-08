@@ -226,12 +226,13 @@ def find_executables(parset):
 
     executables = {'genericpipeline_executable': ['genericpipeline.py'],
                    'wsclean_executable': ['wsclean'],
-                   'image2fits_executable': ['image2fits']}
+                   'losoto_executable': ['losoto'],
+                   'h5collector_executable': 'H5parm_collector.py']}
     for key, names in executables.iteritems():
         for name in names:
             path = spawn.find_executable(name)
             if path is not None:
-                parset[key] = path
+                parset['cluster_specific'][key] = path
                 break
         if path is None:
             log.error('The path to the {0} executable could not be determined. '

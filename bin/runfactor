@@ -67,6 +67,4 @@ if __name__ == '__main__':
         reset_operations = []
 
     # Process the field
-    process.run(parset_file, logging_level=logging_level, dry_run=options.d,
-        test_run=options.t, reset_directions=reset_directions, reset_operations=
-        reset_operations, stop_after=options.stop_after)
+    process.run(parset_file, logging_level=logging_level)
