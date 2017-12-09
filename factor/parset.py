@@ -280,20 +280,6 @@ def get_calibration_options(parset):
     else:
         parset_dict['slow_freqstep_hz'] = 2e6
 
-    # Check that target solution intervals are smaller than chunk sizes
-    if parset['chunk_size_sec'] < parset_dict['fast_timestep_sec']:
-        log.warning('The size of a time chunk (chunk_size_sec = {0}) is smaller '
-                    'than the solution interval (fast_timestep_sec = {1}). '
-                    'Setting chunk_size_sec = {2}'.format(parset['chunk_size_sec'],
-                    parset_dict['fast_timestep_sec'], parset_dict['fast_timestep_sec']))
-        parset['chunk_size_sec'] = parset_dict['fast_timestep_sec']
-    if parset['chunk_size_hz'] < parset_dict['slow_freqstep_sec']:
-        log.warning('The size of a frequency chunk (chunk_size_hz = {0}) is smaller '
-                    'than the solution interval (slow_freqstep_hz = {1}). '
-                    'Setting chunk_size_hz = {2}'.format(parset['chunk_size_hz'],
-                    parset_dict['slow_freqstep_hz'], parset_dict['slow_freqstep_hz']))
-        parset['chunk_size_hz'] = parset_dict['slow_freqstep_hz']
-
     # Check for unused options
     allowed_options = ['max_selfcal_loops', 'preaverage_flux_jy', 'multiscale_selfcal',
                        'multires_selfcal', 'solve_min_uv_lambda', 'spline_smooth2d',
