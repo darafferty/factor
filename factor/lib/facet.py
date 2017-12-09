@@ -1086,6 +1086,12 @@ class Facet(object):
                 if 'image_data_mapfile' in d:
                     self.image_data_mapfile = d['image_data_mapfile']
 
+                self.vertices = d['vertices']
+                self.vertices_cal = d['vertices_cal']
+                self.width = d['wdith']
+                self.facet_ra = d['facet_ra']
+                self.facet_dec = d['facet_dec']
+
             return True
         except:
             return False

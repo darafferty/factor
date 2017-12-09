@@ -1,4 +1,8 @@
+{% if do_slowgain_solve %}
 pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, solve_slow_gains]
+{% else %}
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases]
+{% endif %}
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -140,7 +144,7 @@ expand_sourcedb_mapfile_freq.control.filename         = expand_sourcedb_freq.map
 solve_fast_phases.control.type                      = dppp_inplace
 solve_fast_phases.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
 solve_fast_phases.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
-solve_fast_phases.argument.numthreads               = {{ max_cpus_per_proc_ntimes }}
+solve_fast_phases.argument.numthreads               = {{ max_proc_per_node }}
 solve_fast_phases.argument.msin.datacolumn          = {{ data_colname }}
 solve_fast_phases.argument.msin.starttime           = starttime
 solve_fast_phases.argument.msin.ntimes              = ntimes
@@ -178,7 +182,7 @@ combine_fast_phases.argument.concataxis = time
 solve_slow_gains.control.type                                           = dppp_inplace
 solve_slow_gains.control.mapfiles_in                                    = [create_freqchunk_files_map.output.mapfile,combine_fast_phases.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile,expand_sourcedb_mapfile_freq.output.mapfile]
 solve_slow_gains.control.inputkeys                                      = [msin,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep,sourcedb]
-solve_slow_gains.argument.numthreads                                    = {{ max_cpus_per_proc_ntimes }}
+solve_slow_gains.argument.numthreads                                    = {{ max_proc_per_node }}
 solve_slow_gains.argument.msin.datacolumn                               = {{ data_colname }}
 solve_slow_gains.argument.msin.startchan                                = startchan
 solve_slow_gains.argument.msin.nchan                                    = nchan

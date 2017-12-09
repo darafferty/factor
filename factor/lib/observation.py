@@ -7,6 +7,7 @@ import logging
 import casacore.tables as pt
 import numpy as np
 from astropy.time import Time
+from factor.directions import get_target_timewidth, get_target_bandwidth
 
 
 class Observation(object):
@@ -87,15 +88,30 @@ class Observation(object):
         target_slow_timestep = parset['calibration_specific']['slow_timestep_sec']
         target_slow_freqstep = parset['calibration_specific']['slow_freqstep_hz']
 
-        # Calculate time ranges of calibration chunks
+        # Find solution intervals for fast-phase solve
         timepersample = self.timepersample
+        channelwidth = self.channelwidth
+        solint_fast_timestep = max(1, int(round(target_fast_timestep / timepersample)))
+        solint_fast_freqstep = max(1, self.get_nearest_frequstep(target_fast_freqstep / channelwidth))
+
+        # Calculate time ranges of calibration chunks for fast-phase solve. Try
+        # to ensure that the number of samples per chunk is an even multiple of
+        # the solution interval
         numsamples = self.numsamples
         samplesperchunk = int(round(target_time_chunksize / timepersample))
+        chunk_remainder = samplesperchunk % solint_fast_timestep
+        if chunk_remainder <= solint_fast_timestep/2:
+            delta = -1.0
+        else:
+            delta = 1.0
+        while chunk_remainder:
+            samplesperchunk += delta
+            chunk_remainder = samplesperchunk % solint_fast_timestep
         chunksize = samplesperchunk * timepersample
         mystarttime = self.starttime
         myendtime = self.endtime
-        if (myendtime-mystarttime) > (2.0*chunksize):
-            nchunks = int((numsamples*timepersample)/chunksize)
+        if (myendtime-mystarttime) > (2*chunksize):
+            nchunks = int(round(float(numsamples)*timepersample)/chunksize)
         else:
             nchunks = 1
         self.ntimechunks = nchunks
@@ -107,10 +123,23 @@ class Observation(object):
         self.calibration_parameters['ntimes'] = [samplesperchunk] * self.ntimechunks
         self.calibration_parameters['ntimes'][-1] = 0  # set last entry to extend until end
 
-        # Calculate frequency ranges of calibration chunks
-        channelwidth = self.channelwidth
+        # Find solution intervals for slow-gain solve
+        solint_slow_timestep = max(1, int(round(target_slow_timestep / timepersample)))
+        solint_slow_freqstep = max(1, self.get_nearest_frequstep(target_slow_freqstep / channelwidth))
+
+        # Calculate frequency ranges of calibration chunks for slow-gain solve. Try
+        # to ensure that the number of samples per chunk is an even multiple of
+        # the solution interval
         numchannels = self.numchannels
         channelsperchunk = int(round(target_freq_chunksize / channelwidth))
+        chunk_remainder = channelsperchunk % solint_slow_freqstep
+        if chunk_remainder <= solint_slow_freqstep/2:
+            delta = -1.0
+        else:
+            delta = 1.0
+        while chunk_remainder:
+            channelsperchunk += delta
+            chunk_remainder = channelsperchunk % solint_slow_freqstep
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq
         myendfreq = self.endfreq
@@ -118,23 +147,59 @@ class Observation(object):
             nchunks = int((numchannels*channelwidth)/chunksize)
         else:
             nchunks = 1
-        self.nfreqchunks
-        self.log.debug('Using {1} frequency chunk(s) for slow-gain calibration'.format(self.nfreqchunks))
+        self.nfreqchunks = nchunks
+        self.log.debug('Using {} frequency chunk(s) for slow-gain calibration'.format(self.nfreqchunks))
         self.calibration_parameters['freqchunk_filename'] = [self.ms_filename] * self.nfreqchunks
         self.calibration_parameters['startchan'] = [channelsperchunk * i for i in range(nchunks)]
         self.calibration_parameters['nchan'] = [channelsperchunk] * nchunks
         self.calibration_parameters['nchan'][-1] = 0  # set last entry to extend until end
 
         # Set solution intervals (same for every calibration chunk)
-        freqpersample = self.channelwidth
-        self.calibration_parameters['solint_fast_timestep'] = max(1, [int(round(target_fast_timestep /
-                                                                      timepersample))] * self.nchunks)
-        self.calibration_parameters['solint_fast_freqstep'] = max(1, [self.get_nearest_frequstep(target_fast_freqstep /
-                                                                      freqpersample)] * self.nchunks)
-        self.calibration_parameters['solint_slow_timestep'] = max(1, [int(round(target_slow_timestep /
-                                                                      timepersample))] * self.nchunks)
-        self.calibration_parameters['solint_slow_freqstep'] = max(1, [self.get_nearest_frequstep(target_slow_freqstep /
-                                                                      freqpersample)] * self.nchunks)
+        self.calibration_parameters['solint_fast_timestep'] = [solint_fast_timestep] * self.ntimechunks
+        self.calibration_parameters['solint_fast_freqstep'] = [solint_fast_freqstep] * self.ntimechunks
+        self.calibration_parameters['solint_slow_timestep'] = [solint_slow_timestep] * self.nfreqchunks
+        self.calibration_parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
+
+    def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
+                               width_ra, width_dec):
+        """
+        Sets the imaging parameters
+
+        Parameters
+        ----------
+        field : Field object
+            Field object
+        cellsize_arcsec : float
+            Pixel size in arcsec for imaging
+        width_ra : float
+            Width in RA of image in degrees
+        width_dec : float
+            Width in Dec of image in degrees
+        """
+        mean_freq_mhz = self.referencefreq
+        peak_smearing_factor = np.sqrt(1.0 - max_peak_smearing)
+        chan_width_hz = self.channelwidth
+        nchan = self.numchannels
+        timestep_sec = self.timepersample
+
+        # Get target time and frequency averaging steps
+        delta_theta_deg = max(width_ra, width_dec) / 2.0
+        resolution_deg = 3.0 * cellsize_arcsec / 3600.0  # assume normal sampling of restoring beam
+        target_timewidth_sec = min(120.0, get_target_timewidth(delta_theta_deg,
+                                   resolution_deg, peak_smearing_factor))
+        target_bandwidth_mhz = min(2.0, get_target_bandwidth(mean_freq_mhz,
+                                   delta_theta_deg, resolution_deg, peak_smearing_factor))
+        self.log.debug('Target timewidth for imaging is {} s'.format(target_timewidth_sec))
+        self.log.debug('Target bandwidth for imaging is {} MHz'.format(target_bandwidth_mhz))
+
+        # Find averaging steps for above target values
+        self.imaging_parameters = {}
+        image_freqstep = max(1, min(int(round(target_bandwidth_mhz * 1e6 / chan_width_hz)), nchan))
+        self.imaging_parameters['image_freqstep'] = self.get_nearest_frequstep(image_freqstep)
+        self.imaging_parameters['image_timestep'] = max(1, int(round(target_timewidth_sec / timestep_sec)))
+        self.log.debug('Using averaging steps of {0} channels and {1} time slots '
+                       'for imaging'.format(self.imaging_parameters['image_freqstep'],
+                                            self.imaging_parameters['image_timestep']))
 
     def convert_mjd(self, mjd_sec):
         """

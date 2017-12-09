@@ -19,14 +19,11 @@ class Field(object):
         Parset with processing parameters
     """
     def __init__(self, parset):
-
         # Save basic info
         self.name = 'field'
         self.log = logging.getLogger('factor:{}'.format(self.name))
         self.parset = parset.copy()
         self.working_dir = self.parset['dir_working']
-        self.save_file = os.path.join(self.working_dir, 'state',
-                                      self.name+'_save.pkl')
         self.ms_filenames = self.parset['mss']
         self.numMS = len(self.ms_filenames)
         self.data_colname = 'DATA'
@@ -46,7 +43,7 @@ class Field(object):
         """
         self.observations = []
         for ms_filename in self.ms_filenames:
-            self.observations.append(Observation(ms_filename, self.working_dir))
+            self.observations.append(Observation(ms_filename))
 
         # Check that all observations have the same frequency axis
         # NOTE: this may not be necessary and is disabled for now
@@ -100,9 +97,9 @@ class Field(object):
         self.ntimechunks = ntimechunks
         self.nfreqchunks = nfreqchunks
 
-    def get_calibration_parameters(self, parameter):
+    def get_obs_parameters(self, parameter):
         """
-        Returns list of calibration parameter for all observations
+        Returns list of calibration parameters for all observations
 
         Parameters
         ----------

@@ -4,9 +4,6 @@ Module that holds all compute-cluster-related functions
 import os
 import logging
 import sys
-import numpy as np
-from collections import Counter
-import factor._logging
 import re
 
 log = logging.getLogger('factor:cluster')
@@ -27,7 +24,7 @@ def make_pbs_clusterdesc():
         filename = os.environ['PBS_NODEFILE']
     except KeyError:
         log.error('PBS_NODEFILE not found. You must have a reservation to '
-            'use clusterdesc = PBS.')
+                  'use clusterdesc = PBS.')
         sys.exit(1)
 
     with open(filename, 'r') as file:
@@ -65,7 +62,7 @@ def expand_part(s):
     # 3) the rest
 
     m = re.match(r'([^,\[]*)(\[[^\]]*\])?(.*)', s)
-    (prefix, rangelist, rest) = m.group(1,2,3)
+    (prefix, rangelist, rest) = m.group(1, 2, 3)
 
     # Expand the rest first (here is where we recurse!)
     rest_expanded = expand_part(rest)
@@ -97,7 +94,7 @@ def expand_range(prefix, range_):
     # Otherwise split low-high
     m = re.match(r'^([0-9]+)-([0-9]+)$', range_)
 
-    (s_low, s_high) = m.group(1,2)
+    (s_low, s_high) = m.group(1, 2)
     low = int(s_low)
     high = int(s_high)
     width = len(s_low)
@@ -140,14 +137,16 @@ def expand_hostlist(hostlist, allow_duplicates=False, sort=False):
     for c in hostlist + ",":
         if c == "," and bracket_level == 0:
             # Comma at top level, split!
-            if part: results.extend(expand_part(part))
+            if part:
+                results.extend(expand_part(part))
             part = ""
-            bad_part = False
         else:
             part += c
 
-        if c == "[": bracket_level += 1
-        elif c == "]": bracket_level -= 1
+        if c == "[":
+            bracket_level += 1
+        elif c == "]":
+            bracket_level -= 1
 
     seen = set()
     results_nodup = []
@@ -173,7 +172,7 @@ def make_slurm_clusterdesc():
         hostlist = os.environ['SLURM_JOB_NODELIST']
     except KeyError:
         log.error('SLURM_JOB_NODELIST not found. You must have a reservation to '
-            'use clusterdesc = SLURM.')
+                  'use clusterdesc = SLURM.')
         sys.exit(1)
 
     nodes = expand_hostlist(hostlist)
@@ -227,7 +226,7 @@ def find_executables(parset):
     executables = {'genericpipeline_executable': ['genericpipeline.py'],
                    'wsclean_executable': ['wsclean'],
                    'losoto_executable': ['losoto'],
-                   'h5collector_executable': 'H5parm_collector.py']}
+                   'h5collector_executable': ['H5parm_collector.py']}
     for key, names in executables.iteritems():
         for name in names:
             path = spawn.find_executable(name)
@@ -236,5 +235,5 @@ def find_executables(parset):
                 break
         if path is None:
             log.error('The path to the {0} executable could not be determined. '
-                'Please make sure it is in your PATH.'.format(name))
+                      'Please make sure it is in your PATH.'.format(name))
             sys.exit(1)

@@ -281,6 +281,20 @@ def get_calibration_options(parset):
     else:
         parset_dict['slow_freqstep_hz'] = 2e6
 
+    # Check that target solution intervals are smaller than chunk sizes
+    if parset['chunk_size_sec'] < parset_dict['fast_timestep_sec']:
+        log.warngin('The size of a time chunk (chunk_size_sec = {0}) is smaller
+                    'than the solution interval (fast_timestep_sec = {1}). '
+                    'Setting chunk_size_sec = {2}'.format(parset['chunk_size_sec'],
+                    parset_dict['fast_timestep_sec'], parset_dict['fast_timestep_sec']))
+        parset['chunk_size_sec'] = parset_dict['fast_timestep_sec']
+    if parset['chunk_size_hz'] < parset_dict['slow_freqstep_sec']:
+        log.warngin('The size of a frequency chunk (chunk_size_hz = {0}) is smaller
+                    'than the solution interval (slow_freqstep_hz = {1}). '
+                    'Setting chunk_size_hz = {2}'.format(parset['chunk_size_hz'],
+                    parset_dict['slow_freqstep_hz'], parset_dict['slow_freqstep_hz']))
+        parset['chunk_size_hz'] = parset_dict['slow_freqstep_hz']
+
     # Check for unused options
     allowed_options = ['max_selfcal_loops', 'preaverage_flux_jy', 'multiscale_selfcal',
                        'multires_selfcal', 'solve_min_uv_lambda', 'spline_smooth2d',
@@ -314,12 +328,11 @@ def get_imaging_options(parset):
         parset_dict = {}
         given_options = []
 
-
-    # Make final mosaic (default = True)
-    if 'make_mosaic' in parset_dict:
-        parset_dict['make_mosaic'] = parset.getboolean('imaging', 'make_mosaic')
+    # Number of sectors to use in imaging
+    if 'nsectors_per_side' in parset_dict:
+        parset_dict['nsectors_per_side'] = parset.getint('imaging', 'nsectors_per_side')
     else:
-        parset_dict['make_mosaic'] = True
+        parset_dict['nsectors_per_side'] = 1
 
     # Use baseline-dependent averaging in WSClean (default = True). If enabled,
     # this option can dramatically speed up imaging with WSClean.
@@ -430,7 +443,7 @@ def get_imaging_options(parset):
     if 'facet_min_uv_lambda' not in parset_dict:
         parset_dict['facet_min_uv_lambda'] = [80.0] * nvals
 
-   # Padding factor for WSClean images (default = 1.4)
+    # Padding factor for WSClean images (default = 1.4)
     if 'wsclean_image_padding' in parset_dict:
         parset_dict['wsclean_image_padding'] = parset.getfloat('imaging', 'wsclean_image_padding')
     else:
@@ -441,7 +454,7 @@ def get_imaging_options(parset):
                        'selfcal_multiscale_scales_pixel', 'facet_multiscale_scales_pixel',
                        'facet_cellsize_arcsec', 'facet_taper_arcsec', 'facet_robust',
                        'wsclean_image_padding', 'selfcal_min_uv_lambda', 'facet_min_uv_lambda',
-                       'selfcal_robust_wsclean', 'wsclean_bl_averaging',
+                       'selfcal_robust_wsclean', 'wsclean_bl_averaging', 'nsectors_per_side',
                        'fractional_bandwidth_selfcal_facet_image']
     for option in given_options:
         if option not in allowed_options:
@@ -750,13 +763,14 @@ def get_cluster_options(parset):
     log.info("Running up to %i IO-intensive job(s) in parallel per node" %
              (parset_dict['nthread_io']))
 
-    # Full path to cluster description file. Use clusterdesc_file = PBS to use
-    # the PBS / torque reserved nodes and clusterdesc_file = SLURM to use SLURM
-    # reserved ones. If not given, the clusterdesc file for a single (i.e.,
+    # Type of compute cluster. Use cluster_type = localhost for a single machine, cluster_type = PBS to use
+    # the PBS / torque reserved nodes, and cluster_type = SLURM to use SLURM
+    # reserved ones. If not given, the cluster_type for a single (i.e.,
     # local) node is used
-    if 'clusterdesc_file' not in parset_dict:
-        parset_dict['clusterdesc_file'] = parset_dict['lofarroot'] + '/share/local.clusterdesc'
+    if 'cluster_type' not in parset_dict:
+        parset_dict['cluster_type'] = 'localhost'
         parset_dict['node_list'] = ['localhost']
+        parset_dict['clusterdesc_file'] = parset_dict['lofarroot'] + '/share/local.clusterdesc'
 
     # Full path to a local disk on the nodes for I/O-intensive processing. The path
     # must be the same for all nodes. A selfcal-only path can also be specified to
