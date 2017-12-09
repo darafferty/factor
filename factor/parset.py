@@ -86,7 +86,6 @@ def parset_read(parset_file, use_log_file=True):
 
     # Check for unused sections
     given_sections = parset._sections.keys()
-    msfiles = [os.path.basename(m) for m in parset_dict['mss']]
     allowed_sections = ['global', 'calibration', 'imaging', 'directions',
                         'cluster', 'checkfactor']
     for section in given_sections:
@@ -283,13 +282,13 @@ def get_calibration_options(parset):
 
     # Check that target solution intervals are smaller than chunk sizes
     if parset['chunk_size_sec'] < parset_dict['fast_timestep_sec']:
-        log.warngin('The size of a time chunk (chunk_size_sec = {0}) is smaller
+        log.warning('The size of a time chunk (chunk_size_sec = {0}) is smaller '
                     'than the solution interval (fast_timestep_sec = {1}). '
                     'Setting chunk_size_sec = {2}'.format(parset['chunk_size_sec'],
                     parset_dict['fast_timestep_sec'], parset_dict['fast_timestep_sec']))
         parset['chunk_size_sec'] = parset_dict['fast_timestep_sec']
     if parset['chunk_size_hz'] < parset_dict['slow_freqstep_sec']:
-        log.warngin('The size of a frequency chunk (chunk_size_hz = {0}) is smaller
+        log.warning('The size of a frequency chunk (chunk_size_hz = {0}) is smaller '
                     'than the solution interval (slow_freqstep_hz = {1}). '
                     'Setting chunk_size_hz = {2}'.format(parset['chunk_size_hz'],
                     parset_dict['slow_freqstep_hz'], parset_dict['slow_freqstep_hz']))
@@ -593,7 +592,7 @@ def get_directions_options(parset):
             groupings.append({key: int(val)})
         parset_dict['groupings'] = groupings
     else:
-        parset_dict['groupings'] = [{'1':0}]
+        parset_dict['groupings'] = [{'1': 0}]
     log.info("Using the following groupings for directions: {}"
         .format(', '.join(['{0}:{1}'.format(n.keys()[0], n.values()[0])
         for n in parset_dict['groupings']])))
