@@ -27,6 +27,10 @@ def plugin_main(args, **kwargs):
     mapfile_to_match = kwargs['mapfile_to_match']
     mapfile_dir = kwargs['mapfile_dir']
     filename = kwargs['filename']
+    if 'suffix_to_add' in kwargs:
+        suffix_to_add = kwargs['suffix_to_add']
+    else:
+        suffix_to_add = ''
 
     map_in = DataMap.load(mapfile_in)
     map_match = DataMap.load(mapfile_to_match)
@@ -34,7 +38,7 @@ def plugin_main(args, **kwargs):
 
     map_match.iterator = DataMap.SkipIterator
     for item in map_match:
-        map_out.data.append(DataProduct(item.host, map_in[0].file, item.skip))
+        map_out.data.append(DataProduct(item.host, '{0}{1}'.format(map_in[0].file, suffix_to_add), item.skip))
 
     fileid = os.path.join(mapfile_dir, filename)
     map_out.save(fileid)
