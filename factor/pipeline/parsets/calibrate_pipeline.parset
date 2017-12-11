@@ -1,5 +1,5 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, solve_slow_gains]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, expand_sourcedb_mapfile_time, solve_slow_gains]
 {% else %}
 pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases]
 {% endif %}
@@ -177,6 +177,14 @@ combine_fast_phases.control.outputkey   = outfile
 combine_fast_phases.argument.flags      = [infiles]
 combine_fast_phases.argument.outh5parm  = outfile
 combine_fast_phases.argument.concataxis = time
+
+# expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks
+expand_sourcedb_mapfile_time.control.kind             = plugin
+expand_sourcedb_mapfile_time.control.type             = expandMapfile
+expand_sourcedb_mapfile_time.control.mapfile_in       = combine_fast_phases.output.mapfile
+expand_sourcedb_mapfile_time.control.mapfile_to_match = create_freqchunk_files_map.output.mapfile
+expand_sourcedb_mapfile_time.control.mapfile_dir      = input.output.mapfile_dir
+expand_sourcedb_mapfile_time.control.filename         = expand_fastphase_freq.mapfile
 
 # solve for slow gains, length = nfreqchunks
 solve_slow_gains.control.type                                           = dppp_inplace
