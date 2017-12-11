@@ -195,6 +195,7 @@ expand_fast_phases_mapfile.control.filename         = expand_fastphase_freq.mapf
 solve_slow_gains.control.type                                   = dppp_inplace
 solve_slow_gains.control.mapfiles_in                            = [create_freqchunk_files_map.output.mapfile,expand_fast_phases_mapfile.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile,expand_sourcedb_mapfile_freq.output.mapfile]
 solve_slow_gains.control.inputkeys                              = [msin,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep,sourcedb]
+solve_slow_gains.control.max_per_node                           = 1
 solve_slow_gains.argument.numthreads                            = {{ max_proc_per_node }}
 solve_slow_gains.argument.msin.datacolumn                       = {{ data_colname }}
 solve_slow_gains.argument.msin.startchan                        = startchan
