@@ -340,7 +340,7 @@ def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_ti
 
 
 def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
-                            solint_slow_timestep):
+                            solint_slow_timestep, antenna):
     """
     Returns the target chunk size in seconds for an observation
 
@@ -354,14 +354,16 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
         Number of frequency samples in slow-gain solve
     solint_slow_timestep : int
         Number of time samples in slow-gain solve
+    antenna : str
+        Antenna type: "HBA" or "LBA"
     """
     # Try to make at least as many time chunks as there are nodes
     n_cpus = cluster_parset['ncpu']
     mem_gb = cluster_parset['fmem'] * get_total_memory()
-    if self.antenna == 'HBA':
+    if antenna == 'HBA':
         # Memory usage in GB/chan/timeslot of a typical HBA observation
         mem_usage_gb = 0.04
-    elif self.antenna == 'LBA':
+    elif antenna == 'LBA':
         # Memory usage in GB/chan/timeslot of a typical LBA observation
         mem_usage_gb = 0.01
     gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep
