@@ -103,7 +103,7 @@ class Scheduler(object):
         node_list = self.operation_list[0].node_list
         ncpu_max = self.operation_list[0].parset['cluster_specific']['ncpu']
         nthread_io = self.operation_list[0].parset['cluster_specific']['nthread_io']
-        fmem_max = self.operation_list[0].parset['cluster_specific']['wsclean_fmem']
+        fmem_max = self.operation_list[0].parset['cluster_specific']['fmem']
         ntimes = self.operation_list[0].field.ntimechunks
         nfreqs = self.operation_list[0].field.nfreqchunks
         nops_simul = self.nops_simul
