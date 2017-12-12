@@ -359,8 +359,8 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
         # Memory usage in GB/chan/timeslot of a typical LBA observation
         mem_usage_gb = 0.01
     gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep
-    nsolints = int(mem_gb / mem_usage_gb)
-    channelsperchunk = np.ceil(solint_slow_freqstep * nsolints / channelwidth)
+    nsolints = int(round(mem_gb / gb_per_solint))
+    channelsperchunk = np.ceil(solint_slow_freqstep * nsolints)
     target_freq_chunksize = channelwidth * channelsperchunk
 
     return target_freq_chunksize
