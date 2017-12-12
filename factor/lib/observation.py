@@ -133,7 +133,7 @@ class Observation(object):
         # the solution interval
         numchannels = self.numchannels
         if parset['chunk_size_hz'] is None:
-            target_freq_chunksize = get_freq_chunksize(parset['cluster_specific'], channelwidth
+            target_freq_chunksize = get_freq_chunksize(parset['cluster_specific'], channelwidth,
                                                        solint_slow_freqstep, solint_slow_timestep)
         else:
             target_freq_chunksize = parset['chunk_size_hz']
