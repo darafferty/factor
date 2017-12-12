@@ -8,7 +8,7 @@ import casacore.tables as pt
 import numpy as np
 from astropy.time import Time
 from factor.directions import get_target_timewidth, get_target_bandwidth
-from factor.cluster import get_time_chunksize, get_freq_chunksize
+from factor.cluster import get_time_chunksize, get_frequency_chunksize
 
 class Observation(object):
     """
