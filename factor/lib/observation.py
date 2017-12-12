@@ -112,7 +112,7 @@ class Observation(object):
         mystarttime = self.starttime
         myendtime = self.endtime
         if (myendtime-mystarttime) > (2*chunksize):
-            nchunks = int(round(float(self.numsamples)*timepersample)/chunksize)
+            nchunks = int(round(float(self.numsamples) * timepersample) / chunksize)
         else:
             nchunks = 1
         self.ntimechunks = nchunks
@@ -142,8 +142,8 @@ class Observation(object):
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq
         myendfreq = self.endfreq
-        if (myendfreq-mystartfreq) > (2.0*chunksize):
-            nchunks = int((numchannels*channelwidth)/chunksize)
+        if (myendfreq-mystartfreq) > (2*chunksize):
+            nchunks = int(round(float(numchannels) * channelwidth) / chunksize)
         else:
             nchunks = 1
         self.nfreqchunks = nchunks

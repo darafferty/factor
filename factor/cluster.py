@@ -325,15 +325,7 @@ def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_ti
     """
     # Try to make at least as many time chunks as there are nodes
     n_nodes = len(cluster_parset['node_list'])
-    samplesperchunk = np.ceil(numsamples / n_nodes)
-    chunk_remainder = samplesperchunk % solint_fast_timestep
-    if chunk_remainder <= solint_fast_timestep/2:
-        delta = -1.0
-    else:
-        delta = 1.0
-    while chunk_remainder:
-        samplesperchunk += delta
-        chunk_remainder = samplesperchunk % solint_fast_timestep
+    samplesperchunk = np.ceil(numsamples / solint_fast_timestep / n_nodes)
     target_time_chunksize = timepersample * samplesperchunk
 
     return target_time_chunksize
@@ -368,15 +360,7 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
         mem_usage_gb = 0.01
     gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep
     nsolints = int(mem_gb / mem_usage_gb)
-    channelsperchunk = int(round(solint_slow_freqstep * nsolints / channelwidth))
-    chunk_remainder = channelsperchunk % solint_slow_freqstep
-    if chunk_remainder <= solint_slow_freqstep/2:
-        delta = -1.0
-    else:
-        delta = 1.0
-    while chunk_remainder:
-        channelsperchunk += delta
-        chunk_remainder = channelsperchunk % solint_slow_freqstep
+    channelsperchunk = np.ceil(solint_slow_freqstep * nsolints / channelwidth)
     target_freq_chunksize = channelwidth * channelsperchunk
 
     return target_freq_chunksize
