@@ -379,4 +379,4 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
         chunk_remainder = channelsperchunk % solint_slow_freqstep
     target_freq_chunksize = channelwidth * channelsperchunk
 
-    return target_time_chunksize
+    return target_freq_chunksize
