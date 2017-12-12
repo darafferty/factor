@@ -21,20 +21,20 @@ def plugin_main(args, **kwargs):
     -------
     result : dict
         New parmdb datamap filename
-
     """
     mapfile_in = kwargs['mapfile_in']
     mapfile_to_match = kwargs['mapfile_to_match']
     mapfile_dir = kwargs['mapfile_dir']
     filename = kwargs['filename']
-    if 'suffix_to_add' in kwargs:
-        suffix_to_add = kwargs['suffix_to_add']
-    else:
-        suffix_to_add = ''
 
     map_in = DataMap.load(mapfile_in)
     map_match = DataMap.load(mapfile_to_match)
     map_out = DataMap([])
+    if 'suffix_to_add' in kwargs:
+        suffix_to_add = kwargs['suffix_to_add']
+        os.system('cp {0} {0}{1}'.format(map_in[0].file, suffix_to_add))
+    else:
+        suffix_to_add = ''
 
     map_match.iterator = DataMap.SkipIterator
     for item in map_match:
