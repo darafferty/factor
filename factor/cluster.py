@@ -5,6 +5,7 @@ import os
 import logging
 import sys
 import re
+import numpy as np
 
 log = logging.getLogger('factor:cluster')
 
@@ -302,7 +303,78 @@ def get_total_memory():
     """
     Returns the total memory in GB
     """
-    import os
     tot_gb, used_gb, free_gb = map(int, os.popen('free -t -g').readlines()[-1].split()[1:])
 
     return tot_gb
+
+
+def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_timestep):
+    """
+    Returns the target chunk size in seconds for an observation
+
+    Parameters
+    ----------
+    cluster_parset : dict
+        Cluster-specific parset dictionary
+    timepersample : float
+        Time in seconds per time sample
+    numsamples : int
+        Total number of time samples in the observation
+    solint_fast_timestep : int
+        Number of time samples in fast-phase solve
+    """
+    # Try to make at least as many time chunks as there are nodes
+    n_nodes = len(cluster_parset['node_list'])
+    samplesperchunk = np.ceil(numsamples / n_nodes)
+    chunk_remainder = samplesperchunk % solint_fast_timestep
+    if chunk_remainder <= solint_fast_timestep/2:
+        delta = -1.0
+    else:
+        delta = 1.0
+    while chunk_remainder:
+        samplesperchunk += delta
+        chunk_remainder = samplesperchunk % solint_fast_timestep
+    target_time_chunksize = timepersample * samplesperchunk
+
+    return target_time_chunksize
+
+
+def get_frequency_chunksize(cluster_parset, channelwidth, numsamples, solint_slow_freqstep,
+                            solint_slow_timestep):
+    """
+    Returns the target chunk size in seconds for an observation
+
+    Parameters
+    ----------
+    cluster_parset : dict
+        Cluster-specific parset dictionary
+    channelwidth : float
+        Bandwidth in Hz per frequency sample
+    solint_slow_freqstep : int
+        Number of frequency samples in slow-gain solve
+    solint_slow_timestep : int
+        Number of time samples in slow-gain solve
+    """
+    # Try to make at least as many time chunks as there are nodes
+    n_cpus = cluster_parset['ncpu']
+    mem_gb = cluster_parset['fmem'] * get_total_memory()
+    if self.antenna == 'HBA':
+        # Memory usage in GB/chan/timeslot of a typical HBA observation
+        mem_usage_gb = 0.04
+    elif self.antenna == 'LBA':
+        # Memory usage in GB/chan/timeslot of a typical LBA observation
+        mem_usage_gb = 0.01
+    gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep
+    nsolints = int(mem_gb / mem_usage_gb)
+    channelsperchunk = int(round(solint_slow_freqstep * nsolints / channelwidth))
+    chunk_remainder = channelsperchunk % solint_slow_freqstep
+    if chunk_remainder <= solint_slow_freqstep/2:
+        delta = -1.0
+    else:
+        delta = 1.0
+    while chunk_remainder:
+        channelsperchunk += delta
+        chunk_remainder = channelsperchunk % solint_slow_freqstep
+    target_freq_chunksize = channelwidth * channelsperchunk
+
+    return target_time_chunksize

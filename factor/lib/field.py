@@ -33,10 +33,8 @@ class Field(object):
         # Scan MS files to get observation info
         self.scan_observations()
 
-        # Make initial sky model
-        self.skymodel_file = os.path.join(self.working_dir, 'skymodels',
-                                          'initial_skymodel.txt')  # this is output grouped sky model
-        self.make_skymodel(self.parset['initial_skymodel'])
+        # Make calibration sky model by grouping the initial sky model
+        self.make_calibration_skymodel(self.parset['initial_skymodel'])
 
     def scan_observations(self):
         """
@@ -115,7 +113,7 @@ class Field(object):
         """
         return sum([obs.calibration_parameters[parameter] for obs in self.observations], [])
 
-    def make_skymodel(self, skymodel_filename):
+    def make_calibration_skymodel(self, skymodel_filename):
         """
         Groups the sky model into groups of target flux and saves to disk
 
@@ -129,4 +127,7 @@ class Field(object):
         self.log.info('Grouping sky model to form calibration patches...')
         skymodel.group('threshold', FWHM='60.0 arcsec')
         skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+
+        self.skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         skymodel.write(self.skymodel_file, clobber=True)
+        self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel), flux))

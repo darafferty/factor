@@ -102,21 +102,12 @@ class Observation(object):
         # Calculate time ranges of calibration chunks for fast-phase solve. Try
         # to ensure that the number of samples per chunk is an even multiple of
         # the solution interval
-        if parset['chunk_size_hz'] is None:
-            # Try to get at least as many time chunks as nodes
-            n_nodes = len(cluster_parset['node_list'])
-            target_time_chunksize = self.timepersample * np.ceil(self.numsamples / n_nodes)
+        if parset['chunk_size_sec'] is None:
+            target_time_chunksize = factor.cluster.get_time_chunksize(parset['cluster_specific'],
+                                    self.timepersample, self.numsamples, solint_fast_timestep)
         else:
             target_time_chunksize = parset['chunk_size_sec']
         samplesperchunk = int(round(target_time_chunksize / timepersample))
-        chunk_remainder = samplesperchunk % solint_fast_timestep
-        if chunk_remainder <= solint_fast_timestep/2:
-            delta = -1.0
-        else:
-            delta = 1.0
-        while chunk_remainder:
-            samplesperchunk += delta
-            chunk_remainder = samplesperchunk % solint_fast_timestep
         chunksize = samplesperchunk * timepersample
         mystarttime = self.starttime
         myendtime = self.endtime
@@ -142,31 +133,10 @@ class Observation(object):
         # the solution interval
         numchannels = self.numchannels
         if parset['chunk_size_hz'] is None:
-            # Try to use as many channels as possible per frequency chunk (since
-            # DPPP parallelizes over channel) while staying within the memory limit
-            # of the nodes
-            n_cpus = cluster_parset['ncpu']
-            mem_gb = cluster_parset['fmem'] * factor.cluster.get_total_memory()
-            lba_mem_usage_gb = 0.01  # memory usage in GB/chan/timeslot of a typical LBA observation
-            hba_mem_usage_gb = 0.04  # memory usage in GB/chan/timeslot of a typical HBA observation
-            if self.antenna == 'HBA':
-                mem_usage_gb = hba_mem_gb
-            elif self.antenna == 'LBA':
-                mem_usage_gb = lba_mem_gb
-            gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep
-            nsolints = int(mem_gb / mem_usage_gb)
-            target_freq_chunksize = solint_slow_freqstep * channelwidth * nsolints
+            target_freq_chunksize = factor.cluster.get_freq_chunksize(parset['cluster_specific'],
+                                    channelwidth, solint_slow_freqstep, solint_slow_timestep)
         else:
             target_freq_chunksize = parset['chunk_size_hz']
-        channelsperchunk = int(round(target_freq_chunksize / channelwidth))
-        chunk_remainder = channelsperchunk % solint_slow_freqstep
-        if chunk_remainder <= solint_slow_freqstep/2:
-            delta = -1.0
-        else:
-            delta = 1.0
-        while chunk_remainder:
-            channelsperchunk += delta
-            chunk_remainder = channelsperchunk % solint_slow_freqstep
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq
         myendfreq = self.endfreq
