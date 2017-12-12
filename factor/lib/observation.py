@@ -138,6 +138,7 @@ class Observation(object):
                                                        self.antenna)
         else:
             target_freq_chunksize = parset['chunk_size_hz']
+        channelsperchunk = int(round(target_freq_chunksize / channelwidth))
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq
         myendfreq = self.endfreq
