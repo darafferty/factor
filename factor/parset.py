@@ -271,19 +271,19 @@ def get_calibration_options(parset):
     if 'fast_timestep_sec' in parset_dict:
         parset_dict['fast_timestep_sec'] = parset.getfloat('calibration', 'fast_timestep_sec')
     else:
-        parset_dict['fast_timestep_sec'] = 10.0
+        parset_dict['fast_timestep_sec'] = 8.0
     if 'fast_freqstep_hz' in parset_dict:
         parset_dict['fast_freqstep_hz'] = parset.getfloat('calibration', 'fast_freqstep_hz')
     else:
-        parset_dict['fast_freqstep_hz'] = 2e6
+        parset_dict['fast_freqstep_hz'] = 1e6
     if 'slow_timestep_sec' in parset_dict:
         parset_dict['slow_timestep_sec'] = parset.getfloat('calibration', 'slow_timestep_sec')
     else:
-        parset_dict['slow_timestep_sec'] = 1200.0
+        parset_dict['slow_timestep_sec'] = 600.0
     if 'slow_freqstep_hz' in parset_dict:
         parset_dict['slow_freqstep_hz'] = parset.getfloat('calibration', 'slow_freqstep_hz')
     else:
-        parset_dict['slow_freqstep_hz'] = 2e6
+        parset_dict['slow_freqstep_hz'] = 1e6
 
     # Check for unused options
     allowed_options = ['max_selfcal_loops', 'preaverage_flux_jy', 'multiscale_selfcal',
