@@ -17,7 +17,6 @@ def make_pbs_clusterdesc():
     -------
     clusterdesc_file
         Filename of resulting cluster description file
-
     """
     nodes = []
     try:
@@ -51,7 +50,6 @@ def expand_part(s):
 
     Note: Adapted from git://www.nsc.liu.se/~kent/python-hostlist.git
     """
-
     # Base case: the empty part expand to the singleton list of ""
     if s == "":
         return [""]
@@ -85,7 +83,6 @@ def expand_range(prefix, range_):
 
     Note: Adapted from git://www.nsc.liu.se/~kent/python-hostlist.git
     """
-
     # Check for a single number first
     m = re.match(r'^[0-9]+$', range_)
     if m:
@@ -110,7 +107,6 @@ def expand_rangelist(prefix, rangelist):
 
     Note: Adapted from git://www.nsc.liu.se/~kent/python-hostlist.git
     """
-
     # Split at commas and expand each range separately
     results = []
     for range_ in rangelist.split(","):
@@ -129,7 +125,6 @@ def expand_hostlist(hostlist, allow_duplicates=False, sort=False):
 
     Note: Adapted from git://www.nsc.liu.se/~kent/python-hostlist.git
     """
-
     results = []
     bracket_level = 0
     part = ""
@@ -165,7 +160,6 @@ def make_slurm_clusterdesc():
     -------
     clusterdesc_file
         Filename of resulting cluster description file
-
     """
     nodes = []
     try:
@@ -203,7 +197,6 @@ def get_compute_nodes(clusterdesc_file):
     -------
     result : list
         Sorted list of node names
-
     """
     from lofarpipe.support import clusterdesc
 
@@ -211,15 +204,14 @@ def get_compute_nodes(clusterdesc_file):
     return sorted(clusterdesc.get_compute_nodes(cluster))
 
 
-def find_executables(parset):
+def find_executables(cluster_parset):
     """
     Adds the paths to required executables to parset dict
 
     Parameters
     ----------
-    parset : dict
-        Parset dictionary
-
+    cluster_parset : dict
+        Cluster-specific parset dictionary
     """
     from distutils import spawn
 
@@ -231,9 +223,86 @@ def find_executables(parset):
         for name in names:
             path = spawn.find_executable(name)
             if path is not None:
-                parset['cluster_specific'][key] = path
+                cluster_parset[key] = path
                 break
         if path is None:
             log.error('The path to the {0} executable could not be determined. '
                       'Please make sure it is in your PATH.'.format(name))
             sys.exit(1)
+
+
+def get_type(cluster_parset):
+    """
+    Gets the cluster type and sets relevant entries in the input parset
+
+    Parameters
+    ----------
+    cluster_parset : dict
+        Cluster-specific parset dictionary
+    """
+    if cluster_parset['cluster_type'].lower() == 'pbs':
+        log.info('Using cluster setting: "PBS".')
+        cluster_parset['clusterdesc'] = make_pbs_clusterdesc()
+        cluster_parset['clustertype'] = 'pbs'
+    elif cluster_parset['cluster_type'].lower() == 'slurm':
+        log.info('Using cluster setting: "SLURM".')
+        cluster_parset['clusterdesc'] = make_slurm_clusterdesc()
+        cluster_parset['clustertype'] = 'slurm'
+    elif cluster_parset['cluster_type'].lower() == 'juropa_slurm':
+        log.info('Using cluster setting: "JUROPA_slurm" (Single '
+                 'genericpipeline using multiple nodes).')
+        # slurm_srun on JUROPA uses the local.clusterdesc
+        cluster_parset['clusterdesc'] = os.path.join(cluster_parset['lofarroot'],
+                                                     'share', 'local.clusterdesc')
+        cluster_parset['clustertype'] = 'juropa_slurm'
+        cluster_parset['node_list'] = ['localhost']
+    elif cluster_parset['cluster_type'].lower() == 'mpirun':
+        log.info('Using cluster setting: "mpirun".')
+        # mpirun uses the local.clusterdesc?
+        cluster_parset['clusterdesc'] = os.path.join(cluster_parset['lofarroot'],
+                                                     'share', 'local.clusterdesc')
+        cluster_parset['clustertype'] = 'mpirun'
+        cluster_parset['node_list'] = ['localhost']
+    else:
+        log.info('Using cluster setting: "local" (Single node).')
+        cluster_parset['clusterdesc'] = cluster_parset['lofarroot'] + '/share/local.clusterdesc'
+        cluster_parset['clustertype'] = 'local'
+    if 'node_list' not in cluster_parset:
+        cluster_parset['node_list'] = get_compute_nodes(cluster_parset['clusterdesc'])
+
+
+def check_ulimit(cluster_parset):
+    """
+    Checks the limit on number of open files
+
+    Parameters
+    ----------
+    cluster_parset : dict
+        Cluster-specific parset dictionary
+    """
+    try:
+        import resource
+        nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
+        if cluster_parset['clustertype'] == 'local' and nof_files_limits[0] < nof_files_limits[1]:
+            log.debug('Setting limit for number of open files to: {}.'.format(nof_files_limits[1]))
+            resource.setrlimit(resource.RLIMIT_NOFILE, (nof_files_limits[1], nof_files_limits[1]))
+            nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
+        log.debug('Active limit for number of open files is {0}, maximum limit '
+                  'is {1}.'.format(nof_files_limits[0], nof_files_limits[1]))
+        if nof_files_limits[0] < 2048:
+            log.warn('The limit for number of open files is small, this could '
+                     'result in a "Too many open files" problem when running factor.')
+            log.warn('The active limit can be increased to the maximum for the '
+                     'user with: "ulimit -Sn <number>" (bash) or "limit descriptors 1024" (csh).')
+    except resource.error:
+        log.warn('Cannot check limits for number of open files, what kind of system is this?')
+
+
+def get_total_memory():
+    """
+    Returns the total memory in GB
+    """
+    import os
+    tot_gb, used_gb, free_gb = map(int, os.popen('free -t -g').readlines()[-1].split()[1:])
+
+    return tot_gb

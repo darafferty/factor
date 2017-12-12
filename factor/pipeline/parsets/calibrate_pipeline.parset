@@ -144,6 +144,7 @@ expand_sourcedb_mapfile_freq.control.filename         = expand_sourcedb_freq.map
 solve_fast_phases.control.type                      = dppp_inplace
 solve_fast_phases.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
 solve_fast_phases.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
+solve_fast_phases.control.max_per_node              = 1
 solve_fast_phases.argument.numthreads               = {{ max_proc_per_node }}
 solve_fast_phases.argument.msin.datacolumn          = {{ data_colname }}
 solve_fast_phases.argument.msin.starttime           = starttime
@@ -157,7 +158,6 @@ solve_fast_phases.argument.solve.mode               = tecandphase
 solve_fast_phases.argument.solve.mode               = tec
 {% endif %}
 solve_fast_phases.argument.solve.h5parm             = h5parm
-solve_fast_phases.argument.solve.usemodelcolumn     = False
 solve_fast_phases.argument.solve.sourcedb           = sourcedb
 solve_fast_phases.argument.solve.solint             = timestep
 solve_fast_phases.argument.solve.nchan              = freqstep

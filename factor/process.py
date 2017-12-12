@@ -124,72 +124,21 @@ def _set_up_scheduler(parset):
 
     """
     log.info('Setting up cluster/node parameters...')
-
     cluster_parset = parset['cluster_specific']
-    if cluster_parset['cluster_type'].lower() == 'pbs':
-        log.info('Using cluster setting: "PBS".')
-        cluster_parset['clusterdesc'] = factor.cluster.make_pbs_clusterdesc()
-        cluster_parset['clustertype'] = 'pbs'
-    elif cluster_parset['cluster_type'].lower() == 'slurm':
-        log.info('Using cluster setting: "SLURM".')
-        cluster_parset['clusterdesc'] = factor.cluster.make_slurm_clusterdesc()
-        cluster_parset['clustertype'] = 'slurm'
-    elif cluster_parset['cluster_type'].lower() == 'juropa_slurm':
-        log.info('Using cluster setting: "JUROPA_slurm" (Single '
-                 'genericpipeline using multiple nodes).')
-        # slurm_srun on JUROPA uses the local.clusterdesc
-        cluster_parset['clusterdesc'] = os.path.join(parset['lofarroot'],
-                                                     'share', 'local.clusterdesc')
-        cluster_parset['clustertype'] = 'juropa_slurm'
-        cluster_parset['node_list'] = ['localhost']
-    elif cluster_parset['cluster_type'].lower() == 'mpirun':
-        log.info('Using cluster setting: "mpirun".')
-        # mpirun uses the local.clusterdesc?
-        cluster_parset['clusterdesc'] = os.path.join(parset['lofarroot'],
-                                                     'share', 'local.clusterdesc')
-        cluster_parset['clustertype'] = 'mpirun'
-        cluster_parset['node_list'] = ['localhost']
-    else:
-        log.info('Using cluster setting: "local" (Single node).')
-        cluster_parset['clusterdesc'] = cluster_parset['lofarroot'] + '/share/local.clusterdesc'
-        cluster_parset['clustertype'] = 'local'
-    if not 'node_list' in cluster_parset:
-        cluster_parset['node_list'] = factor.cluster.get_compute_nodes(cluster_parset['clusterdesc'])
+
+    # Determine cluster type
+    factor.cluster.get_type(cluster_parset)
 
     # check ulimit(s)
-    try:
-        import resource
-        nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
-        if cluster_parset['clustertype'] == 'local' and nof_files_limits[0] < nof_files_limits[1]:
-            log.debug('Setting limit for number of open files to: {}.'.format(nof_files_limits[1]))
-            resource.setrlimit(resource.RLIMIT_NOFILE,(nof_files_limits[1],nof_files_limits[1]))
-            nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
-        log.debug('Active limit for number of open files is {0}, maximum limit '
-                  'is {1}.'.format(nof_files_limits[0],nof_files_limits[1]))
-        if nof_files_limits[0] < 2048:
-            log.warn('The limit for number of open files is small, this could '
-                     'result in a "Too many open files" problem when running factor.')
-            log.warn('The active limit can be increased to the maximum for the '
-                     'user with: "ulimit -Sn <number>" (bash) or "limit descriptors 1024" (csh).')
-    except resource.error:
-        log.warn('Cannot check limits for number of open files, what kind of system is this?')
+    factor.cluster.check_ulimit(cluster_parset)
 
     # Get paths to required executables
-    factor.cluster.find_executables(parset)
+    factor.cluster.find_executables(cluster_parset)
 
-    # Set up scheduler for operations (pipeline runs)
-    ndir_simul = len(cluster_parset['node_list']) * cluster_parset['ndir_per_node']
-    if parset['direction_specific']['groupings'] is not None:
-        ngroup_max = int(max([int(n.items()[0][0]) for n in
-                              parset['direction_specific']['groupings']]))
-    else:
-        ngroup_max = 1
-    if ndir_simul < ngroup_max:
-        log.warn('The maximum number of facets that can be proccessed '
-                 'simultaneously ({0}) is less than the number of facets in the '
-                 'largest group ({1}). For best performance, these values should be '
-                 'equal'.format(ndir_simul, ngroup_max))
-    scheduler = Scheduler(cluster_parset['genericpipeline_executable'], max_procs=ndir_simul)
+    # Set up scheduler for operations (pipeline runs), allowing one operation
+    # to run at a time per node
+    nops_simul = len(cluster_parset['node_list'])
+    scheduler = Scheduler(cluster_parset['genericpipeline_executable'], nops_simul)
 
     return scheduler
 

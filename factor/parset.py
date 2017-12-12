@@ -115,20 +115,19 @@ def get_global_options(parset):
                         'imaging_specific': {}, 'cluster_specific': {},
                         'checkfactor': {}})
 
-    # Size of time chunks in seconds (default = 2400; minimum allowed value is
-    # 1200). Generally, the number of chunks should be at least the number of
-    # available nodes.
+    # Size of time chunks in seconds (default = calculate). Generally, the number of
+    # chunks should be at least the number of available nodes.
     if 'chunk_size_sec' in parset_dict:
         parset_dict['chunk_size_sec'] = parset.getfloat('global', 'chunk_size_sec')
     else:
-        parset_dict['chunk_size_sec'] = 2400.0
+        parset_dict['chunk_size_sec'] = None
 
-    # Size of frequency chunks in hz (default = 2e6). Generally, the number of
+    # Size of frequency chunks in hz (default = calculate). Generally, the number of
     # chunks should be at least the number of available nodes.
     if 'chunk_size_hz' in parset_dict:
         parset_dict['chunk_size_hz'] = parset.getfloat('global', 'chunk_size_hz')
     else:
-        parset_dict['chunk_size_hz'] = 2e6
+        parset_dict['chunk_size_hz'] = None
 
     # Use Dysco compression (default = False). Enabling this
     # option will result in less storage usage and signifcanctly faster
@@ -209,6 +208,12 @@ def get_calibration_options(parset):
         parset_dict = {}
         given_options = []
 
+    # Solve for TEC + scalarphase instead of TEC only
+    if 'solve_tecandphase' in parset_dict:
+        parset_dict['solve_tecandphase'] = parset.getboolean('calibration', 'solve_tecandphase')
+    else:
+        parset_dict['solve_tecandphase'] = True
+
     # Maximum number of cycles of the last step of selfcal to perform (default =
     # 10). The last step is looped until the number of cycles reaches this value or
     # until the improvement in dynamic range over the previous image is less than
@@ -283,7 +288,7 @@ def get_calibration_options(parset):
     # Check for unused options
     allowed_options = ['max_selfcal_loops', 'preaverage_flux_jy', 'multiscale_selfcal',
                        'multires_selfcal', 'solve_min_uv_lambda', 'spline_smooth2d',
-                       'solve_all_correlations_flux_jy']
+                       'solve_all_correlations_flux_jy', 'solve_tecandphase']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '

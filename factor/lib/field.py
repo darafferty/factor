@@ -28,6 +28,7 @@ class Field(object):
         self.numMS = len(self.ms_filenames)
         self.data_colname = 'DATA'
         self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
+        self.solve_tecandphase = self.parset['calibration_specific']['solve_tecandphase']
 
         # Scan MS files to get observation info
         self.scan_observations()

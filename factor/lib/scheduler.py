@@ -76,14 +76,14 @@ class Scheduler(object):
     ----------
     genericpipeline_executable : str
         Path to genericpipeline.py executable
-    max_procs : int, optional
-        Limit the number of parallel processes to this number
+    nops_simul : int, optional
+        Limit the number of operations run in parallel to this number
     name : str, optional
         Name of the scheduler
     """
-    def __init__(self, genericpipeline_executable, max_procs=1, name='scheduler'):
+    def __init__(self, genericpipeline_executable, nops_simul=1, name='scheduler'):
         self.genericpipeline_executable = genericpipeline_executable
-        self.max_procs = max_procs
+        self.nops_simul = nops_simul
         self.name = name
         self.success = True
 
@@ -107,7 +107,7 @@ class Scheduler(object):
         ndir_per_node = self.operation_list[0].parset['cluster_specific']['ndir_per_node']
         ntimes = self.operation_list[0].field.ntimechunks
         nfreqs = self.operation_list[0].field.nfreqchunks
-        nops_simul = self.max_procs
+        nops_simul = self.nops_simul
 
         for i in range(int(np.ceil(len(operation_list)/float(nops_simul)))):
             op_group = operation_list[i*nops_simul:(i+1)*nops_simul]
@@ -249,8 +249,8 @@ class Scheduler(object):
         while len(self.operation_list) > 0:
             self.allocate_resources()
             with Timer(log, 'operation'):
-                pool = multiprocessing.Pool(processes=self.max_procs)
-                self.queued_ops = self.operation_list[self.max_procs:]
+                pool = multiprocessing.Pool(processes=self.nops_simul)
+                self.queued_ops = self.operation_list[self.nops_simul:]
                 process_list = []
                 for op in self.operation_list:
                     op.setup()

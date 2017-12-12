@@ -57,6 +57,13 @@ class Observation(object):
         # Get station diameter
         ant = pt.table(self.ms_filename+'::ANTENNA', ack=False)
         self.diam = float(ant.col('DISH_DIAMETER')[0])
+        if 'HBA' in ant.col('NAME')[0]:
+            self.antenna = 'HBA'
+        elif 'LBA' in ant.col('NAME')[0]:
+            self.antenna = 'LBA'
+        else:
+            self.log.warning('Antenna type not recognized (only LBA and HBA data '
+                             'are supported at this time)')
         ant.close()
 
         # Find mean elevation and FOV
@@ -80,9 +87,7 @@ class Observation(object):
         parset : dict
             Parset with processing parameters
         """
-        # Get various target parameters
-        target_time_chunksize = parset['chunk_size_sec']
-        target_freq_chunksize = parset['chunk_size_hz']
+        # Get the target solution intervals
         target_fast_timestep = parset['calibration_specific']['fast_timestep_sec']
         target_fast_freqstep = parset['calibration_specific']['fast_freqstep_hz']
         target_slow_timestep = parset['calibration_specific']['slow_timestep_sec']
@@ -97,7 +102,12 @@ class Observation(object):
         # Calculate time ranges of calibration chunks for fast-phase solve. Try
         # to ensure that the number of samples per chunk is an even multiple of
         # the solution interval
-        numsamples = self.numsamples
+        if parset['chunk_size_hz'] is None:
+            # Try to get at least as many time chunks as nodes
+            n_nodes = len(cluster_parset['node_list'])
+            target_time_chunksize = self.timepersample * np.ceil(self.numsamples / n_nodes)
+        else:
+            target_time_chunksize = parset['chunk_size_sec']
         samplesperchunk = int(round(target_time_chunksize / timepersample))
         chunk_remainder = samplesperchunk % solint_fast_timestep
         if chunk_remainder <= solint_fast_timestep/2:
@@ -111,7 +121,7 @@ class Observation(object):
         mystarttime = self.starttime
         myendtime = self.endtime
         if (myendtime-mystarttime) > (2*chunksize):
-            nchunks = int(round(float(numsamples)*timepersample)/chunksize)
+            nchunks = int(round(float(self.numsamples)*timepersample)/chunksize)
         else:
             nchunks = 1
         self.ntimechunks = nchunks
@@ -131,6 +141,23 @@ class Observation(object):
         # to ensure that the number of samples per chunk is an even multiple of
         # the solution interval
         numchannels = self.numchannels
+        if parset['chunk_size_hz'] is None:
+            # Try to use as many channels as possible per frequency chunk (since
+            # DPPP parallelizes over channel) while staying within the memory limit
+            # of the nodes
+            n_cpus = cluster_parset['ncpu']
+            mem_gb = cluster_parset['fmem'] * factor.cluster.get_total_memory()
+            lba_mem_usage_gb = 0.01  # memory usage in GB/chan/timeslot of a typical LBA observation
+            hba_mem_usage_gb = 0.04  # memory usage in GB/chan/timeslot of a typical HBA observation
+            if self.antenna == 'HBA':
+                mem_usage_gb = hba_mem_gb
+            elif self.antenna == 'LBA':
+                mem_usage_gb = lba_mem_gb
+            gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep
+            nsolints = int(mem_gb / mem_usage_gb)
+            target_freq_chunksize = solint_slow_freqstep * channelwidth * nsolints
+        else:
+            target_freq_chunksize = parset['chunk_size_hz']
         channelsperchunk = int(round(target_freq_chunksize / channelwidth))
         chunk_remainder = channelsperchunk % solint_slow_freqstep
         if chunk_remainder <= solint_slow_freqstep/2:
