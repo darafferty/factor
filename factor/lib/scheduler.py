@@ -104,7 +104,6 @@ class Scheduler(object):
         ncpu_max = self.operation_list[0].parset['cluster_specific']['ncpu']
         nthread_io = self.operation_list[0].parset['cluster_specific']['nthread_io']
         fmem_max = self.operation_list[0].parset['cluster_specific']['wsclean_fmem']
-        ndir_per_node = self.operation_list[0].parset['cluster_specific']['ndir_per_node']
         ntimes = self.operation_list[0].field.ntimechunks
         nfreqs = self.operation_list[0].field.nfreqchunks
         nops_simul = self.nops_simul
@@ -129,7 +128,7 @@ class Scheduler(object):
 
             for op, h in zip(op_group, hosts):
                 if len(h) == 1:
-                    nops_per_node = min(ndir_per_node, c[h[0]])
+                    nops_per_node = min(1, c[h[0]])
                 else:
                     nops_per_node = 1
                 op.direction.hosts = h
