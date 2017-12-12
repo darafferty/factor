@@ -8,7 +8,7 @@ import casacore.tables as pt
 import numpy as np
 from astropy.time import Time
 from factor.directions import get_target_timewidth, get_target_bandwidth
-
+from factor.cluster import get_time_chunksize, get_freq_chunksize
 
 class Observation(object):
     """
@@ -103,8 +103,8 @@ class Observation(object):
         # to ensure that the number of samples per chunk is an even multiple of
         # the solution interval
         if parset['chunk_size_sec'] is None:
-            target_time_chunksize = factor.cluster.get_time_chunksize(parset['cluster_specific'],
-                                    self.timepersample, self.numsamples, solint_fast_timestep)
+            target_time_chunksize = get_time_chunksize(parset['cluster_specific'], self.timepersample,
+                                                       self.numsamples, solint_fast_timestep)
         else:
             target_time_chunksize = parset['chunk_size_sec']
         samplesperchunk = int(round(target_time_chunksize / timepersample))
@@ -133,8 +133,8 @@ class Observation(object):
         # the solution interval
         numchannels = self.numchannels
         if parset['chunk_size_hz'] is None:
-            target_freq_chunksize = factor.cluster.get_freq_chunksize(parset['cluster_specific'],
-                                    channelwidth, solint_slow_freqstep, solint_slow_timestep)
+            target_freq_chunksize = get_freq_chunksize(parset['cluster_specific'], channelwidth
+                                                       solint_slow_freqstep, solint_slow_timestep)
         else:
             target_freq_chunksize = parset['chunk_size_hz']
         chunksize = channelsperchunk * channelwidth
