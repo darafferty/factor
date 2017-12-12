@@ -178,7 +178,7 @@ def get_global_options(parset):
     given_options = parset.options('global')
     allowed_options = ['dir_working', 'dir_ms', 'interactive', 'chunk_size_sec',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
-                       'flag_expr', 'chunk_size_hz']
+                       'flag_expr', 'chunk_size_hz', 'initial_skymodel']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [global] section of the '
@@ -288,7 +288,9 @@ def get_calibration_options(parset):
     # Check for unused options
     allowed_options = ['max_selfcal_loops', 'preaverage_flux_jy', 'multiscale_selfcal',
                        'multires_selfcal', 'solve_min_uv_lambda', 'spline_smooth2d',
-                       'solve_all_correlations_flux_jy', 'solve_tecandphase']
+                       'solve_all_correlations_flux_jy', 'solve_tecandphase',
+                       'fast_timestep_sec', 'fast_freqstep_hz', 'slow_timestep_sec',
+                       'slow_freqstep_hz']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '
@@ -715,20 +717,14 @@ def get_cluster_options(parset):
         parset_dict['ncpu'] = multiprocessing.cpu_count()
     log.info("Using up to %s CPU(s) per node" % (parset_dict['ncpu']))
 
-    # Maximum fraction of the total memory per node that WSClean may use (default =
-    # 0.9)
-    if 'wsclean_fmem' in parset_dict:
-        parset_dict['wsclean_fmem'] = parset.getfloat('cluster', 'wsclean_fmem')
-        if parset_dict['wsclean_fmem'] > 1.0:
-            parset_dict['wsclean_fmem'] = 1.0
-    elif 'fmem' in parset_dict:
-        log.warning('Option "fmem" is deprecated and should be changed to "wsclean_fmem"')
-        parset_dict['wsclean_fmem'] = parset.getfloat('cluster', 'fmem')
-        if parset_dict['wsclean_fmem'] > 1.0:
-            parset_dict['wsclean_fmem'] = 1.0
+    # Maximum fraction of the total memory per node to use (default = 0.9)
+    if 'fmem' in parset_dict:
+        parset_dict['fmem'] = parset.getfloat('cluster', 'fmem')
+        if parset_dict['fmem'] > 1.0:
+            parset_dict['fmem'] = 1.0
     else:
-        parset_dict['wsclean_fmem'] = 0.9
-    log.info("Using up to {0}% of the memory per node for WSClean jobs".format(parset_dict['wsclean_fmem']*100.0))
+        parset_dict['fmem'] = 0.9
+    log.info("Using up to {0}% of the memory per node".format(parset_dict['fmem']*100.0))
 
     # Maximum number of directions to process in parallel on each node (default =
     # 1). Note that the number of CPUs (set with the ncpu parameter) and the amount
@@ -774,7 +770,7 @@ def get_cluster_options(parset):
         parset_dict['dir_local_selfcal'] = parset_dict['dir_local']
 
     # Check for unused options
-    allowed_options = ['ncpu', 'fmem', 'wsclean_fmem', 'ndir_per_node',
+    allowed_options = ['ncpu', 'fmem', 'fmem', 'ndir_per_node',
                        'clusterdesc_file', 'cluster_type', 'dir_local', 'dir_local_selfcal',
                        'node_list', 'lofarroot', 'lofarpythonpath', 'nthread_io']
     for option in given_options:
