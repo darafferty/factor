@@ -353,12 +353,14 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
     n_cpus = cluster_parset['ncpu']
     mem_gb = cluster_parset['fmem'] * get_total_memory()
     if antenna == 'HBA':
-        # Memory usage in GB/chan/timeslot of a typical HBA observation
-        mem_usage_gb = 0.04
+        # Memory usage in GB/chan/timeslot/dir of a typical HBA observation
+        mem_usage_gb = 1e-3
+        ndir = 40
     elif antenna == 'LBA':
-        # Memory usage in GB/chan/timeslot of a typical LBA observation
-        mem_usage_gb = 0.01
-    gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep
+        # Memory usage in GB/chan/timeslot/dir of a typical LBA observation
+        mem_usage_gb = 2.5e-4
+        ndir = 20
+    gb_per_solint = mem_usage_gb * solint_slow_freqstep * solint_slow_timestep * ndir
     nsolints = int(round(mem_gb / gb_per_solint))
     channelsperchunk = np.ceil(solint_slow_freqstep * nsolints)
     target_freq_chunksize = channelwidth * channelsperchunk

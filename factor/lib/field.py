@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import lsmtool
 from factor.lib.observation import Observation
+from factor.lib.sector import Sector
 
 
 class Field(object):
@@ -35,6 +36,10 @@ class Field(object):
 
         # Make calibration sky model by grouping the initial sky model
         self.make_calibration_skymodel(self.parset['initial_skymodel'])
+
+        # Set up imaging sectors
+        self.makeWCS()
+        self.define_sectors()
 
     def scan_observations(self):
         """
@@ -85,6 +90,8 @@ class Field(object):
         self.mean_el_rad = np.mean(el_rad_list)
         self.fwhm_deg = 1.1 * ((3.0e8 / np.mean(ref_freq_list)) /
                                self.diam) * 180. / np.pi * sec_el
+        self.fwhm_ra_deg = self.fwhm_deg / sec_el
+        self.fwhm_dec_deg = self.fwhm_deg
 
         # Set calibration parameters for each observation
         ntimechunks = 0
@@ -96,7 +103,7 @@ class Field(object):
         self.ntimechunks = ntimechunks
         self.nfreqchunks = nfreqchunks
 
-    def get_obs_parameters(self, parameter):
+    def get_calibration_parameters(self, parameter):
         """
         Returns list of calibration parameters for all observations
 
@@ -130,4 +137,147 @@ class Field(object):
 
         self.skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         skymodel.write(self.skymodel_file, clobber=True)
-        self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel), flux))
+        self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel.getPatchNames()), flux))
+
+    def define_sectors(self):
+        """
+        Defines the imaging sectors
+        """
+        nsectors_ra = self.parset['imaging_specific']['num_sectors']
+        if nsectors_ra == 1 and len(self.parset['cluster_specific']['node_list']) == 1:
+            nsectors_dec = 1
+            width_ra = self.fwhm_ra_deg / nsectors_ra
+            width_dec = self.fwhm_dec_deg / nsectors_dec
+            center_x, center_y = self.radec2xy([self.ra], [self.dec])
+            x = np.array([[center_x]])
+            y = np.array([[center_y]])
+        else:
+            nsectors_dec = int(np.ceil(nsectors_ra / np.sin(self.mean_el_rad)))
+            width_ra = self.fwhm_ra_deg / nsectors_ra
+            width_dec = self.fwhm_dec_deg / nsectors_dec
+            width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
+            width_y = width_dec / abs(self.wcs.wcs.cdelt[1])
+            center_x, center_y = self.radec2xy([self.ra], [self.dec])
+            min_x = center_x - nsectors_ra / 2.0 * width_x
+            max_x = center_x + nsectors_ra / 2.0 * width_x
+            min_y = center_y - nsectors_dec / 2.0 * width_y
+            max_y = center_y + nsectors_dec / 2.0 * width_y
+            x = np.linspace(min_x, max_x, width_x)
+            y = np.linspace(min_y, max_y, width_y)
+            x, y = np.meshgrid(x, y)
+
+        # Define sectors
+        self.sectors = []
+        for i in range(nsectors_ra):
+            for i in range(nsectors_dec):
+                name = 'sector_{0}_{1}'.format(i, j)
+                ra, dec = self.xy2radec([x[i, j]], [y[i, j]])
+                self.sectors.append(Sector(name, ra, dec, width_ra, width_dec, field))
+
+        for this_sector in self.sectors:
+            # For each sector, check for intersection with other sectors
+            other_sectors = self.sectors[:].remove(this_sector)
+            for other_sector in other_sectors:
+                if this_sector.poly.contains(other_sector.poly.centroid):
+                    # If centroid is outside, difference the polys
+                    this_sector.poly = this_sector.poly.difference(other_sector.poly)
+                else:
+                    # If point is inside, union the polys
+                    this_sector.poly = this_sector.poly.union(other_sector.poly)
+
+            # Make sector region and vertices files
+            this_sector.make_vertices_file()
+            this_sector.make_region_file(os.path.join(self.working_dir, 'regions',
+                                                      '{}_region.txt'.format(self.name)))
+
+    def get_imaging_parameters(self, parameter):
+        """
+        Returns list of imaging parameters for all sectors
+
+        Parameters
+        ----------
+        parameter : str
+            Name of parameter to return
+
+        Returns
+        -------
+        parameters : list
+            List of parameters, with one entry for each observation
+        """
+        return sum([sector.get_imaging_parameters(parameter) for sector in self.sectors], [])
+
+    def radec2xy(self, RA, Dec):
+        """
+        Returns x, y for input RA, Dec
+
+        Parameters
+        ----------
+        RA : list
+            List of RA values in degrees
+        Dec : list
+            List of Dec values in degrees
+
+        Returns
+        -------
+        x, y : list, list
+            Lists of x and y pixel values corresponding to the input RA and Dec
+            values
+        """
+        x = []
+        y = []
+
+        for ra_deg, dec_deg in zip(RA, Dec):
+            ra_dec = np.array([[ra_deg, dec_deg]])
+            x.append(self.wcs.wcs_world2pix(ra_dec, 0)[0][0])
+            y.append(self.wcs.wcs_world2pix(ra_dec, 0)[0][1])
+
+        return x, y
+
+    def xy2radec(self, x, y):
+        """
+        Returns input RA, Dec for input x, y
+
+        Parameters
+        ----------
+        x : list
+            List of x values in pixels
+        y : list
+            List of y values in pixels
+
+        Returns
+        -------
+        RA, Dec : list, list
+            Lists of RA and Dec values corresponding to the input x and y pixel
+            values
+        """
+        RA = []
+        Dec = []
+
+        for xp, yp in zip(x, y):
+            x_y = np.array([[xp, yp]])
+            RA.append(self.wcs.wcs_pix2world(x_y, 0)[0][0])
+            Dec.append(self.wcs.wcs_pix2world(x_y, 0)[0][1])
+
+        return RA, Dec
+
+    def makeWCS(self):
+        """
+        Makes simple WCS object
+
+        Returns
+        -------
+        w : astropy.wcs.WCS object
+            A simple TAN-projection WCS object for specified reference position
+
+        """
+        from astropy.wcs import WCS
+
+        wcs_pixel_scale = 0.066667 # degrees/pixel
+        w = WCS(naxis=2)
+        w.wcs.crpix = [1000, 1000]
+        w.wcs.cdelt = np.array([-wcs_pixel_scale, wcs_pixel_scale])
+        w.wcs.crval = [self.ra, self.dec]
+        w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        w.wcs.set_pv([(2, 1, 45.0)])
+        self.wcs = w
+

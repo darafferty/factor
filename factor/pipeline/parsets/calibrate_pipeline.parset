@@ -1,5 +1,5 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, expand_fast_phases_mapfile, solve_slow_gains]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, combine_slow_gains, append_h5_slow]
 {% else %}
 pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases]
 {% endif %}
@@ -44,7 +44,7 @@ create_ntimes_map.control.files       = {{ ntimes }}
 create_ntimes_map.control.mapfile_dir = input.output.mapfile_dir
 create_ntimes_map.control.filename    = ntimes.mapfile
 
-# create a mapfile with each frequency chunk's startchan value, length = nfreqchunks
+# create a mapfile with each frequency chunk's startchan value, length = nfreqchunks*nobs
 create_startchan_map.control.kind        = plugin
 create_startchan_map.control.type        = addListMapfile
 create_startchan_map.control.hosts       = {{ hosts }}
@@ -52,7 +52,7 @@ create_startchan_map.control.files       = {{ startchan }}
 create_startchan_map.control.mapfile_dir = input.output.mapfile_dir
 create_startchan_map.control.filename    = startchan.mapfile
 
-# create a mapfile with each frequency chunk's nchan value, length = nfreqchunks
+# create a mapfile with each frequency chunk's nchan value, length = nfreqchunks*nobs
 create_nchan_map.control.kind        = plugin
 create_nchan_map.control.type        = addListMapfile
 create_nchan_map.control.hosts       = {{ hosts }}
@@ -60,7 +60,7 @@ create_nchan_map.control.files       = {{ nchan }}
 create_nchan_map.control.mapfile_dir = input.output.mapfile_dir
 create_nchan_map.control.filename    = nchan.mapfile
 
-# create a mapfile with each time chunk's fast_timestep value, length = ntimechunks
+# create a mapfile with each time chunk's fast_timestep value, length = ntimechunks*nobs
 create_fast_timestep_map.control.kind        = plugin
 create_fast_timestep_map.control.type        = addListMapfile
 create_fast_timestep_map.control.hosts       = {{ hosts }}
@@ -68,7 +68,7 @@ create_fast_timestep_map.control.files       = {{ solint_fast_timestep }}
 create_fast_timestep_map.control.mapfile_dir = input.output.mapfile_dir
 create_fast_timestep_map.control.filename    = fast_timestep.mapfile
 
-# create a mapfile with each frequency chunk's slow_timestep value, length = nfreqchunks
+# create a mapfile with each frequency chunk's slow_timestep value, length = nfreqchunks*nobs
 create_slow_timestep_map.control.kind        = plugin
 create_slow_timestep_map.control.type        = addListMapfile
 create_slow_timestep_map.control.hosts       = {{ hosts }}
@@ -84,7 +84,7 @@ create_fast_freqstep_map.control.files       = {{ solint_fast_freqstep }}
 create_fast_freqstep_map.control.mapfile_dir = input.output.mapfile_dir
 create_fast_freqstep_map.control.filename    = fast_freqstep.mapfile
 
-# create a mapfile with each frequency chunk's slow_freqstep value, length = nfreqchunks
+# create a mapfile with each frequency chunk's slow_freqstep value, length = nfreqchunks*nobs
 create_slow_freqstep_map.control.kind        = plugin
 create_slow_freqstep_map.control.type        = addListMapfile
 create_slow_freqstep_map.control.hosts       = {{ hosts }}
@@ -100,7 +100,7 @@ create_fast_h5parms_map.control.files       = {{ output_fast_h5parm }}
 create_fast_h5parms_map.control.mapfile_dir = input.output.mapfile_dir
 create_fast_h5parms_map.control.filename    = fast_h5parms.mapfile
 
-# create a mapfile with the output slow-gain h5parms from supplied list, length = nfreqchunks
+# create a mapfile with the output slow-gain h5parms from supplied list, length = nfreqchunks*nobs
 create_slow_h5parms_map.control.kind        = plugin
 create_slow_h5parms_map.control.type        = addListMapfile
 create_slow_h5parms_map.control.hosts       = {{ hosts }}
@@ -132,7 +132,7 @@ expand_sourcedb_mapfile_time.control.mapfile_to_match = create_timechunk_files_m
 expand_sourcedb_mapfile_time.control.mapfile_dir      = input.output.mapfile_dir
 expand_sourcedb_mapfile_time.control.filename         = expand_sourcedb_time.mapfile
 
-# expand the sourcedb mapfile so that there is one entry for every frequency chunk, length = nfreqchunks
+# expand the sourcedb mapfile so that there is one entry for every frequency chunk, length = nfreqchunks*nobs
 expand_sourcedb_mapfile_freq.control.kind             = plugin
 expand_sourcedb_mapfile_freq.control.type             = expandMapfile
 expand_sourcedb_mapfile_freq.control.mapfile_in       = make_sourcedb.output.mapfile
@@ -162,6 +162,8 @@ solve_fast_phases.argument.solve.sourcedb           = sourcedb
 solve_fast_phases.argument.solve.solint             = timestep
 solve_fast_phases.argument.solve.nchan              = freqstep
 solve_fast_phases.argument.solve.approximatetec     = True
+solve_fast_phases.argument.solve.maxapproxiter      = 30
+solve_fast_phases.argument.solve.maxiter            = 35
 solve_fast_phases.argument.solve.propagatesolutions = True
 solve_fast_phases.argument.solve.stepsize           = 0.2
 solve_fast_phases.argument.solve.tolerance          = 1e-5
@@ -173,7 +175,7 @@ create_compressed_mapfile_fast.control.mapfile_in  = create_fast_h5parms_map.out
 create_compressed_mapfile_fast.control.mapfile_dir = input.output.mapfile_dir
 create_compressed_mapfile_fast.control.filename    = compress_fast.mapfile
 
-# Combine fast-phase solutions, length = ntimechunks -> 1
+# combine fast-phase solutions, length = ntimechunks -> 1
 combine_fast_phases.control.type        = combine_h5parms
 combine_fast_phases.control.mapfile_in  = create_compressed_mapfile_fast.output.mapfile
 combine_fast_phases.control.inputkey    = infiles
@@ -182,41 +184,59 @@ combine_fast_phases.argument.flags      = [infiles]
 combine_fast_phases.argument.outh5parm  = outfile
 combine_fast_phases.argument.concataxis = time
 
-# expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks
+# append ".h5" to fast-phase h5parm filename, length = 1
+append_h5_fast.control.kind        = plugin
+append_h5_fast.control.type        = appendMapfile
+append_h5_fast.control.mapfile_in  = combine_fast_phases.output.mapfile
+append_h5_fast.control.mapfile_dir = input.output.mapfile_dir
+append_h5_fast.control.filename    = fast_phase_h5parm.mapfile
+append_h5_fast.control.append      = .h5
+append_h5_fast.control.rename      = True
+
+# fit screens to fast phases, length = 1
+{% if solve_tecandphase %}
+fit_fast_screens.control.type       = fit_fast_phase_screens
+{% else %}
+fit_fast_screens.control.type       = fit_tec_screens
+{% endif %}
+fit_fast_screens.control.mapfile_in = append_h5_fast.output.mapfile
+fit_fast_screens.control.inputkey   = infile
+fit_fast_screens.argument.flags     = [infile]
+
+# expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks*nobs
 expand_fast_phases_mapfile.control.kind             = plugin
 expand_fast_phases_mapfile.control.type             = expandMapfile
-expand_fast_phases_mapfile.control.mapfile_in       = combine_fast_phases.output.mapfile
+expand_fast_phases_mapfile.control.mapfile_in       = append_h5_fast.output.mapfile
 expand_fast_phases_mapfile.control.mapfile_to_match = create_freqchunk_files_map.output.mapfile
-expand_fast_phases_mapfile.control.suffix_to_add    = .h5
 expand_fast_phases_mapfile.control.mapfile_dir      = input.output.mapfile_dir
 expand_fast_phases_mapfile.control.filename         = expand_fastphase_freq.mapfile
 
-# solve for slow gains, length = nfreqchunks
-solve_slow_gains.control.type                                   = dppp_inplace
-solve_slow_gains.control.mapfiles_in                            = [create_freqchunk_files_map.output.mapfile,expand_fast_phases_mapfile.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile,expand_sourcedb_mapfile_freq.output.mapfile]
-solve_slow_gains.control.inputkeys                              = [msin,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep,sourcedb]
-solve_slow_gains.control.max_per_node                           = 1
-solve_slow_gains.argument.numthreads                            = {{ max_proc_per_node }}
-solve_slow_gains.argument.msin.datacolumn                       = {{ data_colname }}
-solve_slow_gains.argument.msin.startchan                        = startchan
-solve_slow_gains.argument.msin.nchan                            = nchan
-solve_slow_gains.argument.msout                                 = .
-solve_slow_gains.argument.steps                                 = [solve]
-solve_slow_gains.argument.solve.type                            = ddecal
-solve_slow_gains.argument.solve.mode                            = complexgain
-solve_slow_gains.argument.solve.h5parm                          = slow_h5parm
-solve_slow_gains.argument.solve.sourcedb                        = sourcedb
-solve_slow_gains.argument.solve.solint                          = timestep
-solve_slow_gains.argument.solve.nchan                           = freqstep
-solve_slow_gains.argument.solve.propagatesolutions              = True
-solve_slow_gains.argument.solve.applycal.parmdb                 = fast_h5parm
+# solve for slow gains, length = nfreqchunks*nobs
+solve_slow_gains.control.type                             = dppp_inplace
+solve_slow_gains.control.mapfiles_in                      = [create_freqchunk_files_map.output.mapfile,expand_fast_phases_mapfile.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile,expand_sourcedb_mapfile_freq.output.mapfile]
+solve_slow_gains.control.inputkeys                        = [msin,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep,sourcedb]
+solve_slow_gains.control.max_per_node                     = 1
+solve_slow_gains.argument.numthreads                      = {{ max_proc_per_node }}
+solve_slow_gains.argument.msin.datacolumn                 = {{ data_colname }}
+solve_slow_gains.argument.msin.startchan                  = startchan
+solve_slow_gains.argument.msin.nchan                      = nchan
+solve_slow_gains.argument.msout                           = .
+solve_slow_gains.argument.steps                           = [solve]
+solve_slow_gains.argument.solve.type                      = ddecal
+solve_slow_gains.argument.solve.mode                      = complexgain
+solve_slow_gains.argument.solve.h5parm                    = slow_h5parm
+solve_slow_gains.argument.solve.sourcedb                  = sourcedb
+solve_slow_gains.argument.solve.solint                    = timestep
+solve_slow_gains.argument.solve.nchan                     = freqstep
+solve_slow_gains.argument.solve.propagatesolutions        = True
+solve_slow_gains.argument.solve.applycal.parmdb           = fast_h5parm
 {% if solve_tecandphase %}
-solve_slow_gains.argument.solve.applycal.steps                  = [tec,scalarphase]
-solve_slow_gains.argument.solve.applycal.tec.correction         = tec000
-solve_slow_gains.argument.solve.applycal.scalarphase.correction = scalarphase000
+solve_slow_gains.argument.solve.applycal.steps            = [tec,phase]
+solve_slow_gains.argument.solve.applycal.tec.correction   = tec001
+solve_slow_gains.argument.solve.applycal.phase.correction = phase001
 {% else %}
-solve_slow_gains.argument.solve.applycal.steps                  = [tec]
-solve_slow_gains.argument.solve.applycal.tec.correction         = tec000
+solve_slow_gains.argument.solve.applycal.steps            = [tec]
+solve_slow_gains.argument.solve.applycal.tec.correction   = tec001
 {% endif %}
 
 # compress slow-gain mapfile so that all files are in one group, length = 1
@@ -226,23 +246,105 @@ create_compressed_mapfile_slow.control.mapfile_in  = create_slow_h5parms_map.out
 create_compressed_mapfile_slow.control.mapfile_dir = input.output.mapfile_dir
 create_compressed_mapfile_slow.control.filename    = compress_slow.mapfile
 
-# Combine slow-gain solutions, length = nfreqchunks -> 1
-combine_slow_phases.control.type        = combine_h5parms
-combine_slow_phases.control.mapfile_in  = create_compressed_mapfile_slow.output.mapfile
-combine_slow_phases.control.inputkey    = infiles
-combine_slow_phases.control.outputkey   = outfile
-combine_slow_phases.argument.flags      = [infiles]
-combine_slow_phases.argument.outh5parm  = outfile
-combine_slow_phases.argument.concataxis = freq
+# combine slow-gain solutions, length = nfreqchunks*nobs -> 1
+combine_slow_gains.control.type        = combine_h5parms
+combine_slow_gains.control.mapfile_in  = create_compressed_mapfile_slow.output.mapfile
+combine_slow_gains.control.inputkey    = infiles
+combine_slow_gains.control.outputkey   = outfile
+combine_slow_gains.argument.flags      = [infiles]
+combine_slow_gains.argument.outh5parm  = outfile
+combine_slow_gains.argument.concataxis = freq
 
-# Fit screens to fast phases
-fit_fast_screens.control.type       = fit_fast_phase_screens
-fit_fast_screens.control.mapfile_in = combine_fast_phases.output.mapfile
-fit_fast_screens.control.inputkey   = infile
-fit_fast_screens.argument.flags     = [infile]
+# append ".h5" to slow-gain h5parm filename, length = 1
+append_h5_slow.control.kind        = plugin
+append_h5_slow.control.type        = appendMapfile
+append_h5_slow.control.mapfile_in  = combine_slow_gains.output.mapfile
+append_h5_slow.control.mapfile_dir = input.output.mapfile_dir
+append_h5_slow.control.filename    = slow_gain_h5parm.mapfile
+append_h5_slow.control.append      = .h5
+append_h5_slow.control.rename      = True
 
-# Fit screens to slow gains
+# fit screens to slow gains, length = 1
 fit_slow_screens.control.type       = fit_slow_gain_screens
-fit_slow_screens.control.mapfile_in = combine_slow_phases.output.mapfile
+fit_slow_screens.control.mapfile_in = append_h5_slow.output.mapfile
 fit_slow_screens.control.inputkey   = infile
 fit_slow_screens.argument.flags     = [infile]
+
+{% if nsectors > 1 %}
+# create a mapfile with the sector sky models, length = nsectors*nobs
+create_sector_skymodels_map.kind                = plugin
+create_sector_skymodels_map.control.type        = addListMapfile
+create_sector_skymodels_map.control.hosts       = {{ hosts }}
+create_sector_skymodels_map.control.files       = {{ sector_skymodel }}
+create_sector_skymodels_map.control.mapfile_dir = input.output.mapfile_dir
+create_sector_skymodels_map.control.filename    = sector_skymodels.mapfile
+
+# convert the skymodels into sourcedbs, length = nsectors*nobs
+make_sector_sourcedbs.control.type       = make_sourcedb
+make_sector_sourcedbs.control.mapfile_in = create_sector_skymodels_map.output.mapfile
+make_sector_sourcedbs.control.inputkey   = in
+make_sector_sourcedbs.argument.format    = <
+make_sector_sourcedbs.argument.outtype   = blob
+make_sector_sourcedbs.argument.append    = False
+
+# create a mapfile with the MS filenames for each sector, length = nsectors*nobs
+create_sector_files_map.control.kind        = plugin
+create_sector_files_map.control.type        = addListMapfile
+create_sector_files_map.control.hosts       = {{ hosts }}
+create_sector_files_map.control.files       = {{ sector_filename }}
+create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
+create_sector_files_map.control.filename    = sectorfiles.mapfile
+
+# combine fast and slow h5parms, length = 2 -> 1
+combine_h5parms.control.type        = combine_h5parms
+combine_h5parms.control.mapfile_in  = create_compressed_mapfile_slow.output.mapfile
+combine_h5parms.control.inputkey    = infiles
+combine_h5parms.control.outputkey   = outfile
+combine_h5parms.argument.flags      = [infiles]
+combine_h5parms.argument.outh5parm  = outfile
+
+# expand the combined h5parms mapfile, length = nsectors*nobs
+expand_combined_h5parms_map.control.kind             = plugin
+expand_combined_h5parms_map.control.type             = expandMapfile
+expand_combined_h5parms_map.control.mapfile_in       = combine_h5s.output.mapfile
+expand_combined_h5parms_map.control.mapfile_to_match = create_sector_files_map.output.mapfile
+expand_combined_h5parms_map.control.mapfile_dir      = input.output.mapfile_dir
+expand_combined_h5parms_map.control.filename         = expand_h5parms_sectors.mapfile
+
+# predict model visibilities, length = nsectors*nobs
+predict_model_data.control.type                                   = dppp
+predict_model_data.control.mapfiles_in                            = [create_sector_files_map.output.mapfile,make_sector_sourcedbs.output.mapfile,expand_combined_h5parms_map.output.mapfile]
+predict_model_data.control.inputkeys                              = [msin,sourcedb,combined_h5parm]
+predict_model_data.argument.numthreads                            = {{ max_cpus_per_io_proc_nfiles }}
+predict_model_data.argument.msin.datacolumn                       = DATA
+predict_model_data.argument.msout.overwrite                       = True
+predict_model_data.argument.msout.writefullresflag                = False
+{% if local_dir is not none %}
+predict_model_data.argument.local_scratch_dir                     = {{ local_dir }}
+{% endif %}
+predict_model_data.argument.steps                                 = [predict]
+predict_model_data.argument.predict.type                          = predict
+predict_model_data.argument.predict.sourcedb                      = sourcedb
+predict_model_data.argument.predict.operation                     = replace
+predict_model_data.argument.predict.applycal.parmdb               = combined_h5parm
+{% if solve_tecandphase %}
+predict_model_data.argument.predict.applycal.steps                = [tec,phase,slowamp,slowphase]
+predict_model_data.argument.predict.applycal.tec.correction       = tec001
+predict_model_data.argument.predict.applycal.phase.correction     = phase001
+predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude001
+predict_model_data.argument.predict.applycal.slowphase.correction = phase002
+{% else %}
+predict_model_data.argument.predict.applycal.steps                = [tec,slowamp,slowphase]
+predict_model_data.argument.predict.applycal.tec.correction       = tec001
+predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude001
+predict_model_data.argument.predict.applycal.slowphase.correction = phase001
+{% endif %}
+{% if use_compression %}
+predict_model_data.argument.msout.storagemanager                  = "Dysco"
+predict_model_data.argument.msout.storagemanager.databitrate      = 0
+predict_model_data.argument.msout.storagemanager.weightbitrate    = 12
+predict_model_data.argument.msout.storagemanager.distribution     = "TruncatedGaussian"
+predict_model_data.argument.msout.storagemanager.disttruncation   = 1.5
+predict_model_data.argument.msout.storagemanager.normalization    = "AF"
+{% endif %}
+{% endif %}

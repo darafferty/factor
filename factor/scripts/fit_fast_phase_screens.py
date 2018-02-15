@@ -13,6 +13,29 @@ from scipy import optimize
 import pickle
 
 
+def convert_mvt(mvt):
+    """
+    Converts casacore MVTime to MJD
+
+    Parameters
+    ----------
+    mvt : str
+        MVTime
+
+    Returns
+    -------
+    mjd : float
+        MJD in seconds
+    """
+    t = Time(mjd_sec / 3600 / 24, format='mjd', scale='utc')
+    date, hour = t.iso.split(' ')
+    year, month, day = date.split('-')
+    d = t.datetime
+    month = d.ctime().split(' ')[1]
+
+    return '{0}{1}{2}/{3}'.format(day, month, year, hour)
+
+
 def calculate_total_phase(tec_vals, scphase_vals, freq, ant_axis_ind, ref_id=0,
     bootstrap=False, station_names=None, baseline_file=None):
 
@@ -90,9 +113,10 @@ def remove_soltabs(solset, soltabnames):
             pass
 
 
-def main(h5parmfile, freqmin=140e6, freqmax=150e6, solsetname='sol000', tecsoltabname='tec000',
-    scphsoltabname='scalarphase000', outsoltabroot='_screensols',
-    ref_id=0, bootstrap=False):
+def main(h5parmfile, freq1=120e6, freq2=170e6, tstart=None,
+    solsetname='sol000', tecsoltabname='tec000',
+    scphsoltabname='scalarphase000', outsoltabroot='_screensols', ref_id=0,
+    bootstrap=False, calculate_weights=False):
     """
     Fit screens to phase solutions
 
@@ -100,6 +124,14 @@ def main(h5parmfile, freqmin=140e6, freqmax=150e6, solsetname='sol000', tecsolta
     ----------
     h5parmfile : str
         Filename of h5parm
+    freq1 : float
+        Low frequency in Hz at which screens will be fit
+    freq1 : float
+        High frequency in Hz at which screens will be fit
+    starttime : str
+        Start time in casacore MVTime format
+    ntimes : int
+        Number of times to fit
     solsetname : str, optional
         Name of solset
     tecsoltabname : str, optional
@@ -128,8 +160,8 @@ def main(h5parmfile, freqmin=140e6, freqmax=150e6, solsetname='sol000', tecsolta
     times = tecsoltab.time[:]
     station_names = tecsoltab.ant[:]
 
-    # Find total phases at 10 MHz intervals
-    freqs = [freqmin, freqmax] # np.arange(freqmin, freqmax, 10.0)
+    # Find total phases at two frequencies
+    freqs = [freq1, freq2]
     ant_ind = tecsoltab.getAxesNames().index('ant')
     for i, freq in enumerate(freqs):
         remove_soltabs(solset, ['totalphase{}'.format(i+1)])
@@ -141,8 +173,9 @@ def main(h5parmfile, freqmin=140e6, freqmax=150e6, solsetname='sol000', tecsolta
                 station_names, source_names, np.array([freq])], vals=r, weights=w)
 
         # Find weights
-        soltab = solset.getSoltab('totalphase{}'.format(i+1))
-        operations.reweight.run(soltab, 'window', nmedian=3, nstddev=501)
+        if calculate_weights:
+            soltab = solset.getSoltab('totalphase{}'.format(i+1))
+            operations.reweight.run(soltab, 'window', nmedian=3, nstddev=501)
 
         # Fit screens
         remove_soltabs(solset, ['phasescreen{}'.format(i+1), 'phasescreen{}resid'.format(i+1)])

@@ -9,6 +9,7 @@ import imp
 import numpy as np
 from collections import Counter
 from factor.lib.context import Timer
+import factor.cluster
 
 log = logging.getLogger('factor:scheduler')
 
@@ -81,9 +82,14 @@ class Scheduler(object):
     name : str, optional
         Name of the scheduler
     """
-    def __init__(self, genericpipeline_executable, nops_simul=1, name='scheduler'):
-        self.genericpipeline_executable = genericpipeline_executable
-        self.nops_simul = nops_simul
+    def __init__(self, parset, name='scheduler'):
+
+        self.parset = parset['cluster_specific'].copy()
+        factor.cluster.get_type(self.parset)
+        factor.cluster.check_ulimit(self.parset)
+        factor.cluster.find_executables(self.parset)
+        self.genericpipeline_executable = self.parset['genericpipeline_executable']
+        self.nops_simul = len(self.parset['node_list'])
         self.name = name
         self.success = True
 
@@ -239,8 +245,6 @@ class Scheduler(object):
         """
         if type(operation_list) != list:
             operation_list = [operation_list]
-
-        # Filter out completed ops
         self.operation_list = operation_list
 
         # Run the operation(s)

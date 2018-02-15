@@ -21,22 +21,30 @@ class Calibrate(Operation):
         self.pipeline_parset_template = 'calibrate_pipeline.parset'
 
         # Define extra parameters needed for this operation
-        timechunk_filename = field.get_obs_parameters('timechunk_filename')
-        starttime = field.get_obs_parameters('starttime')
-        ntimes = field.get_obs_parameters('ntimes')
-        freqchunk_filename = field.get_obs_parameters('freqchunk_filename')
-        startchan = field.get_obs_parameters('startchan')
-        nchan = field.get_obs_parameters('nchan')
-        solint_fast_timestep = field.get_obs_parameters('solint_fast_timestep')
-        solint_slow_timestep = field.get_obs_parameters('solint_slow_timestep')
-        solint_fast_freqstep = field.get_obs_parameters('solint_fast_freqstep')
-        solint_slow_freqstep = field.get_obs_parameters('solint_slow_freqstep')
+        timechunk_filename = field.get_calibration_parameters('timechunk_filename')
+        starttime = field.get_calibration_parameters('starttime')
+        ntimes = field.get_calibration_parameters('ntimes')
+        freqchunk_filename = field.get_calibration_parameters('freqchunk_filename')
+        startchan = field.get_calibration_parameters('startchan')
+        nchan = field.get_calibration_parameters('nchan')
+        solint_fast_timestep = field.get_calibration_parameters('solint_fast_timestep')
+        solint_slow_timestep = field.get_calibration_parameters('solint_slow_timestep')
+        solint_fast_freqstep = field.get_calibration_parameters('solint_fast_freqstep')
+        solint_slow_freqstep = field.get_calibration_parameters('solint_slow_freqstep')
         output_fast_h5parm = [os.path.join(self.pipeline_parset_dir,
                               'fast_phase_{}.h5parm'.format(i))
                               for i in range(field.ntimechunks)]
         output_slow_h5parm = [os.path.join(self.pipeline_parset_dir,
                               'slow_phase_{}.h5parm'.format(i))
                               for i in range(field.nfreqchunks)]
+
+        # If needed (nsectors > 1), define predict parameters
+        sector_filename = []
+        sector_skymodel = []
+        for sector in field.sectors:
+            for obs in sector.obs:
+                sector_filename.append(obs.ms_filename)
+                sector_skymodel.append(sector.skymodel_file)
 
         self.parms_dict.update({'timechunk_filename': timechunk_filename,
                                 'freqchunk_filename': freqchunk_filename,
@@ -49,7 +57,10 @@ class Calibrate(Operation):
                                 'solint_fast_freqstep': solint_fast_freqstep,
                                 'solint_slow_freqstep': solint_slow_freqstep,
                                 'output_fast_h5parm': output_fast_h5parm,
-                                'output_slow_h5parm': output_slow_h5parm})
+                                'output_slow_h5parm': output_slow_h5parm,
+                                'nsectors': len(field.sectors),
+                                'sector_filename': sector_filename,
+                                'sector_skymodel': sector_skymodel})
 
     def finalize(self):
         """

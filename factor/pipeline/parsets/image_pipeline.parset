@@ -212,3 +212,44 @@ adjust_wsclean_mapfile2.control.mapfile_in  = create_imagebase_map2.output.mapfi
 adjust_wsclean_mapfile2.control.append      = {{ wsclean_suffix }}
 adjust_wsclean_mapfile2.control.mapfile_dir = input.output.mapfile_dir
 adjust_wsclean_mapfile2.control.filename    = final_image.mapfile
+
+# make a mapfile with the name of the WSClean image, length = 1
+create_blanked_images_map.control.kind         = plugin
+create_blanked_images_map.control.type         = appendMapfile
+create_blanked_images_map.control.mapfile_in   = create_images_map.output.mapfile
+create_blanked_images_map.control.append_index = True
+create_blanked_images_map.control.append       = image
+create_blanked_images_map.control.mapfile_dir  = input.output.mapfile_dir
+create_blanked_images_map.control.filename     = blanked_facet_images.mapfile
+
+# create a mapfile with the existing vertices, length = nfacets
+create_vertices_map.control.kind        = plugin
+create_vertices_map.control.type        = addListMapfile
+create_vertices_map.control.hosts       = {{ hosts }}
+create_vertices_map.control.files       = {{ facet_vertices_filenames }}
+create_vertices_map.control.mapfile_dir = input.output.mapfile_dir
+create_vertices_map.control.filename    = facet_vertices.mapfile
+
+# blank (with zeros) regions of the facet images that lie outside of the facet, length = nfacets
+blank_images.control.type         = blank_image
+blank_images.control.mapfiles_in  = [create_images_map.output.mapfile,create_vertices_map.output.mapfile]
+blank_images.control.inputkeys    = [infile,vertices_file]
+blank_images.control.mapfile_out  = create_blanked_images_map.output.mapfile
+blank_images.control.outputkey    = outfile
+blank_images.argument.flags       = [infile,vertices_file,outfile]
+blank_images.argument.blank_value = zero
+
+# compress mapfile so that all images are in one group, length = 1
+create_compressed_mapfile_images.control.kind        = plugin
+create_compressed_mapfile_images.control.type        = compressMapfile
+create_compressed_mapfile_images.control.mapfile_in  = blank_images.output.mapfile
+create_compressed_mapfile_images.control.mapfile_dir = input.output.mapfile_dir
+create_compressed_mapfile_images.control.filename    = mosaic_images_input.mapfile
+
+# make the mosaic image, length = 1
+make_mosaic.control.type        = mosaic_images
+make_mosaic.control.mapfile_in  = create_compressed_mapfile_images.output.mapfile
+make_mosaic.control.inputkey    = images
+make_mosaic.control.outputkey   = outfile
+make_mosaic.argument.flags      = [images,outfile]
+

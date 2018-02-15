@@ -18,6 +18,8 @@ def plugin_main(args, **kwargs):
         Directory for output mapfile
     filename: str
         Name of output mapfile
+    rename: bool
+        If True, rename the original filenames to the new ones
 
     Returns
     -------
@@ -27,13 +29,12 @@ def plugin_main(args, **kwargs):
     """
     mapfile_in = kwargs['mapfile_in']
 
+    if 'rename' in kwargs:
+        rename =  string2bool(kwargs['rename'])
+    else:
+        rename = False
     if 'append_index' in kwargs:
-        append_index = kwargs['append_index']
-        if type(append_index) is str:
-            if append_index.lower() == 'true':
-                append_index = True
-            else:
-                append_index = False
+        append_index = string2bool(kwargs['append_index'])
     else:
         append_index = False
 
@@ -57,3 +58,14 @@ def plugin_main(args, **kwargs):
     result = {'mapfile': fileid}
 
     return result
+
+
+def string2bool(instring):
+    if not isinstance(instring, basestring):
+        raise ValueError('string2bool: Input is not a basic string!')
+    if instring.upper() == 'TRUE' or instring == '1':
+        return True
+    elif instring.upper() == 'FALSE' or instring == '0':
+        return False
+    else:
+        raise ValueError('string2bool: Cannot convert string "'+instring+'" to boolean!')

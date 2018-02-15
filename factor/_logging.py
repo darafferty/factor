@@ -64,6 +64,7 @@ def set_log_file(log_file):
     fh.addFilter(Whitelist())
     logging.root.addHandler(fh)
 
+
 # Define and add console handler (in color)
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)  # default log level

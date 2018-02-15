@@ -16,8 +16,9 @@ import lofar.parmdb
 from astropy.stats import median_absolute_deviation
 
 
-def main(ms_input, parmdb_input, input_colname, output_data_colname, output_weights_colname,
-    target_rms_rad, baseline_file, minutes_per_block=10.0, verbose=True):
+def main(ms_input, input_colname, output_data_colname, output_weights_colname,
+    baseline_file, parmdb_input=None, target_rms_rad=None, ionfactor=None,
+    minutes_per_block=10.0, verbose=True):
     """
     Pre-average data using a sliding Gaussian kernel in time
 
@@ -42,14 +43,16 @@ def main(ms_input, parmdb_input, input_colname, output_data_colname, output_weig
     """
 
     # convert input to needed types
-    ms_list = input2strlist(ms_input)
-    parmdb_list = input2strlist(parmdb_input)
     verbose = input2bool(verbose)
-    if len(ms_list) != len(parmdb_list):
-        raise ValueError('pre_average_time: Length of MS-list ({0}) and length of parmdb-list ({1}) differ.'.format(len(ms_list),len(parmdb_list)))
-
+    ms_list = input2strlist(ms_input)
+    if parmdb_input is not None:
+        parmdb_list = input2strlist(parmdb_input)
+        if len(ms_list) != len(parmdb_list):
+            raise ValueError('pre_average_time: Length of MS-list ({0}) and length of parmdb-list ({1}) differ.'.format(len(ms_list),len(parmdb_list)))
     if type(target_rms_rad) is str:
         target_rms_rad = float(target_rms_rad)
+    if type(ionfactor) is str:
+        ionfactor = float(ionfactor)
     if os.path.exists(baseline_file):
         f = open(baseline_file, 'r')
         baseline_dict = pickle.load(f)
@@ -81,12 +84,15 @@ def main(ms_input, parmdb_input, input_colname, output_data_colname, output_weig
             remaining_time -= t_delta
 
             # Find ionfactor for this period
-            ionfactors.append(find_ionfactor(parmdb_list[msind], baseline_dict, t1+start_time,
-                                             t1+start_time+t_delta, target_rms_rad=target_rms_rad))
-            if verbose:
-                print('    ionfactor (for timerange {0}-{1} sec) = {2}'.format(t1,
-                      t1+t_delta, ionfactors[-1]))
-            t1 += t_delta
+            if parmdb_input is not None:
+                ionfactors.append(find_ionfactor(parmdb_list[msind], baseline_dict, t1+start_time,
+                                                 t1+start_time+t_delta, target_rms_rad=target_rms_rad))
+                if verbose:
+                    print('    ionfactor (for timerange {0}-{1} sec) = {2}'.format(t1,
+                          t1+t_delta, ionfactors[-1]))
+                t1 += t_delta
+            else:
+                ionfactors = [ionfactor]
 
     sorted_ms_tuples = sorted(zip(start_times,end_times,range(len(ms_list)),ms_list))
     sorted_ms_dict = { 'msnames' :[ms for starttime,endtime,index,ms in sorted_ms_tuples],
