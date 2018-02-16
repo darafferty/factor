@@ -176,12 +176,12 @@ create_compressed_mapfile_fast.control.mapfile_dir = input.output.mapfile_dir
 create_compressed_mapfile_fast.control.filename    = compress_fast.mapfile
 
 # combine fast-phase solutions, length = ntimechunks -> 1
-combine_fast_phases.control.type        = combine_h5parms
-combine_fast_phases.control.mapfile_in  = create_compressed_mapfile_fast.output.mapfile
-combine_fast_phases.control.inputkey    = infiles
-combine_fast_phases.control.outputkey   = outfile
-combine_fast_phases.argument.flags      = [infiles]
-combine_fast_phases.argument.outh5parm  = outfile
+combine_fast_phases.control.type       = combine_h5parms
+combine_fast_phases.control.mapfile_in = create_compressed_mapfile_fast.output.mapfile
+combine_fast_phases.control.inputkey   = infiles
+combine_fast_phases.control.outputkey  = outfile
+combine_fast_phases.argument.flags     = [-c,infiles]
+combine_fast_phases.argument.outh5parm = outfile
 
 # append ".h5" to fast-phase h5parm filename, length = 1
 append_h5_fast.control.kind        = plugin
@@ -250,7 +250,7 @@ combine_slow_gains.control.type        = combine_h5parms
 combine_slow_gains.control.mapfile_in  = create_compressed_mapfile_slow.output.mapfile
 combine_slow_gains.control.inputkey    = infiles
 combine_slow_gains.control.outputkey   = outfile
-combine_slow_gains.argument.flags      = [infiles]
+combine_slow_gains.argument.flags      = [-c,infiles]
 combine_slow_gains.argument.outh5parm  = outfile
 
 # append ".h5" to slow-gain h5parm filename, length = 1
@@ -298,7 +298,7 @@ combine_h5parms.control.type        = combine_h5parms
 combine_h5parms.control.mapfile_in  = create_compressed_mapfile_slow.output.mapfile
 combine_h5parms.control.inputkey    = infiles
 combine_h5parms.control.outputkey   = outfile
-combine_h5parms.argument.flags      = [infiles]
+combine_h5parms.argument.flags      = [-c,infiles]
 combine_h5parms.argument.outh5parm  = outfile
 
 # expand the combined h5parms mapfile, length = nsectors*nobs

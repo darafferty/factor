@@ -49,9 +49,14 @@ def plugin_main(args, **kwargs):
 
     for i, item in enumerate(map_in):
         if append_index:
-            map_out.data.append(DataProduct(item.host, item.file+append_str+'_{}'.format(i), item.skip))
+            newfile = item.file+append_str+'_{}'.format(i)
         else:
-            map_out.data.append(DataProduct(item.host, item.file+append_str, item.skip))
+            newfile = item.file+append_str
+        map_out.data.append(DataProduct(item.host, newfile, item.skip))
+        if rename:
+            if os.path.exists(newfile):
+                os.remove(newfile)
+            os.rename(item.file, newfile)
 
     fileid = os.path.join(mapfile_dir, filename)
     map_out.save(fileid)
