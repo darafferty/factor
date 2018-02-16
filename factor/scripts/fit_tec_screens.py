@@ -8,7 +8,7 @@ import losoto.operations as operations
 from losoto.h5parm import h5parm
 import numpy as np
 import matplotlib.pyplot as plt
-from losoto.operations_lib import normalize_phase
+from losoto.lib_operations import normalize_phase
 from scipy import optimize
 import pickle
 import itertools
