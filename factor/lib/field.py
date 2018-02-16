@@ -143,14 +143,14 @@ class Field(object):
         """
         Defines the imaging sectors
         """
-        nsectors_ra = self.parset['imaging_specific']['num_sectors']
+        nsectors_ra = self.parset['imaging_specific']['nsectors_per_side']
         if nsectors_ra == 1 and len(self.parset['cluster_specific']['node_list']) == 1:
             nsectors_dec = 1
             width_ra = self.fwhm_ra_deg / nsectors_ra
             width_dec = self.fwhm_dec_deg / nsectors_dec
             center_x, center_y = self.radec2xy([self.ra], [self.dec])
-            x = np.array([[center_x]])
-            y = np.array([[center_y]])
+            x = np.array([center_x])
+            y = np.array([center_y])
         else:
             nsectors_dec = int(np.ceil(nsectors_ra / np.sin(self.mean_el_rad)))
             width_ra = self.fwhm_ra_deg / nsectors_ra
@@ -162,28 +162,23 @@ class Field(object):
             max_x = center_x + nsectors_ra / 2.0 * width_x
             min_y = center_y - nsectors_dec / 2.0 * width_y
             max_y = center_y + nsectors_dec / 2.0 * width_y
-            x = np.linspace(min_x, max_x, width_x)
-            y = np.linspace(min_y, max_y, width_y)
+            x = np.linspace(min_x, max_x, nsectors_ra)
+            y = np.linspace(min_y, max_y, nsectors_dec)
             x, y = np.meshgrid(x, y)
 
         # Define sectors
         self.sectors = []
         for i in range(nsectors_ra):
-            for i in range(nsectors_dec):
+            for j in range(nsectors_dec):
                 name = 'sector_{0}_{1}'.format(i, j)
-                ra, dec = self.xy2radec([x[i, j]], [y[i, j]])
-                self.sectors.append(Sector(name, ra, dec, width_ra, width_dec, field))
+                ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
+                self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
 
         for this_sector in self.sectors:
             # For each sector, check for intersection with other sectors
-            other_sectors = self.sectors[:].remove(this_sector)
-            for other_sector in other_sectors:
-                if this_sector.poly.contains(other_sector.poly.centroid):
-                    # If centroid is outside, difference the polys
+            for other_sector in self.sectors:
+                if this_sector is not other_sector and this_sector.poly.intersects(other_sector.poly):
                     this_sector.poly = this_sector.poly.difference(other_sector.poly)
-                else:
-                    # If point is inside, union the polys
-                    this_sector.poly = this_sector.poly.union(other_sector.poly)
 
             # Make sector region and vertices files
             this_sector.make_vertices_file()

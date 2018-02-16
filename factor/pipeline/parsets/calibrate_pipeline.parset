@@ -162,11 +162,11 @@ solve_fast_phases.argument.solve.sourcedb           = sourcedb
 solve_fast_phases.argument.solve.solint             = timestep
 solve_fast_phases.argument.solve.nchan              = freqstep
 solve_fast_phases.argument.solve.approximatetec     = True
-solve_fast_phases.argument.solve.maxapproxiter      = 30
-solve_fast_phases.argument.solve.maxiter            = 35
+solve_fast_phases.argument.solve.maxapproxiter      = 50
+solve_fast_phases.argument.solve.maxiter            = 75
 solve_fast_phases.argument.solve.propagatesolutions = True
-solve_fast_phases.argument.solve.stepsize           = 0.2
-solve_fast_phases.argument.solve.tolerance          = 1e-5
+solve_fast_phases.argument.solve.stepsize           = 0.02
+solve_fast_phases.argument.solve.tolerance          = 1e-8
 
 # compress fast-phase mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_fast.control.kind        = plugin
@@ -182,7 +182,6 @@ combine_fast_phases.control.inputkey    = infiles
 combine_fast_phases.control.outputkey   = outfile
 combine_fast_phases.argument.flags      = [infiles]
 combine_fast_phases.argument.outh5parm  = outfile
-combine_fast_phases.argument.concataxis = time
 
 # append ".h5" to fast-phase h5parm filename, length = 1
 append_h5_fast.control.kind        = plugin
@@ -253,7 +252,6 @@ combine_slow_gains.control.inputkey    = infiles
 combine_slow_gains.control.outputkey   = outfile
 combine_slow_gains.argument.flags      = [infiles]
 combine_slow_gains.argument.outh5parm  = outfile
-combine_slow_gains.argument.concataxis = freq
 
 # append ".h5" to slow-gain h5parm filename, length = 1
 append_h5_slow.control.kind        = plugin

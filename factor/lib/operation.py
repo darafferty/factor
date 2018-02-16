@@ -134,12 +134,12 @@ class Operation(object):
         self.cfg_dict = {'lofarroot': self.parset['cluster_specific']['lofarroot'],
                          'pythonpath': self.parset['cluster_specific']['lofarpythonpath'],
                          'factorroot': self.factor_root_dir,
-                         'losoto_executable': self.parset['cluster_specific']['losoto_executable'],
                          'h5collector_executable': self.parset['cluster_specific']['h5collector_executable'],
                          'pipeline_working_dir': self.pipeline_working_dir,
                          'pipeline_runtime_dir': self.pipeline_runtime_dir,
                          'wsclean_executable': self.parset['cluster_specific']['wsclean_executable'],
-                         'dppp_nodescript': self.dppp_nodescript}
+                         'dppp_nodescript': self.dppp_nodescript,
+                         }
 
         # Define global parameters needed by all pipeline parsets. Other,
         # pipeline-specific, parameters should be defined in the subclasses by
@@ -156,28 +156,24 @@ class Operation(object):
                            'hosts': self.node_list}
 
         # Add cluster-related info
-        if self.parset['cluster_specific']['clustertype'] == 'local':
+        if self.parset['cluster_specific']['cluster_type'] == 'localhost':
             self.cfg_dict['remote'] = '[remote]\n' + \
                                       'method = local\n' + \
                                       'max_per_node = {0}\n'.format(self.parset['cluster_specific']['ncpu'])
-        elif self.parset['cluster_specific']['clustertype'] == 'juropa_slurm':
+        elif self.parset['cluster_specific']['cluster_type'] == 'juropa_slurm':
             self.cfg_dict['remote'] = '[remote]\n' + \
                                       'method = slurm_srun\n' + \
                                       'max_per_node = {0}\n'.format(self.parset['cluster_specific']['ncpu'])
-        elif self.parset['cluster_specific']['clustertype'] == 'mpirun':
+        elif self.parset['cluster_specific']['cluster_type'] == 'mpirun':
             self.cfg_dict['remote'] = '[remote]\n' + \
                                       'method = mpirun\n' + \
                                       'max_per_node = {0}\n'.format(self.parset['cluster_specific']['ncpu'])
-        elif (self.parset['cluster_specific']['clustertype'] == 'pbs' or
-              self.parset['cluster_specific']['clustertype'] == 'slurm'):
+        elif (self.parset['cluster_specific']['cluster_type'] == 'pbs' or
+              self.parset['cluster_specific']['cluster_type'] == 'slurm'):
             self.cfg_dict['remote'] = ''
         else:
             self.log.error('Could not determine the nature of your cluster!')
             sys.exit(1)
-
-        # an absolute path in ...['clusterdesc'] will overrule the "working_dir"
-        self.cfg_dict['clusterdesc'] = os.path.join(self.factor_working_dir,
-                                                    self.parset['cluster_specific']['clusterdesc'])
 
     def update_dicts(self):
         """

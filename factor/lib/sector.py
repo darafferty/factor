@@ -9,6 +9,7 @@ from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
 from shapely.wkt import dumps
 import lsmtool
+import os
 
 
 class Sector(object):
@@ -137,12 +138,13 @@ class Sector(object):
         x, y = self.field.radec2xy(RA, Dec)
         points = []
         for i, (xp, yp) in enumerate(zip(x, y)):
-            p = Point((x,y))
+            p = Point((xp, yp))
             p.index = i
             points.append(p)
 
         # Find sources that are inside the sector
-        xv, yv = self.field.radec2xy(self.vertices[0], self.vertices[1])
+        vertices = self.get_vertices_radec()
+        xv, yv = self.field.radec2xy(vertices[0], vertices[1])
         poly = Polygon([(xp, yp) for xp, yp in zip(xv, yv)])
         prepared_polygon = prep(poly)
         intersecting_points = filter(prepared_polygon.contains, points)
@@ -189,7 +191,7 @@ class Sector(object):
         # Find nearby sources in input sky model and adjust sector boundaries
         # if necessary
         lsmtool._logging.setLevel('debug')
-        s = lsmtool.load(skymodel_file)
+        s = lsmtool.load(self.field.skymodel_file)
         dists = s.getDistance(self.ra, self.dec, byPatch=False)
         radius = np.hypot(self.width_ra, self.width_dec)
         s.select(dists < radius)
@@ -226,9 +228,20 @@ class Sector(object):
                         poly = poly.union(p2)
         self.poly = poly
 
+    def get_vertices_radec(self):
+        """
+        Return the vertices as RA, Dec for the sector boundary
+        """
+        ra, dec = self.field.xy2radec(self.poly.exterior.coords.xy[0].tolist(),
+                                 self.poly.exterior.coords.xy[1].tolist())
+        vertices = [np.array(ra), np.array(dec)]
+
+        return vertices
+
+
     def make_vertices_file(self):
         """
-        Make a ds9 or CASA region file for the sector boundary
+        Make a vertices file for the sector boundary
         """
         with open(self.vertices_file, 'wb') as f:
             dumps(self.poly)
@@ -244,10 +257,7 @@ class Sector(object):
         region_format : str, optional
             Format of region file: 'ds9' or 'casa'
         """
-        # Convert sector polygon vertices to RA, Dec
-        ra, dec = self.field.xy2radec(self.poly.exterior.coords.xy[0].tolist(),
-                                 self.poly.exterior.coords.xy[1].tolist())
-        vertices = [np.array(ra), np.array(dec)]
+        vertices = self.get_vertices_radec()
 
         if region_format == 'casa':
             lines = ['#CRTFv0\n\n']

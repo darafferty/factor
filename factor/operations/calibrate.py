@@ -42,7 +42,7 @@ class Calibrate(Operation):
         sector_filename = []
         sector_skymodel = []
         for sector in field.sectors:
-            for obs in sector.obs:
+            for obs in sector.observations:
                 sector_filename.append(obs.ms_filename)
                 sector_skymodel.append(sector.skymodel_file)
 

@@ -8,6 +8,7 @@ import logging
 import ConfigParser
 import numpy as np
 from factor._logging import set_log_file
+from factor.cluster import find_executables, get_compute_nodes
 
 log = logging.getLogger('factor:parset')
 
@@ -709,6 +710,9 @@ def get_cluster_options(parset):
                          "lofarpythonpath")
             sys.exit(1)
 
+    # Paths to required executables
+    parset_dict = find_executables(parset_dict)
+
     # Number of CPUs per node to be used.
     if 'ncpu' in parset_dict:
         parset_dict['ncpu'] = parset.getint('cluster', 'ncpu')
@@ -755,8 +759,7 @@ def get_cluster_options(parset):
     # local) node is used
     if 'cluster_type' not in parset_dict:
         parset_dict['cluster_type'] = 'localhost'
-        parset_dict['node_list'] = ['localhost']
-        parset_dict['clusterdesc_file'] = parset_dict['lofarroot'] + '/share/local.clusterdesc'
+    parset_dict['node_list'] = get_compute_nodes(parset_dict['cluster_type'])
 
     # Full path to a local disk on the nodes for I/O-intensive processing. The path
     # must be the same for all nodes. A selfcal-only path can also be specified to

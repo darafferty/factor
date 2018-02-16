@@ -85,9 +85,7 @@ class Scheduler(object):
     def __init__(self, parset, name='scheduler'):
 
         self.parset = parset['cluster_specific'].copy()
-        factor.cluster.get_type(self.parset)
         factor.cluster.check_ulimit(self.parset)
-        factor.cluster.find_executables(self.parset)
         self.genericpipeline_executable = self.parset['genericpipeline_executable']
         self.nops_simul = len(self.parset['node_list'])
         self.name = name

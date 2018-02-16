@@ -10,14 +10,14 @@ import numpy as np
 log = logging.getLogger('factor:cluster')
 
 
-def make_pbs_clusterdesc():
+def get_pbs_nodes():
     """
-    Make a cluster description file from the PBS_NODEFILE
+    Get nodes from the PBS_NODEFILE
 
     Returns
     -------
-    clusterdesc_file
-        Filename of resulting cluster description file
+    node_list
+        List of nodes
     """
     nodes = []
     try:
@@ -32,18 +32,9 @@ def make_pbs_clusterdesc():
             node_name = line.split()[0]
             if node_name not in nodes:
                 nodes.append(node_name)
-
-    lines = ['# Clusterdesc file to do parallel processing with PBS / torque\n\n']
-    lines.append('ClusterName = PBS\n\n')
-    lines.append('# Compute nodes\n')
-    lines.append('Compute.Nodes = [{0}]\n'.format(', '.join(sorted(nodes))))
-
-    clusterdesc_file = 'factor_pbs.clusterdesc'
-    with open(clusterdesc_file, 'wb') as file:
-        file.writelines(lines)
     log.info('Using {0} node(s)'.format(len(nodes)))
 
-    return clusterdesc_file
+    return nodes
 
 
 def expand_part(s):
@@ -153,14 +144,14 @@ def expand_hostlist(hostlist, allow_duplicates=False, sort=False):
     return results_nodup
 
 
-def make_slurm_clusterdesc():
+def get_slurm_nodes():
     """
-    Make a cluster description file from the SLURM_JOB_NODELIST
+    Get nodes from the SLURM_JOB_NODELIST
 
     Returns
     -------
-    clusterdesc_file
-        Filename of resulting cluster description file
+    node_list
+        List of nodes
     """
     nodes = []
     try:
@@ -169,40 +160,34 @@ def make_slurm_clusterdesc():
         log.error('SLURM_JOB_NODELIST not found. You must have a reservation to '
                   'use clusterdesc = SLURM.')
         sys.exit(1)
-
     nodes = expand_hostlist(hostlist)
-
-    lines = ['# Clusterdesc file to do parallel processing with SLURM\n\n']
-    lines.append('ClusterName = SLURM\n\n')
-    lines.append('# Compute nodes\n')
-    lines.append('Compute.Nodes = [{0}]\n'.format(', '.join(sorted(nodes))))
-
-    clusterdesc_file = 'factor_slurm.clusterdesc'
-    with open(clusterdesc_file, 'wb') as file:
-        file.writelines(lines)
     log.info('Using {0} node(s)'.format(len(nodes)))
 
-    return clusterdesc_file
+    return nodes
 
 
-def get_compute_nodes(clusterdesc_file):
+def get_compute_nodes(cluster_type):
     """
-    Read a cluster description file and return list of nodes
+    Returns list of nodes
 
     Parameters
     ----------
-    clusterdesc_file : str
-        Filename of cluster description file
+    cluster_type : str
+        One of 'pbs' or 'slurm'; other values are treated as 'localhost'
 
     Returns
     -------
     result : list
         Sorted list of node names
     """
-    from lofarpipe.support import clusterdesc
+    if cluster_type == 'pbs':
+        nodes = get_pbs_nodes()
+    elif cluster_type == 'slurm':
+        nodes = get_slurm_nodes()
+    else:
+        nodes = ['localhost']
 
-    cluster = clusterdesc.ClusterDesc(clusterdesc_file)
-    return sorted(clusterdesc.get_compute_nodes(cluster))
+    return sorted(nodes)
 
 
 def find_executables(cluster_parset):
@@ -218,7 +203,6 @@ def find_executables(cluster_parset):
 
     executables = {'genericpipeline_executable': ['genericpipeline.py'],
                    'wsclean_executable': ['wsclean'],
-                   'losoto_executable': ['losoto'],
                    'h5collector_executable': ['H5parm_collector.py']}
     for key, names in executables.iteritems():
         for name in names:
@@ -231,45 +215,7 @@ def find_executables(cluster_parset):
                       'Please make sure it is in your PATH.'.format(name))
             sys.exit(1)
 
-
-def get_type(cluster_parset):
-    """
-    Gets the cluster type and sets relevant entries in the input parset
-
-    Parameters
-    ----------
-    cluster_parset : dict
-        Cluster-specific parset dictionary
-    """
-    if cluster_parset['cluster_type'].lower() == 'pbs':
-        log.info('Using cluster setting: "PBS".')
-        cluster_parset['clusterdesc'] = make_pbs_clusterdesc()
-        cluster_parset['clustertype'] = 'pbs'
-    elif cluster_parset['cluster_type'].lower() == 'slurm':
-        log.info('Using cluster setting: "SLURM".')
-        cluster_parset['clusterdesc'] = make_slurm_clusterdesc()
-        cluster_parset['clustertype'] = 'slurm'
-    elif cluster_parset['cluster_type'].lower() == 'juropa_slurm':
-        log.info('Using cluster setting: "JUROPA_slurm" (Single '
-                 'genericpipeline using multiple nodes).')
-        # slurm_srun on JUROPA uses the local.clusterdesc
-        cluster_parset['clusterdesc'] = os.path.join(cluster_parset['lofarroot'],
-                                                     'share', 'local.clusterdesc')
-        cluster_parset['clustertype'] = 'juropa_slurm'
-        cluster_parset['node_list'] = ['localhost']
-    elif cluster_parset['cluster_type'].lower() == 'mpirun':
-        log.info('Using cluster setting: "mpirun".')
-        # mpirun uses the local.clusterdesc?
-        cluster_parset['clusterdesc'] = os.path.join(cluster_parset['lofarroot'],
-                                                     'share', 'local.clusterdesc')
-        cluster_parset['clustertype'] = 'mpirun'
-        cluster_parset['node_list'] = ['localhost']
-    else:
-        log.info('Using cluster setting: "local" (Single node).')
-        cluster_parset['clusterdesc'] = cluster_parset['lofarroot'] + '/share/local.clusterdesc'
-        cluster_parset['clustertype'] = 'local'
-    if 'node_list' not in cluster_parset:
-        cluster_parset['node_list'] = get_compute_nodes(cluster_parset['clusterdesc'])
+    return cluster_parset
 
 
 def check_ulimit(cluster_parset):
@@ -284,7 +230,7 @@ def check_ulimit(cluster_parset):
     try:
         import resource
         nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
-        if cluster_parset['clustertype'] == 'local' and nof_files_limits[0] < nof_files_limits[1]:
+        if cluster_parset['cluster_type'] == 'localhost' and nof_files_limits[0] < nof_files_limits[1]:
             log.debug('Setting limit for number of open files to: {}.'.format(nof_files_limits[1]))
             resource.setrlimit(resource.RLIMIT_NOFILE, (nof_files_limits[1], nof_files_limits[1]))
             nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
