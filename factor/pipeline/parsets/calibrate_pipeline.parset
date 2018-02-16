@@ -1,5 +1,5 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, combine_slow_gains, append_h5_slow]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, combine_slow_gains, append_h5_slow {% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, combine_h5parms, expand_combined_h5parms_map, predict_model_data{% endif %}]
 {% else %}
 pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases]
 {% endif %}
@@ -231,11 +231,11 @@ solve_slow_gains.argument.solve.propagatesolutions        = True
 solve_slow_gains.argument.solve.applycal.parmdb           = fast_h5parm
 {% if solve_tecandphase %}
 solve_slow_gains.argument.solve.applycal.steps            = [tec,phase]
-solve_slow_gains.argument.solve.applycal.tec.correction   = tec001
-solve_slow_gains.argument.solve.applycal.phase.correction = phase001
+solve_slow_gains.argument.solve.applycal.tec.correction   = screentec000
+solve_slow_gains.argument.solve.applycal.phase.correction = screenphase000
 {% else %}
 solve_slow_gains.argument.solve.applycal.steps            = [tec]
-solve_slow_gains.argument.solve.applycal.tec.correction   = tec001
+solve_slow_gains.argument.solve.applycal.tec.correction   = screentec000
 {% endif %}
 
 # compress slow-gain mapfile so that all files are in one group, length = 1
@@ -263,10 +263,10 @@ append_h5_slow.control.append      = .h5
 append_h5_slow.control.rename      = True
 
 # fit screens to slow gains, length = 1
-fit_slow_screens.control.type       = fit_slow_gain_screens
-fit_slow_screens.control.mapfile_in = append_h5_slow.output.mapfile
-fit_slow_screens.control.inputkey   = infile
-fit_slow_screens.argument.flags     = [infile]
+# fit_slow_screens.control.type       = fit_slow_gain_screens
+# fit_slow_screens.control.mapfile_in = append_h5_slow.output.mapfile
+# fit_slow_screens.control.inputkey   = infile
+# fit_slow_screens.argument.flags     = [infile]
 
 {% if nsectors > 1 %}
 # create a mapfile with the sector sky models, length = nsectors*nobs

@@ -400,8 +400,6 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     H = h5parm(h5parmfile, readonly=False)
     solset = H.getSolset(solsetname)
     tecsoltab = solset.getSoltab(tecsoltabname)
-#     tecsoltab.setSelection(time={'min':tecsoltab.time[0],'max':tecsoltab.time[100]})
-#     soltab.setSelection(ant=['RS409HBA'], dir='[Patch_29]')
     tec_vals = np.array(tecsoltab.val)
     errsoltab = solset.getSoltab(errsoltabname)
     err_vals = np.array(errsoltab.val)
@@ -428,19 +426,18 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     ndir = tec.shape[2]
     jump_val = 2*np.pi/8.4479745e9*freq
     for s in range(nstat):
-        if s == 58:
-            pool = multiprocessing.Pool()
-            tec_pool = [tec[:, s, d, 0] for d in range(ndir)]
-            results = pool.map(remove_jumps_pool, itertools.izip(tec_pool, itertools.repeat(jump_val), itertools.repeat(31)))
-            pool.close()
-            pool.join()
+        pool = multiprocessing.Pool()
+        tec_pool = [tec[:, s, d, 0] for d in range(ndir)]
+        results = pool.map(remove_jumps_pool, itertools.izip(tec_pool, itertools.repeat(jump_val), itertools.repeat(31)))
+        pool.close()
+        pool.join()
 
-            for d, (tec_clean, dtec_clean) in enumerate(results):
-                # put back the results
-                tec[:, s, d, 0] = tec_clean
-                dtec[:, s, d, 0] = dtec_clean
+        for d, (tec_clean, dtec_clean) in enumerate(results):
+            # put back the results
+            tec[:, s, d, 0] = tec_clean
+            dtec[:, s, d, 0] = dtec_clean
 
-    remove_soltabs(solset, ['newtec000'])
-    solset.makeSoltab('tec', 'newtec000',
+    remove_soltabs(solset, ['screentec000'])
+    solset.makeSoltab('tec', 'screentec000',
             axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
             station_names, source_names, np.array([freq])], vals=tec, weights=dtec)
