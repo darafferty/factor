@@ -1,4 +1,5 @@
 import os
+from shutil import copyfile
 from lofarpipe.support.data_map import DataMap, DataProduct
 
 
@@ -56,7 +57,7 @@ def plugin_main(args, **kwargs):
         if rename:
             if os.path.exists(newfile):
                 os.remove(newfile)
-            os.rename(item.file, newfile)
+            copyfile(item.file, newfile)
 
     fileid = os.path.join(mapfile_dir, filename)
     map_out.save(fileid)

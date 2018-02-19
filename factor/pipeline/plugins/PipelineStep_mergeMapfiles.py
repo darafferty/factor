@@ -4,17 +4,14 @@ from lofarpipe.support.data_map import DataMap, DataProduct
 
 def plugin_main(args, **kwargs):
     """
-    Makes a multi-mapfile by compressing input mapfile items
+    Merges entires in two mapfiles into a multi-mapfile with a single entry
 
     Parameters
     ----------
-    mapfile_in : str
-        Filename of datamap containing MS files
-    nitems_to_compress: int
-        Number of input items to compress into each output item. Set to zero or
-        negative number to compress all input items to a single output item
-        (default = -1). If greater than 0, the input map must have only one file
-        per group (i.e., it must be a normal DataMap)
+    mapfile_in1 : str
+        Filename of datamap containing single item
+    mapfile_in2 : str
+        Filename of datamap containing multiple items
     mapfile_dir : str
         Directory for output mapfile
     filename: str
@@ -24,40 +21,22 @@ def plugin_main(args, **kwargs):
     -------
     result : dict
         New parmdb datamap filename
-
     """
-    mapfile_in = kwargs['mapfile_in']
+    mapfile_in1 = kwargs['mapfile_in1']
+    mapfile_in2 = kwargs['mapfile_in2']
     mapfile_dir = kwargs['mapfile_dir']
     filename = kwargs['filename']
-    if 'nitems_to_compress' in kwargs:
-        nitems_to_compress = int(float(kwargs['nitems_to_compress']))
-    else:
-        nitems_to_compress = -1
 
-    map_in = MultiDataMap.load(mapfile_in)
+    map_in1 = DataMap.load(mapfile_in1)
+    map_in2 = DataMap.load(mapfile_in2)
     map_out = MultiDataMap([])
-    map_in.iterator = DataMap.SkipIterator
-    if nitems_to_compress > 0:
-        all_files = []
-        for item in map_in:
-            if type(item.file) is list:
-                all_files.extend(item.file)
-            else:
-                all_files.append(item.file)
-        file_groups = [all_files[i:i+nitems_to_compress] for i  in range(0, len(all_files), nitems_to_compress)]
-        all_hosts = [item.host for item in map_in]
-        host_groups = [all_hosts[i:i+nitems_to_compress] for i  in range(0, len(all_hosts), nitems_to_compress)]
-        for file_list, host_list in zip(file_groups, host_groups):
-            map_out.data.append(MultiDataProduct(host_list[0], file_list, False))
-    else:
-        file_list = []
-        for item in map_in:
-            if type(item.file) is list:
-                file_list.extend(item.file)
-            else:
-                file_list.append(item.file)
-        host_list = [item.host for item in map_in]
-        map_out.data.append(MultiDataProduct(host_list[0], file_list, False))
+    host_list = [item.host for item in map_in1]
+    file_list = []
+    for item in map_in1:
+        file_list.append(item.file)
+    for item in map_in2:
+        file_list.append(item.file)
+    map_out.data.append(MultiDataProduct(host_list[0], file_list, False))
 
     fileid = os.path.join(mapfile_dir, filename)
     map_out.save(fileid)
