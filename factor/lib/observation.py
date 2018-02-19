@@ -7,7 +7,6 @@ import logging
 import casacore.tables as pt
 import numpy as np
 from astropy.time import Time
-from factor.directions import get_target_timewidth, get_target_bandwidth
 from factor.cluster import get_time_chunksize, get_frequency_chunksize
 
 class Observation(object):
@@ -184,9 +183,9 @@ class Observation(object):
         # Get target time and frequency averaging steps
         delta_theta_deg = max(width_ra, width_dec) / 2.0
         resolution_deg = 3.0 * cellsize_arcsec / 3600.0  # assume normal sampling of restoring beam
-        target_timewidth_sec = min(120.0, get_target_timewidth(delta_theta_deg,
+        target_timewidth_sec = min(120.0, self.get_target_timewidth(delta_theta_deg,
                                    resolution_deg, peak_smearing_factor))
-        target_bandwidth_mhz = min(2.0, get_target_bandwidth(mean_freq_mhz,
+        target_bandwidth_mhz = min(2.0, self.get_target_bandwidth(mean_freq_mhz,
                                    delta_theta_deg, resolution_deg, peak_smearing_factor))
         self.log.debug('Target timewidth for imaging is {} s'.format(target_timewidth_sec))
         self.log.debug('Target bandwidth for imaging is {} MHz'.format(target_bandwidth_mhz))
@@ -248,3 +247,82 @@ class Observation(object):
         idx = np.argmin(np.abs(self.freq_divisors - freqstep))
 
         return self.freq_divisors[idx]
+
+    def get_target_timewidth(self, delta_theta, resolution, reduction_factor):
+        """
+        Returns the time width for given peak flux density reduction factor
+
+        Parameters
+        ----------
+        delta_theta : float
+            Distance from phase center
+        resolution : float
+            Resolution of restoring beam
+        reduction_factor : float
+            Ratio of pre-to-post averaging peak flux density
+
+        Returns
+        -------
+        delta_time : float
+            Time width in seconds for target reduction_factor
+
+        """
+        delta_time = np.sqrt( (1.0 - reduction_factor) /
+            (1.22E-9 * (delta_theta / resolution)**2.0) )
+
+        return delta_time
+
+    def get_bandwidth_smearing_factor(self, freq, delta_freq, delta_theta, resolution):
+        """
+        Returns peak flux density reduction factor due to bandwidth smearing
+
+        Parameters
+        ----------
+        freq : float
+            Frequency at which averaging will be done
+        delta_freq : float
+            Bandwidth over which averaging will be done
+        delta_theta : float
+            Distance from phase center
+        resolution : float
+            Resolution of restoring beam
+
+        Returns
+        -------
+        reduction_factor : float
+            Ratio of pre-to-post averaging peak flux density
+
+        """
+        beta = (delta_freq/freq) * (delta_theta/resolution)
+        gamma = 2*(np.log(2)**0.5)
+        reduction_factor = ((np.pi**0.5)/(gamma * beta)) * (erf(beta*gamma/2.0))
+
+        return reduction_factor
+
+    def get_target_bandwidth(self, freq, delta_theta, resolution, reduction_factor):
+        """
+        Returns the bandwidth for given peak flux density reduction factor
+
+        Parameters
+        ----------
+        freq : float
+            Frequency at which averaging will be done
+        delta_theta : float
+            Distance from phase center
+        resolution : float
+            Resolution of restoring beam
+        reduction_factor : float
+            Ratio of pre-to-post averaging peak flux density
+
+        Returns
+        -------
+        delta_freq : float
+            Bandwidth over which averaging will be done
+        """
+        # Increase delta_freq until we drop below target reduction_factor
+        delta_freq = 1e-3 * freq
+        while self.get_bandwidth_smearing_factor(freq, delta_freq, delta_theta,
+            resolution) > reduction_factor:
+            delta_freq *= 1.1
+
+        return delta_freq
