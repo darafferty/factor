@@ -1,7 +1,7 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, combine_slow_gains, append_h5_slow{% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, combine_h5parms, expand_combined_h5parms_map, predict_model_data{% endif %}]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, combine_slow_gains, append_h5_slow{% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, combine_h5parm_mapfiles, combine_h5parms, append_h5_combined, expand_combined_h5parms_map, predict_model_data{% endif %}]
 {% else %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens{% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, expand_combined_h5parms_map, predict_model_data{% endif %}]
 {% endif %}
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
@@ -293,18 +293,42 @@ create_sector_files_map.control.files       = {{ sector_filename }}
 create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_sector_files_map.control.filename    = sectorfiles.mapfile
 
+{% if do_slowgain_solve %}
+# combine fast and slow h5parm mapfiles, length = 2 -> 1
+combine_h5parm_mapfiles.control.kind        = plugin
+combine_h5parm_mapfiles.control.type        = mergeMapfiles
+combine_h5parm_mapfiles.control.hosts       = {{ hosts }}
+combine_h5parm_mapfiles.control.mapfile_in1 = append_h5_fast.output.mapfile
+combine_h5parm_mapfiles.control.mapfile_in2 = append_h5_slow.output.mapfile
+combine_h5parm_mapfiles.control.mapfile_dir = input.output.mapfile_dir
+combine_h5parm_mapfiles.control.filename    = h5parms.mapfile
+
 # combine fast and slow h5parms, length = 2 -> 1
 combine_h5parms.control.type        = combine_h5parms
-combine_h5parms.control.mapfile_in  = create_compressed_mapfile_slow.output.mapfile
+combine_h5parms.control.mapfile_in  = combine_h5parm_mapfiles.output.mapfile
 combine_h5parms.control.inputkey    = infiles
 combine_h5parms.control.outputkey   = outfile
 combine_h5parms.argument.flags      = [-c,infiles]
 combine_h5parms.argument.outh5parm  = outfile
 
-# expand the combined h5parms mapfile, length = nsectors*nobs
+# append ".h5" to combined h5parm filename, length = 1
+append_h5_combined.control.kind        = plugin
+append_h5_combined.control.type        = appendMapfile
+append_h5_combined.control.mapfile_in  = combine_h5parms.output.mapfile
+append_h5_combined.control.mapfile_dir = input.output.mapfile_dir
+append_h5_combined.control.filename    = combined_h5parm.mapfile
+append_h5_combined.control.append      = .h5
+append_h5_combined.control.rename      = True
+{% endif %}
+
+# expand the combined h5parms mapfile, length = 1 -> nsectors*nobs
 expand_combined_h5parms_map.control.kind             = plugin
 expand_combined_h5parms_map.control.type             = expandMapfile
-expand_combined_h5parms_map.control.mapfile_in       = combine_h5s.output.mapfile
+{% if do_slowgain_solve %}
+expand_combined_h5parms_map.control.mapfile_in       = append_h5_combined.output.mapfile
+{% else %}
+expand_combined_h5parms_map.control.mapfile_in       = append_h5_fast.output.mapfile
+{% endif %}
 expand_combined_h5parms_map.control.mapfile_to_match = create_sector_files_map.output.mapfile
 expand_combined_h5parms_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_combined_h5parms_map.control.filename         = expand_h5parms_sectors.mapfile
@@ -326,16 +350,24 @@ predict_model_data.argument.predict.sourcedb                      = sourcedb
 predict_model_data.argument.predict.operation                     = replace
 predict_model_data.argument.predict.applycal.parmdb               = combined_h5parm
 {% if solve_tecandphase %}
+{% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,phase,slowamp,slowphase]
-predict_model_data.argument.predict.applycal.tec.correction       = tec001
-predict_model_data.argument.predict.applycal.phase.correction     = phase001
-predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude001
-predict_model_data.argument.predict.applycal.slowphase.correction = phase002
+predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude000
+predict_model_data.argument.predict.applycal.slowphase.correction = phase000
 {% else %}
+predict_model_data.argument.predict.applycal.steps                = [tec,phase]
+{% endif %}
+predict_model_data.argument.predict.applycal.tec.correction       = screentec000
+predict_model_data.argument.predict.applycal.phase.correction     = screenphase000
+{% else %}
+{% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,slowamp,slowphase]
-predict_model_data.argument.predict.applycal.tec.correction       = tec001
-predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude001
-predict_model_data.argument.predict.applycal.slowphase.correction = phase001
+predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude000
+predict_model_data.argument.predict.applycal.slowphase.correction = phase000
+{% else %}
+predict_model_data.argument.predict.applycal.steps                = [tec]
+{% endif %}
+predict_model_data.argument.predict.applycal.tec.correction       = screentec000
 {% endif %}
 {% if use_compression %}
 predict_model_data.argument.msout.storagemanager                  = "Dysco"
