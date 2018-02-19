@@ -335,10 +335,10 @@ predict_model_data.argument.msout.writefullresflag                = False
 predict_model_data.argument.local_scratch_dir                     = {{ local_dir }}
 {% endif %}
 predict_model_data.argument.steps                                 = [predict]
-predict_model_data.argument.predict.type                          = predict
+predict_model_data.argument.predict.type                          = h5parmpredict
 predict_model_data.argument.predict.sourcedb                      = sourcedb
 predict_model_data.argument.predict.operation                     = replace
-predict_model_data.argument.predict.applycal.parmdb               = combined_h5parm
+predict_model_data.argument.predict.parmdb                        = combined_h5parm
 {% if solve_tecandphase %}
 {% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,phase,slowamp,slowphase]
