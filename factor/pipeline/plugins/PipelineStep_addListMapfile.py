@@ -19,8 +19,8 @@ def plugin_main(args, **kwargs):
         Directory for output mapfile
     filename: str
         Name of output mapfile
-    separator: str
-        Separator for list items
+    separator: str, optional
+        Separator for list items. Default is ','
 
     Returns
     -------
@@ -28,6 +28,10 @@ def plugin_main(args, **kwargs):
         Output datamap filename
 
     """
+    if 'separator' in kwargs:
+        separator =  kwargs['separator']
+    else:
+        separator = ','
     if type(kwargs['files']) is str:
         try:
             # Check if input is mapfile containing list as a string
