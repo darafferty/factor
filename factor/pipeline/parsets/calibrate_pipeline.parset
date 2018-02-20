@@ -300,6 +300,7 @@ make_predict_output_map.control.mapfile_in   = create_sector_files_map.output.ma
 make_predict_output_map.control.mapfile_dir  = input.output.mapfile_dir
 make_predict_output_map.control.filename     = sector_files_output_map.mapfile
 make_predict_output_map.control.append_index = True
+make_predict_output_map.control.append       = .sector
 
 {% if do_slowgain_solve %}
 # combine fast and slow h5parms, length = 2 -> 1
