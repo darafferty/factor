@@ -157,6 +157,9 @@ class Sector(object):
         self.skymodel_file = os.path.join(self.field.working_dir, 'skymodels', '{}_skymodel.txt'.format(self.name))
         skymodel.write(self.skymodel_file, clobber=True)
 
+        # Save list of patches (directions) in the format written by DDECal in the h5parm
+        self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
+
     def get_obs_parameters(self, parameter):
         """
         Returns list of imaging parameters for all observations

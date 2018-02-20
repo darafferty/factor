@@ -41,10 +41,12 @@ class Calibrate(Operation):
         # If needed (nsectors > 1), define predict parameters
         sector_filename = []
         sector_skymodel = []
+        sector_patches = []
         for sector in field.sectors:
             for obs in sector.observations:
                 sector_filename.append(obs.ms_filename)
                 sector_skymodel.append(sector.skymodel_file)
+                sector_patches.append(sector.patches)
 
         self.parms_dict.update({'timechunk_filename': timechunk_filename,
                                 'freqchunk_filename': freqchunk_filename,
@@ -60,7 +62,8 @@ class Calibrate(Operation):
                                 'output_slow_h5parm': output_slow_h5parm,
                                 'nsectors': len(field.sectors),
                                 'sector_filename': sector_filename,
-                                'sector_skymodel': sector_skymodel})
+                                'sector_skymodel': sector_skymodel,
+                                'sector_patches': sector_patches})
 
     def finalize(self):
         """

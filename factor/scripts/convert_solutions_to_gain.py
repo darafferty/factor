@@ -4,31 +4,65 @@ Script to convert selfcal solutions to single gain table
 """
 import argparse
 from argparse import RawTextHelpFormatter
-import lofar.parmdb as lp
+from losoto.h5parm import h5parm
+from scipy.interpolate import interp1d
 import shutil
 import numpy as np
 import sys
 import os
 
 
-def main(fast_parmdb, slow_parmdb, output_file, freqstep=1, preapply_parmdb=None,
-    scratch_dir=None):
+def calc_total(tec_phase, amp_val, phase_val, fast_times, slow_times, slow_freqs, final_freqs):
+    """
+    Calculates total phases and amplitudes
+
+    Parameters
+    ----------
+    tec_phase : array
+        Fast phase values from TEC
+    amp_val : array
+        Slow amplitude values
+    phase_val : array
+        Slow phase values
+    fast_times : array
+        Fast phase times
+    slow_times : array
+        Slow amp/phase times
+    final_freqs : array
+        Final frequencies
+    """
+    # Interpolate in time and frequency
+    f_amp = interp1d(slow_times, amp_val, kind='nearest',
+                     axis=0, bounds_error=False, fill_value='extrapolate')
+    vals = np.squeeze(f_amp(fast_times))
+    f_amp = interp1d(slow_freqs, vals, kind='nearest',
+                     axis=1, bounds_error=False, fill_value='extrapolate')
+    total_amp = np.squeeze(f_amp(final_freqs))
+
+    f_phase = interp1d(slow_times, phase_val, kind='nearest',
+                       axis=0, bounds_error=False, fill_value='extrapolate')
+    vals = np.squeeze(f_phase(fast_times))
+    f_phase = interp1d(slow_freqs, vals, kind='nearest',
+                       axis=1, bounds_error=False, fill_value='extrapolate')
+    total_phase = np.mod((np.squeeze(f_phase(final_freqs)) + tec_phase + np.pi), 2*np.pi) - np.pi
+
+    return total_amp, total_phase
+
+
+def main(fast_h5parm, slow_h5parm, output_file, freqstep=1, scratch_dir=None):
     """
     Converts multiple selfcal tables to single gain table
 
     Parameters
     ----------
-    fast_parmdb : str
+    fast_h5parm : str
         File with fast phase (TEC and CommonScalarPhase) solutions
-    fast_parmdb : str
+    fast_5parm : str
         File with slow gain solutions
     output_file : str
         Output filename
     freqstep : int
         Frequency step to divide up frequency width of solutions
-    preapply_parmdb : str
-        File with combined fast phase (TEC and CommonScalarPhase) and slow phase
-        solutions for pre-application
     scratch_dir : str, optional
         Scratch directory for temp storage
 
@@ -37,136 +71,103 @@ def main(fast_parmdb, slow_parmdb, output_file, freqstep=1, preapply_parmdb=None
 
     # Copy to scratch directory if specified
     if scratch_dir is not None:
-        fast_parmdb_orig = fast_parmdb
-        fast_parmdb = os.path.join(scratch_dir, os.path.basename(fast_parmdb_orig))
-        slow_parmdb_orig = slow_parmdb
-        slow_parmdb = os.path.join(scratch_dir, os.path.basename(slow_parmdb_orig))
+        fast_h5parm_orig = fast_h5parm
+        fast_h5parm = os.path.join(scratch_dir, os.path.basename(fast_h5parm_orig))
+        slow_h5parm_orig = slow_h5parm
+        slow_h5parm = os.path.join(scratch_dir, os.path.basename(slow_h5parm_orig))
         output_file_orig = output_file
         output_file = os.path.join(scratch_dir, os.path.basename(output_file_orig))
-        shutil.copytree(fast_parmdb_orig, fast_parmdb)
-        shutil.copytree(slow_parmdb_orig, slow_parmdb)
+        shutil.copytree(fast_h5parm_orig, fast_h5parm)
+        shutil.copytree(slow_h5parm_orig, slow_h5parm)
 
-    fast_pdb = lp.parmdb(fast_parmdb)
-    fast_soldict = fast_pdb.getValuesGrid('*')
-    slow_pdb = lp.parmdb(slow_parmdb)
-    slow_soldict = slow_pdb.getValuesGrid('*')
-    output_pdb = lp.parmdb(output_file, create=True)
-    if preapply_parmdb is not None:
-        preapply_pdb = lp.parmdb(preapply_parmdb)
-        preapply_soldict = preapply_pdb.getValuesGrid('*')
+    fast_h5 = h5parm(fast_h5parm)
+    fast_solset = fast_h5.getSolset('sol000')
+    tec_soltab = fast_solset.getSoltab('tec000', useCache=True)
+    slow_h5 = h5parm(slow_h5parm)
+    slow_solset = slow_h5.getSolset('sol000')
+    amp_soltab = slow_solset.getSoltab('amplitude000', useCache=True)
+    phase_soltab = slow_solset.getSoltab('phase000', useCache=True)
+
+    if os.path.exists(output_file):
+        os.remove(output_file)
+    output_h5 = h5parm(output_file, readonly=False)
+    output_solset = output_h5.makeSolset(solsetName = 'sol000', addTables=False)
+    fast_solset.obj._f_copy_children(output_solset.obj, recursive=True, overwrite=True)
+    slow_solset.obj._f_copy_children(output_solset.obj, recursive=True, overwrite=True)
 
     # Get various quantities over which we must iterate
-    station_names = list(set([s.split(':')[-1] for s in fast_pdb.getNames()]))
-    fast_times = fast_soldict['CommonScalarPhase:{s}'.format(s=station_names[0])]['times']
-    fast_timewidths = fast_soldict['CommonScalarPhase:{s}'.format(s=station_names[0])]['timewidths']
-    fast_timestep = np.mean(fast_timewidths)
+    station_names = tec_soltab.ant[:]
+    fast_times = tec_soltab.time[:]
+    slow_times = amp_soltab.time[:]
+    slow_freqs = amp_soltab.freq[:]
 
-    if preapply_parmdb is not None:
-        fast_times_preapply = preapply_soldict['Gain:0:0:Phase:{s}'.format(s=station_names[0])]['times']
-        fast_timewidths_preapply = preapply_soldict['Gain:0:0:Phase:{s}'.format(s=station_names[0])]['timewidths']
-        fast_timestep_preapply = np.mean(fast_timewidths_preapply)
-
-    slow_freqs = slow_soldict['Gain:0:0:Real:{s}'.format(s=station_names[0])]['freqs']
-    slow_freqwidths = slow_soldict['Gain:0:0:Real:{s}'.format(s=station_names[0])]['freqwidths']
-    slow_freqstep = np.mean(slow_freqwidths)
-    if preapply_parmdb is not None:
-        slow_freqs_preapply = preapply_soldict['Gain:0:0:Phase:{s}'.format(s=station_names[0])]['freqs']
-        slow_freqwidths_preapply = preapply_soldict['Gain:0:0:Phase:{s}'.format(s=station_names[0])]['freqwidths']
-        slow_freqstep_preapply = np.mean(slow_freqwidths_preapply)
-
-    key_names = fast_soldict.keys()
-    if any('Gain:0:1:' in s for s in key_names):
-        pol_list = ['0:0', '1:1', '0:1', '1:0']
-    else:
-        pol_list = ['0:0', '1:1']
-
-    # Check preapply to make sure we use the finest grid
-    if preapply_parmdb is not None:
-        if slow_freqstep_preapply < slow_freqstep:
-            slow_freqs = slow_freqs_preapply
-            slow_freqwidths = slow_freqwidths_preapply
-        if fast_timestep_preapply < fast_timestep:
-            fast_times = fast_times_preapply
-            fast_timewidths = fast_timewidths_preapply
-
-    # Determine final time and frequency grid. This step is not needed if a
-    # preapply_parmdb is specified, as it will already be made on the final grids
-    if freqstep > 1 and preapply_parmdb is None:
+    # Determine final frequency grid
+    freqwidth = slow_freqs[1] - slow_freqs[0]
+    final_freqwidth = freqwidth / freqstep
+    if freqstep > 1:
         final_freqs = []
-        final_freqwidths = []
-        for freq, freqwidth in zip(slow_freqs, slow_freqwidths):
-            final_freqwidth = freqwidth / freqstep
+        for freq in slow_freqs:
             low_freq = freq - freqwidth / 2
             for i in range(freqstep):
                 final_freqs.append(low_freq + final_freqwidth * (i + 0.5))
-                final_freqwidths.append(final_freqwidth)
         final_freqs = np.array(final_freqs)
-        final_freqwidths = np.array(final_freqwidths)
     else:
         final_freqs = slow_freqs
-        final_freqwidths = slow_freqwidths
 
-    # Identify any gaps in time (frequency gaps are not allowed), as we need to handle
-    # each section separately if gaps are present
-    delta_times = fast_times[1:] - fast_times[:-1]
-    gaps = np.where(delta_times > fast_timewidths[:-1]*2.)
-    gaps_ind = gaps[0] + 1
-    gaps_ind = np.append(gaps_ind, np.array([len(fast_times)]))
+    # Make output soltabs
+    ntim = len(fast_times)
+    nfre = len(final_freqs)
+    ants = amp_soltab.ant[:]
+    nant = len(ants)
+    dirs = amp_soltab.dir[:]
+    ndir = len(dirs)
+    pols = amp_soltab.pol[:]
+    npol = len(pols)
+    output_amp_soltab = output_solset.makeSoltab('amplitude', 'totalamplitude',
+                            axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
+                            axesVals=[fast_times, final_freqs, amp_soltab.ant[:],
+                                      amp_soltab.dir[:], amp_soltab.pol[:]],
+                            vals=np.zeros((ntim, nfre, nant, ndir, npol)),
+                            weights=np.ones((ntim, nfre, nant, ndir, npol)))
+    output_amp_soltab.setCache(np.zeros((ntim, nfre, nant, ndir, npol)),
+                               np.ones((ntim, nfre, nant, ndir, npol)))
+    output_amp_soltab.useCache = True
+    output_phase_soltab = output_solset.makeSoltab('phase', 'totalphase',
+                            axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
+                            axesVals=[fast_times, final_freqs, amp_soltab.ant[:],
+                                      amp_soltab.dir[:], amp_soltab.pol[:]],
+                            vals=np.zeros((ntim, nfre, nant, ndir, npol)),
+                            weights=np.ones((ntim, nfre, nant, ndir, npol)))
+    output_phase_soltab.setCache(np.zeros((ntim, nfre, nant, ndir, npol)),
+                                 np.ones((ntim, nfre, nant, ndir, npol)))
+    output_phase_soltab.useCache = True
 
-    # Get values on the final time and frequency grid
-    g_start = 0
-    for g in gaps_ind:
-        if preapply_parmdb is not None:
-            preapply_soldict = preapply_pdb.getValues('*', final_freqs, final_freqwidths,
-                fast_times[g_start:g], fast_timewidths[g_start:g], asStartEnd=False)
-        fast_soldict = fast_pdb.getValues('*', final_freqs, final_freqwidths,
-            fast_times[g_start:g], fast_timewidths[g_start:g], asStartEnd=False)
-        slow_soldict = slow_pdb.getValues('*', final_freqs, final_freqwidths,
-            fast_times[g_start:g], fast_timewidths[g_start:g], asStartEnd=False)
+    # Add the phase and amp corrections together
+    for dir in dirs:
+        for pol in pols:
+            tec_phase_list = []
+            amp_list = []
+            phase_list = []
+            for station in ants:
+                tec_soltab.setSelection(dir=[dir], ant=[station])
+                tec_phase = (-8.44797245e9 * np.column_stack([np.squeeze(tec_soltab.val[:])]*nfre) /
+                             np.resize(final_freqs, (ntim, nfre)))
+                amp_soltab.setSelection(dir=[dir], ant=[station], pol=[pol])
+                phase_soltab.setSelection(dir=[dir], ant=[station], pol=[pol])
+                time_ind = amp_soltab.axesNames.index('time')
 
-        # Add various phase and amp corrections together
-        for station in station_names:
-            try:
-                fast_phase = np.copy(fast_soldict['CommonScalarPhase:{s}'.format(s=station)]['values'])
-                tec = np.copy(fast_soldict['TEC:{s}'.format(s=station)]['values'])
-                tec_phase =  -8.44797245e9 * tec / final_freqs
-
-                for pol in pol_list:
-                    slow_real = np.copy(slow_soldict['Gain:'+pol+':Real:{s}'.format(s=station)]['values'])
-                    slow_imag = np.copy(slow_soldict['Gain:'+pol+':Imag:{s}'.format(s=station)]['values'])
-                    slow_amp = np.sqrt((slow_real**2) + (slow_imag**2))
-                    slow_phase = np.arctan2(slow_imag, slow_real)
-
-                    total_amp = slow_amp
-                    if preapply_parmdb is not None:
-                        fast_phase_preapply = np.copy(preapply_soldict['Gain:'+pol+':Phase:{s}'.format(s=station)]['values'])
-                        total_phase = np.mod(fast_phase + tec_phase + slow_phase +
-                            fast_phase_preapply + np.pi, 2*np.pi) - np.pi
-
-                        # Identify zero phase solutions and set the corresponding entries in total_phase and total_amp to NaN
-                        total_phase = np.where(fast_phase_preapply == 0.0, np.nan, total_phase)
-                        total_amp = np.where(fast_phase_preapply == 0.0, np.nan, total_amp)
-                    else:
-                        total_phase = np.mod(fast_phase + tec_phase + slow_phase + np.pi, 2*np.pi) - np.pi
-
-                    # Identify zero phase solutions and set the corresponding entries in total_phase and total_amp to NaN
-                    total_phase = np.where(np.logical_or(fast_phase == 0.0, tec_phase == 0.0), np.nan, total_phase)
-                    total_amp = np.where(np.logical_or(fast_phase == 0.0, tec_phase == 0.0), np.nan, total_amp)
-
-                    output_pdb.addValues('Gain:'+pol+':Phase:{}'.format(station),
-                        total_phase, final_freqs, final_freqwidths,
-                        fast_times[g_start:g], fast_timewidths[g_start:g], asStartEnd=False)
-                    output_pdb.addValues('Gain:'+pol+':Ampl:{}'.format(station),
-                        total_amp, final_freqs, final_freqwidths,
-                        fast_times[g_start:g], fast_timewidths[g_start:g], asStartEnd=False)
-            except KeyError:
-                # The station in question does not have solutions for this
-                # time period
-                continue
-        g_start = g
-
-    # Write values
-    output_pdb.flush()
+                total_amp, total_phase = calc_total(tec_phase, amp_soltab.val,
+                                                    phase_soltab.val, fast_times,
+                                                    slow_times, slow_freqs, final_freqs)
+                output_amp_soltab.setSelection(dir=[dir], ant=[station], pol=[pol])
+                output_amp_soltab.setValues(total_amp)
+                output_phase_soltab.setSelection(dir=[dir], ant=[station], pol=[pol])
+                output_phase_soltab.setValues(total_phase)
+    output_amp_soltab.flush()
+    output_phase_soltab.flush()
+    output_h5.close()
+    fast_h5.close()
+    slow_h5.close()
 
     # Copy output to original path and delete copies if scratch directory is specified
     if scratch_dir is not None:
@@ -174,18 +175,17 @@ def main(fast_parmdb, slow_parmdb, output_file, freqstep=1, preapply_parmdb=None
             shutil.rmtree(output_file_orig)
         shutil.copytree(output_file, output_file_orig)
         shutil.rmtree(output_file)
-        shutil.rmtree(fast_parmdb)
-        shutil.rmtree(slow_parmdb)
+        shutil.rmtree(fast_h5parm)
+        shutil.rmtree(slow_h5parm)
 
 
 if __name__ == '__main__':
     descriptiontext = "Converts multiple selfcal tables to single gain table.\n"
 
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
-    parser.add_argument('fast_selfcal_parmdb', help='name of the parmdb with fast solutions')
-    parser.add_argument('slow_selfcal_parmdb', help='name of the parmdb with slow solutions')
+    parser.add_argument('fast_selfcal_h5parm', help='name of the h5parm with fast solutions')
+    parser.add_argument('slow_selfcal_h5parm', help='name of the h5parm with slow solutions')
     parser.add_argument('output_file', help='name of the output file')
-    parser.add_argument('--preapply_parmdb',type=str,default=None,help='preapply parmDB from another facet')
     args = parser.parse_args()
 
-    main(args.fast_selfcal_parmdb, args.slow_selfcal_parmdb, args.output_file, preapply_parmdb=args.preapply_parmdb)
+    main(args.fast_selfcal_h5parm, args.slow_selfcal_h5parm, args.output_file)

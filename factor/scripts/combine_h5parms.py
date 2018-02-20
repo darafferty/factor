@@ -32,7 +32,7 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000'):
     ss2 = h2.getSolset(solset=solset2)
     if os.path.exists(outh5parm):
         os.remove(outh5parm)
-    ho = h5parm(outh5parm, readonly = False)
+    ho = h5parm(outh5parm, readonly=False)
 
     sso = ho.makeSolset(solsetName = 'sol000', addTables=False)
     ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
