@@ -1,7 +1,7 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, combine_slow_gains, append_h5_slow{% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, make_predict_output_map, combine_h5parms, append_h5_combined, expand_combined_h5parms_map, predict_model_data{% endif %}]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, combine_slow_gains, append_h5_slow{% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, make_predict_output_map, combine_h5parms, append_h5_combined, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data{% endif %}]
 {% else %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens{% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, make_predict_output_map, expand_combined_h5parms_map, predict_model_data{% endif %}]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, combine_fast_phases, append_h5_fast, fit_fast_screens{% if nsectors > 1 %}, create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, make_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data{% endif %}]
 {% endif %}
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
@@ -332,10 +332,18 @@ expand_combined_h5parms_map.control.mapfile_to_match = create_sector_files_map.o
 expand_combined_h5parms_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_combined_h5parms_map.control.filename         = expand_h5parms_sectors.mapfile
 
+# create a mapfile with the patches to predict for each sector, length = nsectors*nobs
+create_sector_patches_map.control.kind        = plugin
+create_sector_patches_map.control.type        = addListMapfile
+create_sector_patches_map.control.hosts       = {{ hosts }}
+create_sector_patches_map.control.files       = {{ sector_patches }}
+create_sector_patches_map.control.mapfile_dir = input.output.mapfile_dir
+create_sector_patches_map.control.filename    = sector_patches.mapfile
+
 # predict model visibilities, length = nsectors*nobs
 predict_model_data.control.type                                   = dppp
-predict_model_data.control.mapfiles_in                            = [create_sector_files_map.output.mapfile,make_sector_sourcedbs.output.mapfile,expand_combined_h5parms_map.output.mapfile]
-predict_model_data.control.inputkeys                              = [msin,sourcedb,combined_h5parm]
+predict_model_data.control.mapfiles_in                            = [create_sector_files_map.output.mapfile,make_sector_sourcedbs.output.mapfile,expand_combined_h5parms_map.output.mapfile,create_sector_patches_map.output.mapfile]
+predict_model_data.control.inputkeys                              = [msin,sourcedb,combined_h5parm,directions]
 predict_model_data.control.mapfile_out                            = make_predict_output_map.output.mapfile
 predict_model_data.argument.numthreads                            = {{ max_cpus_per_proc_single }}
 predict_model_data.argument.msin.datacolumn                       = DATA
@@ -351,7 +359,7 @@ predict_model_data.argument.predict.operation                     = replace
 predict_model_data.argument.predict.applycal.parmdb               = combined_h5parm
 # Note: the following parameter seems to be needed but is not used
 predict_model_data.argument.predict.applycal.correction           = screentec000
-predict_model_data.argument.predict.directions                    = {{ sector_patches }}
+predict_model_data.argument.predict.directions                    = directions
 {% if solve_tecandphase %}
 {% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,phase,slowamp,slowphase]
@@ -381,6 +389,3 @@ predict_model_data.argument.msout.storagemanager.disttruncation   = 1.5
 predict_model_data.argument.msout.storagemanager.normalization    = "AF"
 {% endif %}
 {% endif %}
-
-
-predict.applycal.correction=screentec000 predict.directions="[[Patch_12],[Patch_16],[Patch_7]]"
