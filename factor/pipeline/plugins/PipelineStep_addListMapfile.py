@@ -19,6 +19,8 @@ def plugin_main(args, **kwargs):
         Directory for output mapfile
     filename: str
         Name of output mapfile
+    separator: str
+        Separator for list items
 
     Returns
     -------
@@ -33,10 +35,10 @@ def plugin_main(args, **kwargs):
             in_files = [item.file for item in map_in]
             files = []
             for f in in_files:
-                files += f.strip('[]').split(',')
+                files += f[slice(1, -1)].split(separator)
         except:
             files = kwargs['files']
-            files = files.strip('[]').split(',')
+            files = files[slice(1, -1)].split(separator)
         files = [f.strip() for f in files]
     if type(kwargs['hosts']) is str:
         hosts = kwargs['hosts'].strip('[]').split(',')

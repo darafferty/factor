@@ -47,6 +47,8 @@ class Calibrate(Operation):
                 sector_filename.append(obs.ms_filename)
                 sector_skymodel.append(sector.skymodel_file)
                 sector_patches.append(sector.patches)
+        # For patches, use ";" as separator as individual elements may have commas
+        sector_patches = '[{}]'.format(';'.join(sector_patches))
 
         self.parms_dict.update({'timechunk_filename': timechunk_filename,
                                 'freqchunk_filename': freqchunk_filename,

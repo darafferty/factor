@@ -339,6 +339,7 @@ create_sector_patches_map.control.hosts       = {{ hosts }}
 create_sector_patches_map.control.files       = {{ sector_patches }}
 create_sector_patches_map.control.mapfile_dir = input.output.mapfile_dir
 create_sector_patches_map.control.filename    = sector_patches.mapfile
+create_sector_patches_map.control.separator   = ;
 
 # predict model visibilities, length = nsectors*nobs
 predict_model_data.control.type                                   = dppp
