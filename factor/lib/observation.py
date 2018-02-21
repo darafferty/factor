@@ -8,6 +8,8 @@ import casacore.tables as pt
 import numpy as np
 from astropy.time import Time
 from factor.cluster import get_time_chunksize, get_frequency_chunksize
+from scipy.special import erf
+
 
 class Observation(object):
     """
