@@ -170,7 +170,7 @@ class Field(object):
         self.sectors = []
         for i in range(nsectors_ra):
             for j in range(nsectors_dec):
-                name = 'sector_{0}_{1}'.format(i, j)
+                name = 'sector_{0}'.format(i+j)
                 ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
                 self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
 

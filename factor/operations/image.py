@@ -12,36 +12,34 @@ class Image(Operation):
     """
     Operation to image the field
     """
-    def __init__(self, field, index):
-        name = 'Calibrate_{0}'.format(index)
-        super(Calibrate, self).__init__(field, name=name)
+    def __init__(self, field, sector, index):
+        name = 'Image_{0}'.format(index)
+        super(Image, self).__init__(field, name=name)
         self.index = index
 
         # Set the pipeline parset to use
-        self.pipeline_parset_template = 'calibrate_pipeline.parset'
+        self.pipeline_parset_template = 'image_pipeline.parset'
 
         # Define extra parameters needed for this operation
-        ms_filename = field.get_calibration_parameters('ms_filename')
-        starttime = field.get_calibration_parameters('starttime')
-        ntimes = field.get_calibration_parameters('ntimes')
-        solint_fast_timestep = field.get_calibration_parameters('solint_fast_timestep')
-        solint_slow_timestep = field.get_calibration_parameters('solint_slow_timestep')
-        solint_fast_freqstep = field.get_calibration_parameters('solint_fast_freqstep')
-        solint_slow_freqstep = field.get_calibration_parameters('solint_slow_freqstep')
-        output_fast_h5parm = [os.path.join(self.pipeline_parset_dir,
-            'fast_phase_{}.h5parm'.format(i)) for i in range(field.nchunks)]
-        output_slow_h5parm = [os.path.join(self.pipeline_parset_dir,
-            'slow_phase_{}.h5parm'.format(i)) for i in range(field.nchunks)]
+        sector_filename = []
+        sector_skymodel = []
+        sector_patches = []
+        for sector in field.sectors:
+            for i, obs in enumerate(sector.observations):
+                sector_filename.append('{0}.sector_{1}'.format(obs.ms_filename, i))
+                sector_skymodel.append(sector.skymodel_file)
+                sector_patches.append(sector.patches)
+        sector_patches = '[{}]'.format(';'.join(sector_patches))
+        obs_filename = []
+        for obs in sector.observations:
+            if len(field.sectors) > 1:
+                # Use the model-subtracted data
+                obs_filename.append(obs.ms_subtracted_filename)
+            else:
+                obs_filename.append(obs.ms_filename)
 
-        self.parms_dict.update({'ms_filename': ms_filename,
-                                'starttime': starttime,
-                                'ntimes': ntimes,
-                                'solint_fast_timestep': solint_fast_timestep,
-                                'solint_slow_timestep': solint_slow_timestep,
-                                'solint_fast_freqstep': solint_fast_freqstep,
-                                'solint_slow_freqstep': solint_slow_freqstep,
-                                'output_fast_h5parm': output_fast_h5parm,
-                                'output_slow_h5parm': output_slow_h5parm})
+        self.parms_dict.update({'obs_filename': obs_filename,
+                                'h5parm_mapfile': field.h5parm_mapfile})
 
 
     def finalize(self):

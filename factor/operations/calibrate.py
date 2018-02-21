@@ -47,8 +47,10 @@ class Calibrate(Operation):
                 sector_filename.append(obs.ms_filename)
                 sector_skymodel.append(sector.skymodel_file)
                 sector_patches.append(sector.patches)
-        # For patches, use ";" as separator as individual elements may have commas
         sector_patches = '[{}]'.format(';'.join(sector_patches))
+        obs_filename = []
+        for obs in field.observations:
+            obs_filename.append(obs.ms_filename)
 
         self.parms_dict.update({'timechunk_filename': timechunk_filename,
                                 'freqchunk_filename': freqchunk_filename,
@@ -65,14 +67,17 @@ class Calibrate(Operation):
                                 'nsectors': len(field.sectors),
                                 'sector_filename': sector_filename,
                                 'sector_skymodel': sector_skymodel,
-                                'sector_patches': sector_patches})
+                                'sector_patches': sector_patches,
+                                'obs_filename': obs_filename})
 
     def finalize(self):
         """
         Finalize this operation
         """
         # Add output datamaps to field object for later use
-        self.field.fast_h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                      'fast_h5parm.mapfile')
-        self.field.slow_h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                      'slow_h5parm.mapfile')
+        if self.field.do_slowgain_solve:
+            self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
+                                                     'combined_h5parm.mapfile')
+        else:
+            self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
+                                                     'fast_phase_h5parm.mapfile')

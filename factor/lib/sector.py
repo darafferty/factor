@@ -107,6 +107,10 @@ class Sector(object):
 
         # Set the observation-specific predict parameters
         for obs in self.observations:
+            # Add filename for model-subtracted data that matches the one made by the
+            # calibrate pipeline
+            obs.ms_subtracted_filename = '{0}.sector_{}'.format(obs.ms_filename,
+                                                                self.name.split('_')[1])
             obs.set_imaging_parameters(cellsize_arcsec, max_peak_smearing,
                                        self.width_ra, self.width_dec)
 
@@ -154,11 +158,17 @@ class Sector(object):
         skymodel.select(inside, force=True)
 
         # Write sky model to file
+        skymodel.setPatchPositions(method='wmean')
         self.skymodel_file = os.path.join(self.field.working_dir, 'skymodels', '{}_skymodel.txt'.format(self.name))
         skymodel.write(self.skymodel_file, clobber=True)
 
         # Save list of patches (directions) in the format written by DDECal in the h5parm
         self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
+
+        # Find nearest patch to sector center
+        patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True)
+        patch_names = skymodel.getPatchNames()
+        self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
     def get_obs_parameters(self, parameter):
         """
