@@ -84,10 +84,6 @@ class Sector(object):
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
 
-        # Set number of iterations and threshold
-        scaling_factor = 2.0 * np.sqrt(iter+1)
-        self.wsclean_niter = int(12000 * scaling_factor)
-
         # Set number of output channels to get ~ 4 MHz per channel
         tot_bandwidth = 0.0
         for obs in self.observations:
@@ -96,6 +92,10 @@ class Sector(object):
             if obs_bandwidth > tot_bandwidth:
                 tot_bandwidth = obs_bandwidth
         self.wsclean_nchannels = max(1, int(np.ceil(tot_bandwidth / 4e6)))
+
+        # Set number of iterations and threshold
+        scaling_factor = np.sqrt(np.float(tot_bandwidth / 2e6))
+        self.wsclean_niter = int(12000 * scaling_factor)
 
         # Set multiscale: get source sizes and check for large sources
         self.multiscale = None
