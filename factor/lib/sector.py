@@ -166,7 +166,7 @@ class Sector(object):
         self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
 
         # Find nearest patch to sector center
-        patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True)
+        patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True).tolist()
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
