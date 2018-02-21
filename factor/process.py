@@ -14,7 +14,7 @@ import lsmtool
 import factor
 import factor.parset
 from factor.operations.calibrate import Calibrate
-from factor.operations.calibrate import Image
+from factor.operations.image import Image
 from factor.lib.scheduler import Scheduler
 from factor.lib.field import Field
 
