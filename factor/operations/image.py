@@ -23,9 +23,9 @@ class Image(Operation):
         # Define extra parameters needed for this operation
         if len(field.sectors) > 1:
             # Use the model-subtracted data for this sector
-            obs_filename = get_obs_parameters('ms_subtracted_filename')
+            obs_filename = sector.get_obs_parameters('ms_subtracted_filename')
         else:
-            obs_filename = get_obs_parameters('ms_filename')
+            obs_filename = sector.get_obs_parameters('ms_filename')
         image_freqstep = sector.get_obs_parameters('image_freqstep')
         image_timestep = sector.get_obs_parameters('image_timestep')
 
