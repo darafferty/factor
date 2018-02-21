@@ -62,7 +62,7 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
     tin = pt.table(msin, readonly=True, ack=False)
     tout_list = []
     for msmod in model_list:
-        msout = '{}_sub.ms'.format(msmod)
+        msout = '{}_sub'.format(msmod)
         if os.path.exists(msout):
             os.system('/bin/rm -rf {0}'.format(msout))
         os.system('/bin/cp -r {0} {1}'.format(msin, msout))
