@@ -181,8 +181,6 @@ class Observation(object):
         chan_width_hz = self.channelwidth
         nchan = self.numchannels
         timestep_sec = self.timepersample
-        self.imaging_parameters['ms_filename'] = self.ms_filename
-        self.imaging_parameters['ms_subtracted_filename'] = ms_subtracted_filename
 
         # Get target time and frequency averaging steps
         delta_theta_deg = max(width_ra, width_dec) / 2.0
@@ -202,6 +200,10 @@ class Observation(object):
         self.log.debug('Using averaging steps of {0} channels and {1} time slots '
                        'for imaging'.format(self.imaging_parameters['image_freqstep'],
                                             self.imaging_parameters['image_timestep']))
+
+        # Set filenames
+        self.imaging_parameters['ms_filename'] = self.ms_filename
+        self.imaging_parameters['ms_subtracted_filename'] = ms_subtracted_filename
 
     def convert_mjd(self, mjd_sec):
         """
