@@ -47,7 +47,13 @@ class Image(Operation):
         Finalize this operation
         """
         # Add output datamaps to field object for later use
-        self.field.fast_h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-            'fast_h5parm.mapfile')
-        self.field.slow_h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-            'slow_h5parm.mapfile')
+        if hasattr(self.field, 'image_mapfile'):
+            self.field.image_mapfile['facetimage'] = os.path.join(self.pipeline_mapfile_dir,
+                'sector_image.mapfile')
+            self.field.premask_mapfile['facetimage'] = os.path.join(self.pipeline_mapfile_dir,
+                'premask.mapfile')
+        else:
+            self.field.image_mapfile = {'facetimage': os.path.join(self.pipeline_mapfile_dir,
+                'sector_image.mapfile')}
+            self.field.premask_mapfile = {'facetimage': os.path.join(self.pipeline_mapfile_dir,
+                'premask.mapfile')}

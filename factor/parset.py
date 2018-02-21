@@ -327,6 +327,14 @@ def get_imaging_options(parset):
     else:
         parset_dict['nsectors_per_side'] = 1
 
+    # Use IDG (image domain gridder) in WSClean. The mode can be cpu, gpu, or hybrid.
+    if 'use_idg' in parset_dict:
+        parset_dict['use_idg'] = parset.getboolean('imaging', 'use_idg')
+    else:
+        parset_dict['use_idg'] = True
+    if 'idg_mode' not in parset_dict:
+        parset_dict['idg_mode'] = 'hybrid'
+
     # Use baseline-dependent averaging in WSClean (default = True). If enabled,
     # this option can dramatically speed up imaging with WSClean.
     if 'wsclean_bl_averaging' in parset_dict:
@@ -448,7 +456,7 @@ def get_imaging_options(parset):
                        'facet_cellsize_arcsec', 'facet_taper_arcsec', 'facet_robust',
                        'wsclean_image_padding', 'selfcal_min_uv_lambda', 'facet_min_uv_lambda',
                        'selfcal_robust_wsclean', 'wsclean_bl_averaging', 'nsectors_per_side',
-                       'fractional_bandwidth_selfcal_facet_image']
+                       'fractional_bandwidth_selfcal_facet_image', 'use_idg', 'idg_mode']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [imaging] section of the '

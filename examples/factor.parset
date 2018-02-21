@@ -201,6 +201,10 @@ dir_ms = /data/bands
 # facet that are to be cleaned
 # automask_facet_image = True
 
+# Use IDG (image domain gridder) in WSClean. The mode can be cpu, gpu, or hybrid.
+# use_idg = True
+# idg_mode = hybrid
+
 
 [directions]
 # Full path to file containing calibrator directions. If not given, directions
