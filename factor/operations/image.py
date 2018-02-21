@@ -22,12 +22,12 @@ class Image(Operation):
 
         # Define extra parameters needed for this operation
         if len(field.sectors) > 1:
-            # Use the model-subtracted data
+            # Use the model-subtracted data for this sector
             obs_filename = get_obs_parameters('ms_subtracted_filename')
         else:
             obs_filename = get_obs_parameters('ms_filename')
-        image_freqstep = get_obs_parameters('image_freqstep')
-        image_timestep = get_obs_parameters('image_timestep')
+        image_freqstep = sector.get_obs_parameters('image_freqstep')
+        image_timestep = sector.get_obs_parameters('image_timestep')
 
         self.parms_dict.update({'obs_filename': obs_filename,
                                 'h5parm_mapfile': field.h5parm_mapfile,
