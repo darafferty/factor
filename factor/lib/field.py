@@ -185,21 +185,13 @@ class Field(object):
             this_sector.make_region_file(os.path.join(self.working_dir, 'regions',
                                                       '{}_region.txt'.format(self.name)))
 
-    def get_imaging_parameters(self, parameter):
-        """
-        Returns list of imaging parameters for all sectors
-
-        Parameters
-        ----------
-        parameter : str
-            Name of parameter to return
-
-        Returns
-        -------
-        parameters : list
-            List of parameters, with one entry for each observation
-        """
-        return sum([sector.get_imaging_parameters(parameter) for sector in self.sectors], [])
+            # Set the imaging parameters for selfcal
+            this_sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
+                                               self.parset['imaging_specific']['selfcal_robust'],
+                                               0.0,
+                                               self.parset['imaging_specific']['selfcal_min_uv_lambda'],
+                                               None,
+                                               0.15)
 
     def radec2xy(self, RA, Dec):
         """

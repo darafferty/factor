@@ -21,25 +21,18 @@ class Image(Operation):
         self.pipeline_parset_template = 'image_pipeline.parset'
 
         # Define extra parameters needed for this operation
-        sector_filename = []
-        sector_skymodel = []
-        sector_patches = []
-        for sector in field.sectors:
-            for i, obs in enumerate(sector.observations):
-                sector_filename.append('{0}.sector_{1}'.format(obs.ms_filename, i))
-                sector_skymodel.append(sector.skymodel_file)
-                sector_patches.append(sector.patches)
-        sector_patches = '[{}]'.format(';'.join(sector_patches))
-        obs_filename = []
-        for obs in sector.observations:
-            if len(field.sectors) > 1:
-                # Use the model-subtracted data
-                obs_filename.append(obs.ms_subtracted_filename)
-            else:
-                obs_filename.append(obs.ms_filename)
+        if len(field.sectors) > 1:
+            # Use the model-subtracted data
+            obs_filename = get_obs_parameters('ms_subtracted_filename')
+        else:
+            obs_filename = get_obs_parameters('ms_filename')
+        image_freqstep = get_obs_parameters('image_freqstep')
+        image_timestep = get_obs_parameters('image_timestep')
 
         self.parms_dict.update({'obs_filename': obs_filename,
-                                'h5parm_mapfile': field.h5parm_mapfile})
+                                'h5parm_mapfile': field.h5parm_mapfile,
+                                'image_freqstep': image_freqstep,
+                                'image_timestep': image_timestep})
 
 
     def finalize(self):

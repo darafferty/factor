@@ -45,6 +45,7 @@ class Sector(object):
         self.field = field
         self.observations = field.observations[:]
         self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.txt'.format(self.name))
+        self.region_file = ''
 
         # Define the sector polygon vertices and sky model
         self.define_vertices()
@@ -71,14 +72,15 @@ class Sector(object):
             Maximum allowed peak flux density reduction
         """
         self.cellsize_arcsec = cellsize_arcsec
+        self.cellsize_deg = cellsize_arcsec / 3600.0
         self.robust = robust
         self.taper_arcsec = taper_arcsec
         self.min_uv_lambda = min_uv_lambda
         self.max_uv_lambda = max_uv_lambda
 
         # Set image size
-        self.imsize = [self.width_ra*3600.0/self.cellsize_arcsec,
-                       self.width_dec*3600.0/self.cellsize_arcsec]
+        self.imsize = [self.width_ra / self.cellsize_deg,
+                       self.width_dec / self.cellsize_deg]
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
 
@@ -86,10 +88,17 @@ class Sector(object):
         scaling_factor = 2.0 * np.sqrt(iter+1)
         self.wsclean_niter = int(12000 * scaling_factor)
 
-        # Set multiscale: get source sizes and check for large sources
-        if self.contains_target:
-            self.multiscale = True
+        # Set number of output channels to get ~ 4 MHz per channel
+        tot_bandwidth = 0.0
+        for obs in self.observations:
+            # Find largest bandwidth
+            obs_bandwidth = obs.numchannels * obs.channelwidth
+            if obs_bandwidth > tot_bandwidth:
+                tot_bandwidth = obs_bandwidth
+        self.wsclean_nchannels = max(1, int(np.ceil(tot_bandwidth / 4e6)))
 
+        # Set multiscale: get source sizes and check for large sources
+        self.multiscale = None
         large_size_arcmin = 4.0
         if self.multiscale is None:
             sizes_arcmin = self.get_source_sizes()
@@ -99,36 +108,20 @@ class Sector(object):
                 self.multiscale = False
         if self.multiscale:
             self.wsclean_multiscale = '-multiscale,'
-            self.wsclean_full1_image_niter /= 2 # fewer iterations are needed
-            self.wsclean_full2_image_niter /= 2 # fewer iterations are needed
+            self.wsclean_niter /= 2 # fewer iterations are needed
             self.log.debug("Will do multiscale cleaning.")
         else:
             self.wsclean_multiscale = ''
 
-        # Set the observation-specific predict parameters
+        # Set the observation-specific parameters
         for obs in self.observations:
-            # Add filename for model-subtracted data that matches the one made by the
+            # Set filename for model-subtracted data that matches the one made by the
             # calibrate pipeline
-            obs.ms_subtracted_filename = '{0}.sector_{}'.format(obs.ms_filename,
-                                                                self.name.split('_')[1])
+            ms_subtracted_filename = '{0}.sector_{1}'.format(obs.ms_filename,
+                                                            self.name.split('_')[1])
+            # Set imaging parameters
             obs.set_imaging_parameters(cellsize_arcsec, max_peak_smearing,
-                                       self.width_ra, self.width_dec)
-
-    def get_predict_parameters(self, parameter):
-        """
-        Returns list of imaging parameters for all sectors
-
-        Parameters
-        ----------
-        parameter : str
-            Name of parameter to return
-
-        Returns
-        -------
-        parameters : list
-            List of parameters, with one entry for each observation
-        """
-        return sum([obs.imaging_parameters[parameter] for obs in self.observations], [])
+                                       self.width_ra, self.width_dec, ms_subtracted_filename)
 
     def make_skymodel(self):
         """
@@ -169,6 +162,15 @@ class Sector(object):
         patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True).tolist()
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
+
+    def get_source_sizes(self):
+        """
+        Returns list of source sizes in arcmin
+        """
+        skymodel = lsmtool.load(self.skymodel_file)
+        sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
+
+        return sizes
 
     def get_obs_parameters(self, parameter):
         """

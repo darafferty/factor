@@ -159,7 +159,7 @@ class Observation(object):
         self.calibration_parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
-                               width_ra, width_dec):
+                               width_ra, width_dec, ms_subtracted_filename=None):
         """
         Sets the imaging parameters
 
@@ -173,12 +173,16 @@ class Observation(object):
             Width in RA of image in degrees
         width_dec : float
             Width in Dec of image in degrees
+        ms_subtracted_filename : str, optional
+            Filename of model-subtracted data
         """
         mean_freq_mhz = self.referencefreq
         peak_smearing_factor = np.sqrt(1.0 - max_peak_smearing)
         chan_width_hz = self.channelwidth
         nchan = self.numchannels
         timestep_sec = self.timepersample
+        self.imaging_parameters['ms_filename'] = self.ms_filename
+        self.imaging_parameters['ms_subtracted_filename'] = ms_subtracted_filename
 
         # Get target time and frequency averaging steps
         delta_theta_deg = max(width_ra, width_dec) / 2.0
