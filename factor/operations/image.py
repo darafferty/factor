@@ -14,7 +14,7 @@ class Image(Operation):
     """
     def __init__(self, field, sector, index):
         name = 'Image_{0}'.format(index)
-        super(Image, self).__init__(field, name=name)
+        super(Image, self).__init__(field, direction=sector, name=name)
         self.index = index
 
         # Set the pipeline parset to use
