@@ -84,6 +84,8 @@ class Sector(object):
         self.taper_arcsec = taper_arcsec
         self.min_uv_lambda = min_uv_lambda
         self.max_uv_lambda = max_uv_lambda
+        self.use_idg = use_idg
+        self.idg_mode = idg_mode
 
         # Set image size
         self.imsize = [self.width_ra / self.cellsize_deg,
