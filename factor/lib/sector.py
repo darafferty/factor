@@ -124,7 +124,7 @@ class Sector(object):
         for obs in self.observations:
             # Set filename for model-subtracted data that matches the one made by the
             # calibrate pipeline
-            ms_subtracted_filename = '{0}.sector_{1}'.format(obs.ms_filename,
+            ms_subtracted_filename = '{0}.sector_{1}_sub'.format(obs.ms_filename,
                                                             self.name.split('_')[1])
             # Set imaging parameters
             obs.set_imaging_parameters(cellsize_arcsec, max_peak_smearing,
