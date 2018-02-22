@@ -169,12 +169,16 @@ class Field(object):
             x = np.linspace(min_x, max_x, nsectors_ra)
             y = np.linspace(min_y, max_y, nsectors_dec)
             x, y = np.meshgrid(x, y)
+            self.log.info('Using {0} imaging sectors ({1} in RA, {2} in Dec)'.format(
+                          nsectors_ra*nsectors_dec, nsectors_ra, nsectors_dec))
 
         # Define sectors
         self.sectors = []
+        n = 0
         for i in range(nsectors_ra):
             for j in range(nsectors_dec):
-                name = 'sector_{0}'.format(i+j)
+                name = 'sector_{0}'.format(n)
+                n += 1
                 ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
                 self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
 
@@ -187,7 +191,7 @@ class Field(object):
             # Make sector region and vertices files
             this_sector.make_vertices_file()
             this_sector.make_region_file(os.path.join(self.working_dir, 'regions',
-                                                      '{}_region.ds9'.format(this_sector.name)))
+                                                      '{}_region_ds9.reg'.format(this_sector.name)))
 
             # Set the imaging parameters for selfcal
             this_sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],

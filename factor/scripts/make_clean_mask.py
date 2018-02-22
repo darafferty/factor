@@ -576,7 +576,7 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
             data[0, 0, 0:minx, :] = 0
             data[0, 0, maxx:, :] = 0
             data[0, 0, :, 0:miny] = 0
-            data[0, 0, :, miny:] = 0
+            data[0, 0, :, maxy:] = 0
 
             # Find poly that fits inside and unmask it temporarily
             stepx = (maxx - minx) / 10
@@ -591,7 +591,6 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
                 if poly.contains(inner_poly):
                     break
             minx, miny, maxx, maxy = inner_poly.bounds
-            0/0
             data[0, 0, int(minx):int(maxx), int(miny):int(maxy)] = 0
 
             # Find masked regions
@@ -601,7 +600,7 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
             # Unmask points that are outside the facet
             outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
             for outside_point in outside_points:
-                data[0, 0, masked_ind[0][int(outside_point.x)], masked_ind[1][int(outside_point.y)]] = 0
+                data[0, 0, int(outside_point.x), int(outside_point.y)] = 0
 
             # Undo unmasking of interior
             data[0, 0, int(minx):int(maxx), int(miny):int(maxy)] = 1

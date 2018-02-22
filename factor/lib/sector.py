@@ -90,6 +90,10 @@ class Sector(object):
         # Set image size
         self.imsize = [int(self.width_ra / self.cellsize_deg * 1.1),
                        int(self.width_dec / self.cellsize_deg * 1.1)]
+        if self.use_idg:
+            # IDG does not yet support rectangular images
+            self.imsize = [max(self.imsize), max(self.imsize)]
+        self.wsclean_imsize = '{0} {1}'.format(self.imsize[0], self.imsize[1])
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
 
