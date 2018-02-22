@@ -187,7 +187,7 @@ wsclean_image_full.argument.tempdir               = {{ local_dir_parent }}
 {% endif %}
 wsclean_image_full.argument.multiscale-shape      = gaussian
 wsclean_image_full.argument.weighting-rank-filter = 3
-{% if taper_facet_arcsec > 0.0 %}
+{% if taper_arcsec > 0.0 %}
 wsclean_image_full.argument.taper-gaussian        = {{ taper_arcsec }}
 {% endif %}
 {% if wsclean_nwavelengths > 0.0 and not use_idg %}
