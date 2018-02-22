@@ -15,13 +15,15 @@ import pickle
 import numpy as np
 import sys
 import os
-from factor.lib.polygon import Polygon
+from shapely.geometry import Point, Polygon
+from shapely.wkt import loads
+from shapely.prepared import prep
 from factor.scripts import blank_image
 
 
 def read_vertices(filename, cal_only=False):
     """
-    Returns facet vertices
+    Returns direction vertices from a file
 
     Parameters
     ----------
@@ -30,11 +32,8 @@ def read_vertices(filename, cal_only=False):
 
     """
     with open(filename, 'r') as f:
-        direction_dict = pickle.load(f)
-    if cal_only:
-        return direction_dict['vertices_cal']
-    else:
-        return direction_dict['vertices']
+        vertices = load(f)
+    return vertices
 
 
 def read_casa_polys(filename, image):
@@ -59,8 +58,7 @@ def read_casa_polys(filename, image):
             poly_vertices = [np.array(ra), np.array(dec)]
 
             # Convert to image-plane polygon
-            xvert = []
-            yvert = []
+            verts = []
             for RAvert, Decvert in zip(np.array(ra), np.array(dec)):
                 try:
                     pixels = image.topixel([0, 1, Decvert*np.pi/180.0,
@@ -73,18 +71,8 @@ def read_casa_polys(filename, image):
                     dist = (xvert[-1]-pixels[2])**2 + (yvert[-1]-pixels[3])**2
                     if dist < .5:
                         continue
-                xvert.append(pixels[2]) # x -> Dec
-                yvert.append(pixels[3]) # y -> RA
-            # check if first and last points are too close
-            dist = (xvert[-1]-xvert[0])**2 + (yvert[-1]-yvert[0])**2
-            if dist < .5:
-                xvert.pop()
-                yvert.pop()
-            # check if segments intersect
-            newpolygon = Polygon(xvert, yvert)
-            if newpolygon.check_intersections() > 0:
-                raise ValueError("Found intersections in manually defined polygon! Aborting.")
-            polys.append(newpolygon)
+                verts.append((pixels[2], pixels[3]))
+            polys.append(Polygon(verts))
 
         elif line.startswith('ellipse'):
             ell_str_temp = line.split('[[')[1]
@@ -132,20 +120,18 @@ def read_casa_polys(filename, image):
                     ra_center*np.pi/180.0])
             a_pix2 = pixels2[2]
             a_pix = abs(a_pix2 - a_pix1)
-            ex = []
-            ey = []
+            verts = []
             for th in range(0, 360, 1):
                 if pa == 0:
                     # semimajor axis is along x-axis
-                    ex.append(a_pix * np.cos(th * np.pi / 180.0)
-                        + x_center) # x -> Dec
-                    ey.append(a_pix * b_deg / a_deg * np.sin(th * np.pi / 180.0) + y_center) # y -> RA
+                    ex = a_pix * np.cos(th * np.pi / 180.0) + x_center # x -> Dec
+                    ey = a_pix * b_deg / a_deg * np.sin(th * np.pi / 180.0) + y_center # y -> RA
                 elif pa == 90:
                     # semimajor axis is along y-axis
-                    ex.append(a_pix * b_deg / a_deg * np.cos(th * np.pi / 180.0)
-                        + x_center) # x -> Dec
-                    ey.append(a_pix * np.sin(th * np.pi / 180.0) + y_center) # y -> RA
-            polys.append(Polygon(ex, ey))
+                    ex = a_pix * b_deg / a_deg * np.cos(th * np.pi / 180.0) + x_center # x -> Dec
+                    ey = a_pix * np.sin(th * np.pi / 180.0) + y_center # y -> RA
+                verts.append((ex, ey))
+            polys.append(Polygon(verts))
 
         elif line.startswith('box'):
             poly_str_temp = line.split('[[')[1]
@@ -164,8 +150,7 @@ def read_casa_polys(filename, image):
             poly_vertices = [np.array(ra), np.array(dec)]
 
             # Convert to image-plane polygon
-            xvert = []
-            yvert = []
+            verts = []
             for RAvert, Decvert in zip(np.array(ra), np.array(dec)):
                 try:
                     pixels = image.topixel([0, 1, Decvert*np.pi/180.0,
@@ -173,9 +158,8 @@ def read_casa_polys(filename, image):
                 except:
                     pixels = image.topixel([1, 1, Decvert*np.pi/180.0,
                                                RAvert*np.pi/180.0])
-                xvert.append(pixels[2]) # x -> Dec
-                yvert.append(pixels[3]) # y -> RA
-            polys.append(Polygon(xvert, yvert))
+                xvert.append((pixels[2], pixels[3]))
+            polys.append(Polygon(verts))
 
         elif line.startswith('#'):
             pass
@@ -255,8 +239,7 @@ def vertices_to_poly(vertices, ref_im):
     """Converts a list of RA, Dec vertices to a Polygon object"""
     RAverts = vertices[0]
     Decverts = vertices[1]
-    xvert = []
-    yvert = []
+    verts = []
     for RAvert, Decvert in zip(RAverts, Decverts):
         try:
             pixels = ref_im.topixel([0, 1, Decvert*np.pi/180.0,
@@ -264,10 +247,9 @@ def vertices_to_poly(vertices, ref_im):
         except:
             pixels = ref_im.topixel([1, 1, Decvert*np.pi/180.0,
                                        RAvert*np.pi/180.0])
-        xvert.append(pixels[2]) # x -> Dec
-        yvert.append(pixels[3]) # y -> RA
+        verts.append((pixels[2], pixels[3]))
 
-    return Polygon(xvert, yvert)
+    return Polygon(verts)
 
 
 def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, rmsbox=None,
@@ -579,27 +561,17 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
         if vertices_file is not None:
             # Modify the clean mask to exclude regions outside of the polygon
             vertices = read_vertices(vertices_file)
-            poly = vertices_to_poly(vertices, new_mask)
-            if exclude_cal_region:
-                cal_vertices = read_vertices(vertices_file, cal_only=True)
-                cal_poly = vertices_to_poly(cal_vertices, new_mask)
+            poly = Polygon(vertices_to_poly(vertices, new_mask))
+            prepared_polygon = prep(poly)
 
             # Find masked regions
             masked_ind = np.where(data[0, 0])
+            points = [Point(xm, ym) for xm, ym in zip(masked_ind[0], masked_ind[1])]
 
-            # Find distance to nearest poly edge and unmask those that
-            # are outside the facet (dist < 0) and inside the calibrator region
-            # (cal_dist > 0)
-            dist = poly.is_inside(masked_ind[0], masked_ind[1])
-            outside_ind = np.where(dist < 0.0)
-            if len(outside_ind[0]) > 0:
-                data[0, 0, masked_ind[0][outside_ind], masked_ind[1][outside_ind]] = 0
-            if exclude_cal_region:
-                masked_ind = np.where(data[0, 0])
-                cal_dist = cal_poly.is_inside(masked_ind[0], masked_ind[1])
-                inside_ind = np.where(cal_dist > 0.0)
-                if len(inside_ind[0]) > 0:
-                    data[0, 0, masked_ind[0][inside_ind], masked_ind[1][inside_ind]] = 0
+            # Unmask points that are outside the facet
+            outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
+            for outside_point in outside_points:
+                data[0, 0, masked_ind[0][int(outside_point.x)], masked_ind[1][int(outside_point.y)]] = 0
 
         if trim_by > 0.0:
             sh = np.shape(data)

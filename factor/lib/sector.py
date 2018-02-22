@@ -7,7 +7,7 @@ import numpy as np
 from astropy.coordinates import Angle
 from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
-from shapely.wkt import dumps
+import pickle
 import lsmtool
 import os
 
@@ -296,13 +296,14 @@ class Sector(object):
 
         return vertices
 
-
     def make_vertices_file(self):
         """
         Make a vertices file for the sector boundary
         """
+        vertices = self.get_vertices_radec()
+
         with open(self.vertices_file, 'wb') as f:
-            dumps(self.poly)
+            pickle.dump(vertices, f)
 
     def make_region_file(self, outputfile, region_format='ds9'):
         """
