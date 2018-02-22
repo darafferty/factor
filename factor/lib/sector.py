@@ -52,7 +52,8 @@ class Sector(object):
         self.make_skymodel()
 
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
-                               min_uv_lambda, max_uv_lambda, max_peak_smearing):
+                               min_uv_lambda, max_uv_lambda, max_peak_smearing,
+                               wsclean_bl_averaging=False):
         """
         Sets the imaging parameters for given values
 
@@ -70,6 +71,8 @@ class Sector(object):
             Maximum uv cut in lamdba
         max_peak_smearing : float
             Maximum allowed peak flux density reduction
+        wsclean_bl_averaging : bool, optional
+            Use baseline-dependent averaging in WSClean
         """
         self.cellsize_arcsec = cellsize_arcsec
         self.cellsize_deg = cellsize_arcsec / 3600.0
@@ -122,6 +125,40 @@ class Sector(object):
             # Set imaging parameters
             obs.set_imaging_parameters(cellsize_arcsec, max_peak_smearing,
                                        self.width_ra, self.width_dec, ms_subtracted_filename)
+
+        # Set BL-dependent averaging
+        if wsclean_bl_averaging:
+            timestep_sec = (self.observations[0].timepersample *
+                            self.observations[0].imaging_parameters['image_timestep'])
+            self.wsclean_nwavelengths = self.get_nwavelengths(self.cellsize_deg,
+                                                              timestep_sec)
+        else:
+            self.wsclean_nwavelengths = 0
+
+
+    def get_nwavelengths(self, cellsize_deg, timestep_sec):
+        """
+        Returns nwavelengths for WSClean BL-based averaging
+
+        The value depends on the integration time given the specified maximum
+        allowed smearing. We scale it from the imaging cell size assuming normal
+        sampling as:
+
+        max baseline in nwavelengths = 1 / theta_rad ~= 1 / (cellsize_deg * 3 * pi / 180)
+        nwavelengths = max baseline in nwavelengths * 2 * pi * integration time in seconds / (24 * 60 * 60) / 4
+
+        Parameters
+        ----------
+        cellsize_deg : float
+            Pixel size of image in degrees
+        timestep_sec : float
+            Length of one timestep in seconds
+
+        """
+        max_baseline = 1 / (3 * cellsize_deg * np.pi / 180)
+        wsclean_nwavelengths_time = int(max_baseline * 2*np.pi * timestep_sec /
+            (24 * 60 * 60) / 4)
+        return wsclean_nwavelengths_time
 
     def make_skymodel(self):
         """
