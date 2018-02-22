@@ -15,7 +15,7 @@ import pickle
 import numpy as np
 import sys
 import os
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, box
 from shapely.wkt import loads
 from shapely.prepared import prep
 from factor.scripts import blank_image
@@ -32,7 +32,7 @@ def read_vertices(filename, cal_only=False):
 
     """
     with open(filename, 'r') as f:
-        vertices = load(f)
+        vertices = pickle.load(f)
     return vertices
 
 
@@ -231,7 +231,7 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
 
     hdulist[0].header = header
 
-    hdulist.writeto(image_name, clobber=True)
+    hdulist.writeto(image_name, overwrite=True)
     hdulist.close()
 
 
@@ -341,7 +341,10 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
         rmsbox_bright = eval(rmsbox_bright)
 
     if pad_to_size is not None and type(pad_to_size) is str:
-        pad_to_size = int(pad_to_size)
+        xysize = pad_to_size.strip('[]').split(',')
+        xysize = [int(s) for s in xysize]
+        # for now, just use square images
+        pad_to_size = max(xysize)
 
     if type(atrous_do) is str:
         if atrous_do.lower() == 'true':
@@ -529,10 +532,10 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
             data_pad[0, 0, pixmin:pixmax, pixmin:pixmax] = data[0, 0]
             new_mask = pim.image('', shape=(1, 1, imsize, imsize), coordsys=coordsys)
             new_mask.putdata(data_pad)
+            del(data_pad)
         else:
             new_mask = pim.image('', shape=imshape, coordsys=coordsys)
             new_mask.putdata(data)
-
         data = new_mask.getdata()
 
         if skip_source_detection or nisl == 0:
@@ -561,8 +564,35 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
         if vertices_file is not None:
             # Modify the clean mask to exclude regions outside of the polygon
             vertices = read_vertices(vertices_file)
-            poly = Polygon(vertices_to_poly(vertices, new_mask))
+            poly = vertices_to_poly(vertices, new_mask)
             prepared_polygon = prep(poly)
+
+            # Unmask everything outside of poly bounding box
+            minx, miny, maxx, maxy = poly.bounds
+            minx = max(0, int(minx)-1)
+            maxx = min(data.shape[2], int(maxx)+1)
+            miny = max(0, int(miny)-1)
+            maxy = min(data.shape[3], int(maxy)+1)
+            data[0, 0, 0:minx, :] = 0
+            data[0, 0, maxx:, :] = 0
+            data[0, 0, :, 0:miny] = 0
+            data[0, 0, :, miny:] = 0
+
+            # Find poly that fits inside and unmask it temporarily
+            stepx = (maxx - minx) / 10
+            stepy = (maxy - miny) / 10
+            for i in range(10):
+                # Shrink inner_poly until it's fully within poly
+                minx += stepx
+                maxx -= stepx
+                miny += stepy
+                maxy -= stepy
+                inner_poly = box(minx, miny, maxx, maxy)
+                if poly.contains(inner_poly):
+                    break
+            minx, miny, maxx, maxy = inner_poly.bounds
+            0/0
+            data[0, 0, int(minx):int(maxx), int(miny):int(maxy)] = 0
 
             # Find masked regions
             masked_ind = np.where(data[0, 0])
@@ -572,6 +602,9 @@ def main(image_name, mask_name, atrous_do=False, threshisl=0.0, threshpix=0.0, r
             outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
             for outside_point in outside_points:
                 data[0, 0, masked_ind[0][int(outside_point.x)], masked_ind[1][int(outside_point.y)]] = 0
+
+            # Undo unmasking of interior
+            data[0, 0, int(minx):int(maxx), int(miny):int(maxy)] = 1
 
         if trim_by > 0.0:
             sh = np.shape(data)

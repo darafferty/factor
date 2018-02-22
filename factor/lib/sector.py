@@ -44,7 +44,7 @@ class Sector(object):
         self.width_dec = width_dec
         self.field = field
         self.observations = field.observations[:]
-        self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.txt'.format(self.name))
+        self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.pkl'.format(self.name))
         self.region_file = '[]'
 
         # Define the sector polygon vertices and sky model
@@ -88,8 +88,8 @@ class Sector(object):
         self.idg_mode = idg_mode
 
         # Set image size
-        self.imsize = [self.width_ra / self.cellsize_deg,
-                       self.width_dec / self.cellsize_deg]
+        self.imsize = [int(self.width_ra / self.cellsize_deg * 1.1),
+                       int(self.width_dec / self.cellsize_deg * 1.1)]
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
 
@@ -266,24 +266,23 @@ class Sector(object):
             points = []
             for xp, yp, sp in zip(sx, sy, sizes):
                 radius = sp * 1.2 / 2.0 / self.field.wcs.wcs.cdelt[0] # size of source in pixels
-                points.append(Point((xp, yp)).buffer(sp))
+                points.append(Point((xp, yp)).buffer(radius))
 
             # Alter sector polygon to avoid sources in the input sky model
             niter = 0
             while niter < 3:
                 niter += 1
-
                 prepared_polygon = prep(poly)
                 intersecting_points = filter(prepared_polygon.intersects, points)
 
                 # Adjust sector polygon for each source that intersects it
                 for p2 in intersecting_points:
                     if poly.contains(p2.centroid):
-                        # If centroid of point is outside, difference the polys
-                        poly = poly.difference(p2)
-                    else:
                         # If point is inside, union the polys
                         poly = poly.union(p2)
+                    else:
+                        # If centroid of point is outside, difference the polys
+                        poly = poly.difference(p2)
         self.poly = poly
 
     def get_vertices_radec(self):

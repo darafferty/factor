@@ -162,10 +162,10 @@ class Field(object):
             width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
             width_y = width_dec / abs(self.wcs.wcs.cdelt[1])
             center_x, center_y = self.radec2xy([self.ra], [self.dec])
-            min_x = center_x - nsectors_ra / 2.0 * width_x
-            max_x = center_x + nsectors_ra / 2.0 * width_x
-            min_y = center_y - nsectors_dec / 2.0 * width_y
-            max_y = center_y + nsectors_dec / 2.0 * width_y
+            min_x = center_x - width_x / 2.0 * (nsectors_ra - 1)
+            max_x = center_x + width_x / 2.0 * (nsectors_ra - 1)
+            min_y = center_y - width_y / 2.0 * (nsectors_dec - 1)
+            max_y = center_y + width_y / 2.0 * (nsectors_dec - 1)
             x = np.linspace(min_x, max_x, nsectors_ra)
             y = np.linspace(min_y, max_y, nsectors_dec)
             x, y = np.meshgrid(x, y)
@@ -187,7 +187,7 @@ class Field(object):
             # Make sector region and vertices files
             this_sector.make_vertices_file()
             this_sector.make_region_file(os.path.join(self.working_dir, 'regions',
-                                                      '{}_region.txt'.format(self.name)))
+                                                      '{}_region.ds9'.format(this_sector.name)))
 
             # Set the imaging parameters for selfcal
             this_sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
