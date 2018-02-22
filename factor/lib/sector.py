@@ -45,7 +45,7 @@ class Sector(object):
         self.field = field
         self.observations = field.observations[:]
         self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.txt'.format(self.name))
-        self.region_file = ''
+        self.region_file = '[]'
 
         # Define the sector polygon vertices and sky model
         self.define_vertices()
