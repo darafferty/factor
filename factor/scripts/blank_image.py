@@ -9,7 +9,7 @@ import sys
 import os
 import pickle
 import glob
-from factor.lib.polygon import Polygon
+from shapely.geometry import Point, Polygon
 from astropy.io import fits as pyfits
 from astropy import wcs
 
@@ -19,8 +19,8 @@ def read_vertices(filename):
     Returns facet vertices stored in input file
     """
     with open(filename, 'r') as f:
-        direction_dict = pickle.load(f)
-    return direction_dict['vertices']
+        vertices = pickle.load(f)
+    return vertices
 
 
 def main(input_image_file, vertices_file, output_image_file, blank_value='zero',
@@ -73,15 +73,13 @@ def main(input_image_file, vertices_file, output_image_file, blank_value='zero',
     vertices = read_vertices(vertices_file)
     RAverts = vertices[0]
     Decverts = vertices[1]
-    xvert = []
-    yvert = []
+    verts = []
     for RAvert, Decvert in zip(RAverts, Decverts):
         ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
         ra_dec[0][RAind] = RAvert
         ra_dec[0][Decind] = Decvert
-        xvert.append(w.wcs_world2pix(ra_dec, 0)[0][Decind])
-        yvert.append(w.wcs_world2pix(ra_dec, 0)[0][RAind])
-    poly = Polygon(xvert, yvert)
+        verts.append((w.wcs_world2pix(ra_dec, 0)[0][Decind], w.wcs_world2pix(ra_dec, 0)[0][RAind]))
+    poly = Polygon(verts)
 
     for input_image, output_image in zip(input_image_files, output_image_files):
         hdu = pyfits.open(input_image, memmap=False)
@@ -102,10 +100,11 @@ def main(input_image_file, vertices_file, output_image_file, blank_value='zero',
         pix_ind = np.indices((xmax-xmin, ymax-ymin))
         pix_ind[0] += xmin
         pix_ind[1] += ymin
-        dist = poly.is_inside(pix_ind[0], pix_ind[1])
-        outside_ind = np.where(dist < 0.0)
-        if len(outside_ind[0]) > 0:
-            data[0, 0, pix_ind[0][outside_ind], pix_ind[1][outside_ind]] = blank_val
+        points = [Point(xm, ym) for xm, ym in zip(pix_ind[0], pix_ind[1])]
+        prepared_polygon = prep(poly)
+        outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
+        for outside_point in outside_points:
+            data[0, 0, masked_ind[0][int(outside_point.x)], masked_ind[1][int(outside_point.y)]] = blank_val
 
         hdu[0].data = data
         hdu.writeto(output_image, clobber=True)
