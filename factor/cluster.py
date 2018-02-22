@@ -202,7 +202,7 @@ def find_executables(cluster_parset):
     from distutils import spawn
 
     executables = {'genericpipeline_executable': ['genericpipeline.py'],
-                   'wsclean_executable': ['wsclean'],
+                   'wsclean_executable': ['wsclean25'],
                    'h5collector_executable': ['H5parm_collector.py']}
     for key, names in executables.iteritems():
         for name in names:
