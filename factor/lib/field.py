@@ -30,6 +30,10 @@ class Field(object):
         self.data_colname = 'DATA'
         self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
         self.solve_tecandphase = self.parset['calibration_specific']['solve_tecandphase']
+        self.flag_abstime = self.parset['flag_abstime']
+        self.flag_baseline = self.parset['flag_baseline']
+        self.flag_freqrange = self.parset['flag_freqrange']
+        self.flag_expr = self.parset['flag_expr']
 
         # Scan MS files to get observation info
         self.scan_observations()
@@ -193,6 +197,12 @@ class Field(object):
                                                None,
                                                0.15,
                                                self.parset['imaging_specific']['wsclean_bl_averaging'])
+
+            # Transfer flagging parameters so they are also used during imaging
+            this_sector.flag_abstime = self.flag_abstime
+            this_sector.flag_baseline = self.flag_baseline
+            this_sector.flag_freqrange = self.flag_freqrange
+            this_sector.flag_expr = self.flag_expr
 
     def radec2xy(self, RA, Dec):
         """

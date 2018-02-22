@@ -45,7 +45,7 @@ expand_h5parm_map.control.filename         = expand_h5parms.mapfile
 prepare_imaging_data.control.type                                 = dppp
 prepare_imaging_data.control.mapfiles_in                          = [subtract_models.output.mapfile,expand_h5parm_map.output.mapfile,create_timestep_map.output.mapfile,create_freqstep_map.output.mapfile]
 prepare_imaging_data.control.inputkeys                            = [msin,h5parm,timestep,freqstep]
-prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_io_proc_nfiles }}
+prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_proc_single }}
 prepare_imaging_data.argument.msin.datacolumn                     = DATA
 prepare_imaging_data.argument.msout.overwrite                     = True
 prepare_imaging_data.argument.msout.writefullresflag              = False
@@ -56,13 +56,13 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 
 {% if solve_tecandphase %}
-{% if apply_amps %}
+{% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,amp,phase,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,flagzero,avg]
 {% endif %}
 {% else %}
-{% if apply_amps %}
+{% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,avg]
@@ -72,13 +72,13 @@ prepare_imaging_data.argument.steps                               = [flag,shift,
 {% else %}
 
 {% if solve_tecandphase %}
-{% if apply_amps %}
+{% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [shift,tec,scphase,amp,phase,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [shift,tec,scphase,flagzero,avg]
 {% endif %}
 {% else %}
-{% if apply_amps %}
+{% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [shift,tec,amp,phase,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [shift,tec,flagzero,avg]
@@ -112,7 +112,7 @@ prepare_imaging_data.argument.scphase.parmdb                      = h5parm
 prepare_imaging_data.argument.scphase.correction                  = screenphase000
 prepare_imaging_data.argument.scphase.direction                   = [{{ central_patch }}]
 {% endif %}
-{% if do_slowgain_solve %}
+{% if apply_slowgains %}
 prepare_imaging_data.argument.amp.type                            = applycal
 prepare_imaging_data.argument.amp.parmdb                          = h5parm
 prepare_imaging_data.argument.amp.correction                      = amplitude000

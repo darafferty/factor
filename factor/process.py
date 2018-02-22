@@ -61,6 +61,8 @@ def run(parset_file, logging_level='info'):
         scheduler.run(Calibrate(field, iter))
 
         # Image
+        for sector in field.sectors:
+            sector.apply_slowgains = do_slowgain
         scheduler.run([Image(field, sector, iter) for sector in field.sectors])
 
         # Combine new sky models and group
