@@ -12,7 +12,7 @@ update_mapfile_hosts.control.hosts       = {{ hosts }}
 create_sector_files_map.control.kind        = plugin
 create_sector_files_map.control.type        = addListMapfile
 create_sector_files_map.control.hosts       = {{ hosts }}
-create_sector_files_map.control.files       = {{ sector_filename }}
+create_sector_files_map.control.files       = {{ obs_filename }}
 create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_sector_files_map.control.filename    = sectorfiles.mapfile
 
@@ -43,7 +43,7 @@ expand_h5parm_map.control.filename         = expand_h5parms.mapfile
 # phase shift, apply the direction-dependent solutions, and average, length = nobs
 # note: the apply steps will not be necessary once we can use screens in WSClean
 prepare_imaging_data.control.type                                 = dppp
-prepare_imaging_data.control.mapfiles_in                          = [subtract_models.output.mapfile,expand_h5parm_map.output.mapfile,create_timestep_map.output.mapfile,create_freqstep_map.output.mapfile]
+prepare_imaging_data.control.mapfiles_in                          = [create_sector_files_map.output.mapfile,expand_h5parm_map.output.mapfile,create_timestep_map.output.mapfile,create_freqstep_map.output.mapfile]
 prepare_imaging_data.control.inputkeys                            = [msin,h5parm,timestep,freqstep]
 prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_proc_single }}
 prepare_imaging_data.argument.msin.datacolumn                     = DATA
@@ -105,22 +105,22 @@ prepare_imaging_data.argument.shift.phasecenter                   = [{{ ra }}deg
 prepare_imaging_data.argument.tec.type                            = applycal
 prepare_imaging_data.argument.tec.parmdb                          = h5parm
 prepare_imaging_data.argument.tec.correction                      = screentec000
-prepare_imaging_data.argument.tec.direction                       = [{{ central_patch }}]
+prepare_imaging_data.argument.tec.direction                       = [[{{ central_patch }}]]
 {% if solve_tecandphase %}
 prepare_imaging_data.argument.scphase.type                        = applycal
 prepare_imaging_data.argument.scphase.parmdb                      = h5parm
 prepare_imaging_data.argument.scphase.correction                  = screenphase000
-prepare_imaging_data.argument.scphase.direction                   = [{{ central_patch }}]
+prepare_imaging_data.argument.scphase.direction                   = [[{{ central_patch }}]]
 {% endif %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.amp.type                            = applycal
 prepare_imaging_data.argument.amp.parmdb                          = h5parm
 prepare_imaging_data.argument.amp.correction                      = amplitude000
-prepare_imaging_data.argument.amp.direction                       = [{{ central_patch }}]
+prepare_imaging_data.argument.amp.direction                       = [[{{ central_patch }}]]
 prepare_imaging_data.argument.phase.type                          = applycal
 prepare_imaging_data.argument.phase.parmdb                        = h5parm
 prepare_imaging_data.argument.phase.correction                    = phase000
-prepare_imaging_data.argument.phase.direction                     = [{{ central_patch }}]
+prepare_imaging_data.argument.phase.direction                     = [[{{ central_patch }}]]
 {% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
 prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20

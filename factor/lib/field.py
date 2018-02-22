@@ -196,7 +196,9 @@ class Field(object):
                                                self.parset['imaging_specific']['selfcal_min_uv_lambda'],
                                                None,
                                                0.15,
-                                               self.parset['imaging_specific']['wsclean_bl_averaging'])
+                                               self.parset['imaging_specific']['wsclean_bl_averaging'],
+                                               self.parset['imaging_specific']['use_idg'],
+                                               self.parset['imaging_specific']['idg_mode'])
 
             # Transfer flagging parameters so they are also used during imaging
             this_sector.flag_abstime = self.flag_abstime

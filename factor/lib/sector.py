@@ -53,7 +53,7 @@ class Sector(object):
 
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
                                min_uv_lambda, max_uv_lambda, max_peak_smearing,
-                               wsclean_bl_averaging=False):
+                               wsclean_bl_averaging=False, use_idg=True, idg_mode='hybrid'):
         """
         Sets the imaging parameters for given values
 
@@ -73,6 +73,10 @@ class Sector(object):
             Maximum allowed peak flux density reduction
         wsclean_bl_averaging : bool, optional
             Use baseline-dependent averaging in WSClean
+        use_idg : bool, optional
+            Use image domain gridder in WSClean
+        idg_mode : str, optional
+            IDG mode to use
         """
         self.cellsize_arcsec = cellsize_arcsec
         self.cellsize_deg = cellsize_arcsec / 3600.0
