@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_h5parm_map, expand_h5parm_map, prepare_imaging_data, create_compressed_mapfile, premask, wsclean_image_full, create_imagebase_map, sector_image_mapfile]
+pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, prepare_imaging_data, create_compressed_mapfile, premask, wsclean_image_full, create_imagebase_map, sector_image_mapfile]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
