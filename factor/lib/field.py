@@ -141,12 +141,12 @@ class Field(object):
         # and to determine source sizes
         skymodel.group('threshold', FWHM='60.0 arcsec')
         self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
-        skymodel.write(self.skymodel_file, clobber=True)
+        skymodel.write(self.source_skymodel_file, clobber=True)
 
         # Now tesselate to get patches of the target flux
         skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
-        skymodel.write(self.skymodel_file, clobber=True)
+        skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel.getPatchNames()), flux))
 
     def define_sectors(self):
