@@ -35,7 +35,7 @@ class Calibrate(Operation):
                               'fast_phase_{}.h5parm'.format(i))
                               for i in range(field.ntimechunks)]
         output_slow_h5parm = [os.path.join(self.pipeline_parset_dir,
-                              'slow_phase_{}.h5parm'.format(i))
+                              'slow_gain_{}.h5parm'.format(i))
                               for i in range(field.nfreqchunks)]
 
         # If needed (i.e., nsectors > 1), define predict parameters
@@ -77,7 +77,7 @@ class Calibrate(Operation):
         # Add output datamaps to field object for later use
         if self.field.do_slowgain_solve:
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                     'combined_h5parm.mapfile')
+                                                     'combine_h5parms.mapfile')
         else:
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                     'fast_phase_h5parm.mapfile')
+                                                     'combine_fast_phases.mapfile')
