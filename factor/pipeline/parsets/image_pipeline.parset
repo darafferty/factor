@@ -164,12 +164,12 @@ wsclean_image_full.control.type                   = wsclean
 wsclean_image_full.control.mapfiles_in            = [prepare_imaging_data.output.mapfile,premask.output.mapfile]
 wsclean_image_full.control.inputkeys              = [msfile,fitsmask]
 {% if use_idg %}
-wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fitbeam,-reorder,-save-source-list,-local-rms,-joinchannels,-use-idg,msfile]
+wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
 {% else %}
-wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fitbeam,-reorder,-save-source-list,-local-rms,-joinchannels,msfile]
+wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,msfile]
 {% endif %}
-wsclean_image_full.argument.channelsout           = {{ wsclean_nchannels }}
-wsclean_image_full.argument.fitsmask              = fitsmask
+wsclean_image_full.argument.channels-out          = {{ wsclean_nchannels }}
+wsclean_image_full.argument.fits-mask             = fitsmask
 wsclean_image_full.argument.size                  = {{ wsclean_imsize }}
 wsclean_image_full.argument.niter                 = 100000
 wsclean_image_full.argument.pol                   = I
@@ -193,7 +193,7 @@ wsclean_image_full.argument.taper-gaussian        = {{ taper_arcsec }}
 {% if wsclean_nwavelengths > 0.0 and not use_idg %}
 wsclean_image_full.argument.baseline-averaging    = {{ wsclean_nwavelengths }}
 {% endif %}
-{% if region_field != "[]" %}
+{% if region_file != "[]" %}
 wsclean_image_full.argument.auto-mask             = 2
 {% else %}
 wsclean_image_full.argument.auto-mask             = 3

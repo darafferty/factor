@@ -53,7 +53,8 @@ class Sector(object):
 
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
                                min_uv_lambda, max_uv_lambda, max_peak_smearing,
-                               wsclean_bl_averaging=False, use_idg=True, idg_mode='hybrid'):
+                               wsclean_bl_averaging=False, multiscale_scales_pixel=None,
+                               use_idg=True, idg_mode='hybrid'):
         """
         Sets the imaging parameters for given values
 
@@ -73,6 +74,8 @@ class Sector(object):
             Maximum allowed peak flux density reduction
         wsclean_bl_averaging : bool, optional
             Use baseline-dependent averaging in WSClean
+        multiscale_scales_pixel : list of float, optional
+            List of scales for WSClean when multi-scale is used
         use_idg : bool, optional
             Use image domain gridder in WSClean
         idg_mode : str, optional
@@ -84,6 +87,7 @@ class Sector(object):
         self.taper_arcsec = taper_arcsec
         self.min_uv_lambda = min_uv_lambda
         self.max_uv_lambda = max_uv_lambda
+        self.multiscale_scales_pixel = multiscale_scales_pixel
         self.use_idg = use_idg
         self.idg_mode = idg_mode
 
@@ -97,14 +101,15 @@ class Sector(object):
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
 
-        # Set number of output channels to get ~ 4 MHz per channel
+        # Set number of output channels to get 5 channels, but of no less than ~ 2 MHz each
+        target_nchannels = 5
         tot_bandwidth = 0.0
         for obs in self.observations:
-            # Find largest bandwidth
+            # Find observation with largest bandwidth
             obs_bandwidth = obs.numchannels * obs.channelwidth
             if obs_bandwidth > tot_bandwidth:
                 tot_bandwidth = obs_bandwidth
-        self.wsclean_nchannels = max(1, int(np.ceil(tot_bandwidth / 4e6)))
+        self.wsclean_nchannels = min(target_nchannels, int(np.ceil(tot_bandwidth / 2e6)))
 
         # Set number of iterations and threshold
         scaling_factor = np.sqrt(np.float(tot_bandwidth / 2e6))

@@ -71,7 +71,7 @@ def parset_read(parset_file, use_log_file=True):
     if use_log_file:
         set_log_file(os.path.join(parset_dict['dir_working'], 'factor.log'))
     log.info("=========================================================\n")
-    log.info("Working directory is {0}".format(parset_dict['dir_working']))
+    log.info("Working directory is {}".format(parset_dict['dir_working']))
 
     # Get all the MS files in the input directory. These are identified by the
     # extensions 'ms' or 'MS'
@@ -82,8 +82,8 @@ def parset_read(parset_file, use_log_file=True):
     if len(parset_dict['mss']) == 0:
         log.error('No MS files found in {}!'.format(parset_dict['dir_ms']))
         sys.exit(1)
-    log.info("Input MS directory is {0}".format(parset_dict['dir_ms']))
-    log.info("Working on {} input files.".format(len(parset_dict['mss'])))
+    log.info("Input MS directory is {}".format(parset_dict['dir_ms']))
+    log.info("Working on {} input file(s).".format(len(parset_dict['mss'])))
 
     # Check for unused sections
     given_sections = parset._sections.keys()
@@ -364,12 +364,6 @@ def get_imaging_options(parset):
         parset_dict['selfcal_multiscale_scales_pixel'] = str_list
     else:
         parset_dict['selfcal_multiscale_scales_pixel'] = None
-    if 'facet_multiscale_scales_pixel' in parset_dict:
-        val_list = parset_dict['facet_multiscale_scales_pixel'].strip('[]').split(',')
-        str_list = ','.join([v.strip() for v in val_list])
-        parset_dict['facet_multiscale_scales_pixel'] = str_list
-    else:
-        parset_dict['facet_multiscale_scales_pixel'] = None
 
     # Selfcal imaging parameters: pixel size in arcsec (default = 1.5), Briggs
     # robust parameter (default = -0.5) and minimum uv distance in lambda
@@ -452,7 +446,7 @@ def get_imaging_options(parset):
 
     # Check for unused options
     allowed_options = ['max_peak_smearing', 'selfcal_cellsize_arcsec', 'selfcal_robust',
-                       'selfcal_multiscale_scales_pixel', 'facet_multiscale_scales_pixel',
+                       'selfcal_multiscale_scales_pixel',
                        'facet_cellsize_arcsec', 'facet_taper_arcsec', 'facet_robust',
                        'wsclean_image_padding', 'selfcal_min_uv_lambda', 'facet_min_uv_lambda',
                        'selfcal_robust_wsclean', 'wsclean_bl_averaging', 'nsectors_per_side',
