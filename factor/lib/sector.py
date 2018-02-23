@@ -254,9 +254,9 @@ class Sector(object):
             skymodel.select(inside, force=True, aggregate=True)
         else:
             dists = skymodel.getDistance(self.ra, self.dec, byPatch=True)
-            s.select(dists < radius_deg, aggregate=True)
+            skymodel.select(dists < radius_deg, aggregate=True)
         sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
-        RA, Dec = s.getPatchPositions(asArray=True)
+        RA, Dec = skymodel.getPatchPositions(asArray=True)
         return sizes, RA, Dec
 
     def get_obs_parameters(self, parameter):
