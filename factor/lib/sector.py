@@ -87,7 +87,6 @@ class Sector(object):
         self.taper_arcsec = taper_arcsec
         self.min_uv_lambda = min_uv_lambda
         self.max_uv_lambda = max_uv_lambda
-        self.multiscale_scales_pixel = multiscale_scales_pixel
         self.use_idg = use_idg
         self.idg_mode = idg_mode
 
@@ -119,17 +118,17 @@ class Sector(object):
         self.multiscale = None
         large_size_arcmin = 4.0
         if self.multiscale is None:
-            sizes_arcmin = self.get_source_sizes()
+            sizes_arcmin, _, _ = self.get_source_sizes_arcmin()
             if sizes_arcmin is not None and any([s > large_size_arcmin for s in sizes_arcmin]):
                 self.multiscale = True
             else:
                 self.multiscale = False
         if self.multiscale:
-            self.wsclean_multiscale = '-multiscale,'
+            self.multiscale_scales_pixel = multiscale_scales_pixel
             self.wsclean_niter /= 2 # fewer iterations are needed
             self.log.debug("Will do multiscale cleaning.")
         else:
-            self.wsclean_multiscale = ''
+            self.multiscale_scales_pixel = 0
 
         # Set the observation-specific parameters
         for obs in self.observations:
@@ -177,9 +176,9 @@ class Sector(object):
 
     def make_skymodel(self):
         """
-        Makes a sky model for the sector from the parent field sky model
+        Makes a sky model for the sector from the parent field calibration sky model
         """
-        skymodel = lsmtool.load(self.field.skymodel_file)
+        skymodel = lsmtool.load(self.field.calibration_skymodel_file)
 
         # Make list of sources in full sky model
         RA = skymodel.getColValues('Ra')
@@ -204,8 +203,8 @@ class Sector(object):
 
         # Write sky model to file
         skymodel.setPatchPositions(method='wmean')
-        self.skymodel_file = os.path.join(self.field.working_dir, 'skymodels', '{}_skymodel.txt'.format(self.name))
-        skymodel.write(self.skymodel_file, clobber=True)
+        self.calibration_skymodel_file = os.path.join(self.field.working_dir, 'skymodels', '{}_skymodel.txt'.format(self.name))
+        skymodel.write(self.calibration_skymodel_file, clobber=True)
 
         # Save list of patches (directions) in the format written by DDECal in the h5parm
         self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
@@ -215,14 +214,50 @@ class Sector(object):
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
-    def get_source_sizes(self):
+    def get_source_sizes_arcmin(self, radius_deg=None):
         """
-        Returns list of source sizes in arcmin
-        """
-        skymodel = lsmtool.load(self.skymodel_file)
-        sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
+        Returns list of source sizes in arcmin for sources
 
-        return sizes
+        Parameters
+        ----------
+        radius_deg : float
+            Radius in degrees from sector center within which to return sizes. If None,
+            use all sources within sector boundary
+
+        Returns
+        -------
+        sizes : list
+            List of source sizes in arcmin
+        """
+        lsmtool._logging.setLevel('debug')
+        skymodel = lsmtool.load(self.field.source_skymodel_file)
+
+        # Make list of sources in full sky model
+        RA, Dec = skymodel.getPatchPositions(asArray=True)
+        x, y = self.field.radec2xy(RA, Dec)
+        points = []
+        for i, (xp, yp) in enumerate(zip(x, y)):
+            p = Point((xp, yp))
+            p.index = i
+            points.append(p)
+
+        # Find sources that are inside radius_deg or the sector
+        if radius_deg is None:
+            vertices = self.get_vertices_radec()
+            xv, yv = self.field.radec2xy(vertices[0], vertices[1])
+            poly = Polygon([(xp, yp) for xp, yp in zip(xv, yv)])
+            prepared_polygon = prep(poly)
+            inside_points = filter(prepared_polygon.contains, points)
+            inside = np.zeros(len(RA), dtype=bool)
+            for p in inside_points:
+                inside[p.index] = True
+            skymodel.select(inside, force=True, aggregate=True)
+        else:
+            dists = skymodel.getDistance(self.ra, self.dec, byPatch=True)
+            s.select(dists < radius_deg, aggregate=True)
+        sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
+        RA, Dec = s.getPatchPositions(asArray=True)
+        return sizes, RA, Dec
 
     def get_obs_parameters(self, parameter):
         """
@@ -257,22 +292,11 @@ class Sector(object):
 
         # Find nearby sources in input sky model and adjust sector boundaries
         # if necessary
-        lsmtool._logging.setLevel('debug')
-        s = lsmtool.load(self.field.skymodel_file)
-        dists = s.getDistance(self.ra, self.dec, byPatch=False)
-        radius = np.hypot(self.width_ra, self.width_dec)
-        s.select(dists < radius)
-        if len(s) > 0:
-            # Group components in input sky model by thresholding after
-            # convolving model with 1-arcmin beam
-            s.group('threshold', FWHM='60.0 arcsec', root='facet', threshold=0.01)
-            s.remove('Patch = patch_*', force=True) # Remove sources that did not threshold
-            RA, Dec = s.getPatchPositions(asArray=True)
-            sx, sy = self.field.radec2xy(RA, Dec)
-            sizes = s.getPatchSizes(units='degree').tolist()
-
-            # Make buffered points for all sources in the input sky model
+        sizes, RA, Dec = self.get_source_sizes_arcmin(radius_deg=radius)
+        if len(sizes) > 0:
+            # Make buffered points for all sources
             points = []
+            sx, sy = self.field.radec2xy(RA, Dec)
             for xp, yp, sp in zip(sx, sy, sizes):
                 radius = sp * 1.2 / 2.0 / self.field.wcs.wcs.cdelt[0] # size of source in pixels
                 points.append(Point((xp, yp)).buffer(radius))

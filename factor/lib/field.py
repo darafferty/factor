@@ -38,7 +38,7 @@ class Field(object):
         # Scan MS files to get observation info
         self.scan_observations()
 
-        # Make calibration sky model by grouping the initial sky model
+        # Make calibration and source sky models by grouping the initial sky model
         self.make_calibration_skymodel(self.parset['initial_skymodel'])
 
         # Set up imaging sectors
@@ -136,10 +136,16 @@ class Field(object):
         skymodel = lsmtool.load(skymodel_filename)
         flux = self.parset['direction_specific']['patch_target_flux_jy']
         self.log.info('Grouping sky model to form calibration patches...')
-        skymodel.group('threshold', FWHM='60.0 arcsec')
-        skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
 
-        self.skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
+        # Write out the thresholded sky model, as it is used later for source avoidance
+        # and to determine source sizes
+        skymodel.group('threshold', FWHM='60.0 arcsec')
+        self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
+        skymodel.write(self.skymodel_file, clobber=True)
+
+        # Now tesselate to get patches of the target flux
+        skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+        self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         skymodel.write(self.skymodel_file, clobber=True)
         self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel.getPatchNames()), flux))
 

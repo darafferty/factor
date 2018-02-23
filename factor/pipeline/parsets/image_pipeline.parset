@@ -164,9 +164,9 @@ wsclean_image_full.control.type                   = wsclean
 wsclean_image_full.control.mapfiles_in            = [prepare_imaging_data.output.mapfile,premask.output.mapfile]
 wsclean_image_full.control.inputkeys              = [msfile,fitsmask]
 {% if use_idg %}
-wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
+wsclean_image_full.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
 {% else %}
-wsclean_image_full.argument.flags                 = [-no-update-model-required,{{ wsclean_multiscale }}-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,msfile]
+wsclean_image_full.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,msfile]
 {% endif %}
 wsclean_image_full.argument.channels-out          = {{ wsclean_nchannels }}
 wsclean_image_full.argument.fits-mask             = fitsmask
@@ -179,9 +179,7 @@ wsclean_image_full.argument.minuv-l               = {{ min_uv_lambda }}
 wsclean_image_full.argument.scale                 = {{ cellsize_deg }}
 wsclean_image_full.argument.mem                   = {{ max_percent_memory_per_proc_single }}
 wsclean_image_full.argument.j                     = {{ max_cpus_per_proc_single }}
-{% if mscale_do and multiscale_scales_pixel is not none %}
 wsclean_image_full.argument.multiscale-scales     = {{ multiscale_scales_pixel }}
-{% endif %}
 {% if local_dir is not none %}
 wsclean_image_full.argument.tempdir               = {{ local_dir_parent }}
 {% endif %}

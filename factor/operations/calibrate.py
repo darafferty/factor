@@ -38,14 +38,14 @@ class Calibrate(Operation):
                               'slow_phase_{}.h5parm'.format(i))
                               for i in range(field.nfreqchunks)]
 
-        # If needed (nsectors > 1), define predict parameters
+        # If needed (i.e., nsectors > 1), define predict parameters
         sector_filename = []
         sector_skymodel = []
         sector_patches = []
         for sector in field.sectors:
             for obs in sector.observations:
                 sector_filename.append(obs.ms_filename)
-                sector_skymodel.append(sector.skymodel_file)
+                sector_skymodel.append(sector.calibrate_skymodel_file)
                 sector_patches.append(sector.patches)
         sector_patches = '[{}]'.format(';'.join(sector_patches))
         obs_filename = []
