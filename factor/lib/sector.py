@@ -199,12 +199,12 @@ class Sector(object):
         inner_poly = self.get_inner_poly()
         if inner_poly is not None:
             iminx, iminy, imaxx, imaxy = inner_poly.bounds
-            inside_ind = np.where((x > iminx) & (x < imaxx) &
-                                  (y > iminy) & (y < imaxy))
-            near_ind = np.where((x > minx) & (x < iminx) &
-                                (y > miny) & (y < iminy) &
-                                (x < maxx) & (x > imaxx) &
-                                (y < maxy) & (y > imaxy))
+            inside_ind = np.where( (x > iminx) & (x < imaxx) &
+                                   (y > iminy) & (y < imaxy) )
+            near_ind = np.where( ((x > minx) & (x < iminx) & (y > miny) & (y < maxy)) |
+                                 ((x > imaxx) & (x < maxx) & (y > miny) & (y < maxy)) |
+                                 ((y > miny) & (y < iminy) & (x > minx) & (x < maxx)) |
+                                 ((y > imaxy) & (y < maxy) & (x > minx) & (x < maxx)) )
         else:
             inside_ind = [[]]
             near_ind = np.where((x > minx) & (y > miny) &
@@ -225,9 +225,11 @@ class Sector(object):
         # Make sky model with sources near boundary only (for source avoidance)
         boundary_skymodel = skymodel.copy()
         boundary_skymodel.select(near_boundary)
-        self.boundary_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
-                                               '{}_boundary_skymodel.txt'.format(self.name))
-        boundary_skymodel.write(self.boundary_skymodel_file, clobber=True)
+        self.num_sources_near_boundary = len(boundary_skymodel)
+        if self.num_sources_near_boundary > 0:
+            self.boundary_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
+                                                   '{}_boundary_skymodel.txt'.format(self.name))
+            boundary_skymodel.write(self.boundary_skymodel_file, clobber=True)
 
         # Find all sources that are inside the sector
         prepared_polygon = prep(self.poly)
@@ -311,6 +313,9 @@ class Sector(object):
         """
         Adjusts the boundary of the sector for known sources
         """
+        if self.num_sources_near_boundary == 0:
+            return
+
         # Find nearby sources in input sky model and adjust sector boundaries
         # if necessary
         poly = self.poly
