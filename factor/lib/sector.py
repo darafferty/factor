@@ -292,30 +292,31 @@ class Sector(object):
 
         # Find nearby sources in input sky model and adjust sector boundaries
         # if necessary
+        radius = np.hypot(self.width_ra/2.0, self.width_dec/2.0) * 1.2
         sizes, RA, Dec = self.get_source_sizes_arcmin(radius_deg=radius)
-        if len(sizes) > 0:
-            # Make buffered points for all sources
-            points = []
-            sx, sy = self.field.radec2xy(RA, Dec)
-            for xp, yp, sp in zip(sx, sy, sizes):
-                radius = sp * 1.2 / 2.0 / self.field.wcs.wcs.cdelt[0] # size of source in pixels
-                points.append(Point((xp, yp)).buffer(radius))
 
-            # Alter sector polygon to avoid sources in the input sky model
-            niter = 0
-            while niter < 3:
-                niter += 1
-                prepared_polygon = prep(poly)
-                intersecting_points = filter(prepared_polygon.intersects, points)
+        # Make buffered points for all sources
+        points = []
+        sx, sy = self.field.radec2xy(RA, Dec)
+        for xp, yp, sp in zip(sx, sy, sizes):
+            radius = sp * 1.2 / 2.0 / self.field.wcs.wcs.cdelt[0] # size of source in pixels
+            points.append(Point((xp, yp)).buffer(radius))
 
-                # Adjust sector polygon for each source that intersects it
-                for p2 in intersecting_points:
-                    if poly.contains(p2.centroid):
-                        # If point is inside, union the polys
-                        poly = poly.union(p2)
-                    else:
-                        # If centroid of point is outside, difference the polys
-                        poly = poly.difference(p2)
+        # Alter sector polygon to avoid sources in the input sky model
+        niter = 0
+        while niter < 3:
+            niter += 1
+            prepared_polygon = prep(poly)
+            intersecting_points = filter(prepared_polygon.intersects, points)
+
+            # Adjust sector polygon for each source that intersects it
+            for p2 in intersecting_points:
+                if poly.contains(p2.centroid):
+                    # If point is inside, union the polys
+                    poly = poly.union(p2)
+                else:
+                    # If centroid of point is outside, difference the polys
+                    poly = poly.difference(p2)
         self.poly = poly
 
     def get_vertices_radec(self):
