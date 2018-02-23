@@ -285,7 +285,7 @@ make_predict_output_map.control.append       = .sector
 {% if do_slowgain_solve %}
 # combine fast and slow h5parms, length = 2 -> 1
 combine_h5parms.control.type        = combine_h5parms
-combine_h5parms.control.mapfiles_in = [append_h5_fast.output.mapfile,append_h5_slow.output.mapfile]
+combine_h5parms.control.mapfiles_in = [combine_fast_phases.output.mapfile,combine_slow_gains.output.mapfile]
 combine_h5parms.control.inputkeys   = [h1,h2]
 combine_h5parms.argument.flags      = [h1,h2,input.output.working_directory/input.output.job_name/combined_solutions.h5]
 {% endif %}
