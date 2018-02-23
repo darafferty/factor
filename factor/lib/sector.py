@@ -214,15 +214,15 @@ class Sector(object):
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
-    def get_source_sizes_arcmin(self, radius_deg=None):
+    def get_source_sizes_arcmin(self, inside_only=True):
         """
-        Returns list of source sizes in arcmin for sources
+        Returns list of source sizes in arcmin
 
         Parameters
         ----------
-        radius_deg : float
-            Radius in degrees from sector center within which to return sizes. If None,
-            use all sources within sector boundary
+        inside_only : bool, optional
+            If True, use only sources within sector boundary. If False, also include
+            sources near but outside the sector
 
         Returns
         -------
@@ -232,17 +232,21 @@ class Sector(object):
         lsmtool._logging.setLevel('debug')
         skymodel = lsmtool.load(self.field.source_skymodel_file)
 
-        # Make list of sources in full sky model
-        RA, Dec = skymodel.getPatchPositions(asArray=True)
-        x, y = self.field.radec2xy(RA, Dec)
-        points = []
-        for i, (xp, yp) in enumerate(zip(x, y)):
-            p = Point((xp, yp))
-            p.index = i
-            points.append(p)
+        # Filter out sources far from sector
+        radius_deg = np.hypot(self.width_ra/2.0, self.width_dec/2.0) * 1.2
+        dists = skymodel.getDistance(self.ra, self.dec, byPatch=True)
+        skymodel.select(dists < radius_deg, aggregate=True)
+        if sector_only:
+            # Make list of sources to check
+            RA, Dec = skymodel.getPatchPositions(asArray=True)
+            x, y = self.field.radec2xy(RA, Dec)
+            points = []
+            for i, (xp, yp) in enumerate(zip(x, y)):
+                p = Point((xp, yp))
+                p.index = i
+                points.append(p)
 
-        # Find sources that are inside radius_deg or the sector
-        if radius_deg is None:
+            # Select sources that are inside the sector
             vertices = self.get_vertices_radec()
             xv, yv = self.field.radec2xy(vertices[0], vertices[1])
             poly = Polygon([(xp, yp) for xp, yp in zip(xv, yv)])
@@ -252,9 +256,6 @@ class Sector(object):
             for p in inside_points:
                 inside[p.index] = True
             skymodel.select(inside, force=True, aggregate=True)
-        else:
-            dists = skymodel.getDistance(self.ra, self.dec, byPatch=True)
-            skymodel.select(dists < radius_deg, aggregate=True)
         sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
         RA, Dec = skymodel.getPatchPositions(asArray=True)
         return sizes, RA, Dec
