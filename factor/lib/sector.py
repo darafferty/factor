@@ -185,6 +185,8 @@ class Sector(object):
         RA = skymodel.getColValues('Ra')
         Dec = skymodel.getColValues('Dec')
         x, y = self.field.radec2xy(RA, Dec)
+        x = np.array(x)
+        y = np.array(y)
 
         # Identify sources near poly bounding box
         minx, miny, maxx, maxy = self.poly.bounds
@@ -195,13 +197,19 @@ class Sector(object):
         miny -= dely
         maxy += dely
         inner_poly = self.get_inner_poly()
-        iminx, iminy, imaxx, imaxy = inner_poly.bounds
-        inside_ind = np.where((x > iminx) & (x < imaxx) &
-                            (y > iminy) & (y < imaxy))
-        near_ind = np.where((x > minx) & (x < iminx) &
-                            (y > miny) & (y < iminy) &
-                            (x < maxx) & (x > imaxx) &
-                            (y < maxy) & (y > imaxy))
+        if inner_poly is not None:
+            iminx, iminy, imaxx, imaxy = inner_poly.bounds
+            inside_ind = np.where((x > iminx) & (x < imaxx) &
+                                  (y > iminy) & (y < imaxy))
+            near_ind = np.where((x > minx) & (x < iminx) &
+                                (y > miny) & (y < iminy) &
+                                (x < maxx) & (x > imaxx) &
+                                (y < maxy) & (y > imaxy))
+        else:
+            inside_ind = [[]]
+            near_ind = np.where((x > minx) & (y > miny) &
+                                (x < maxx) & (y < maxy))
+
         points = []
         near_boundary = np.zeros(len(skymodel), dtype=bool)
         inside = np.zeros(len(skymodel), dtype=bool)
