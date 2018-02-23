@@ -299,7 +299,7 @@ class Sector(object):
         poly = Polygon(poly_verts)
         self.poly = poly
 
-    def self.adjust_boundary():
+    def adjust_boundary(self):
         """
         Adjusts the boundary of the sector for known sources
         """
