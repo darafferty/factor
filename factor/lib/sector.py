@@ -180,7 +180,10 @@ class Sector(object):
         """
         skymodel = lsmtool.load(self.field.calibration_skymodel_file)
 
-        # Make list of sources in full sky model
+        # Filter out sources far from sector
+        radius_deg = np.hypot(self.width_ra/2.0, self.width_dec/2.0) * 1.2
+        dists = skymodel.getDistance(self.ra, self.dec, byPatch=True)
+        skymodel.select(dists < radius_deg, aggregate=True)
         RA = skymodel.getColValues('Ra')
         Dec = skymodel.getColValues('Dec')
         x, y = self.field.radec2xy(RA, Dec)
