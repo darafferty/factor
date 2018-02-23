@@ -293,8 +293,7 @@ class Sector(object):
 
         # Find nearby sources in input sky model and adjust sector boundaries
         # if necessary
-        radius = np.hypot(self.width_ra/2.0, self.width_dec/2.0) * 1.2
-        sizes, RA, Dec = self.get_source_sizes_arcmin(radius_deg=radius)
+        sizes, RA, Dec = self.get_source_sizes_arcmin(inside_only=False)
 
         # Make buffered points for all sources
         points = []
