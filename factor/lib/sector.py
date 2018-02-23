@@ -50,6 +50,7 @@ class Sector(object):
         # Define the sector polygon vertices and sky model
         self.define_vertices()
         self.make_skymodel()
+        self.adjust_boundary()
 
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
                                min_uv_lambda, max_uv_lambda, max_peak_smearing,
@@ -296,9 +297,15 @@ class Sector(object):
                       (x0+ra_width_pix, y0+dec_width_pix),
                       (x0+ra_width_pix, y0), (x0, y0)]
         poly = Polygon(poly_verts)
+        self.poly = poly
 
+    def self.adjust_boundary():
+        """
+        Adjusts the boundary of the sector for known sources
+        """
         # Find nearby sources in input sky model and adjust sector boundaries
         # if necessary
+        poly = self.poly
         sizes, RA, Dec = self.get_source_sizes_arcmin('near boundary')
 
         # Make buffered points for all sources
