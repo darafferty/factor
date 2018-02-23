@@ -178,7 +178,7 @@ class Observation(object):
         ms_subtracted_filename : str, optional
             Filename of model-subtracted data
         """
-        mean_freq_mhz = self.referencefreq
+        mean_freq_mhz = self.referencefreq / 1e6
         peak_smearing_factor = np.sqrt(1.0 - max_peak_smearing)
         chan_width_hz = self.channelwidth
         nchan = self.numchannels
