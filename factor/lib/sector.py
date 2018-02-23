@@ -348,14 +348,13 @@ class Sector(object):
             miny += stepy
             maxy -= stepy
             inner_poly = box(minx, miny, maxx, maxy)
-            if poly.contains(inner_poly):
+            if self.poly.contains(inner_poly):
                 success = True
                 break
         if success:
             return inner_poly
         else:
             return None
-
 
     def get_vertices_radec(self):
         """
