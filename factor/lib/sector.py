@@ -236,7 +236,7 @@ class Sector(object):
         radius_deg = np.hypot(self.width_ra/2.0, self.width_dec/2.0) * 1.2
         dists = skymodel.getDistance(self.ra, self.dec, byPatch=True)
         skymodel.select(dists < radius_deg, aggregate=True)
-        if sector_only:
+        if inside_only:
             # Make list of sources to check
             RA, Dec = skymodel.getPatchPositions(asArray=True)
             x, y = self.field.radec2xy(RA, Dec)
