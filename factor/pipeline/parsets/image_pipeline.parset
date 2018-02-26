@@ -183,6 +183,11 @@ wsclean_image_full.argument.multiscale-scales     = {{ multiscale_scales_pixel }
 {% if local_dir is not none %}
 wsclean_image_full.argument.tempdir               = {{ local_dir_parent }}
 {% endif %}
+{% if wsclean_nchannels > 3 %}
+wsclean_image_full.argument.fit-spectral-pol      = 3
+{% elif wsclean_nchannels > 1 %}
+wsclean_image_full.argument.fit-spectral-pol      = {{ wsclean_nchannels - 1 }}
+{% endif %}
 wsclean_image_full.argument.multiscale-shape      = gaussian
 wsclean_image_full.argument.weighting-rank-filter = 3
 {% if taper_arcsec > 0.0 %}

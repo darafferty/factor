@@ -77,7 +77,7 @@ class Calibrate(Operation):
         # Add output datamaps to field object for later use
         if self.field.do_slowgain_solve:
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                     'combine_h5parms.mapfile')
+                                                     'combine_all_h5parms_output.mapfile')
         else:
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                     'combine_fast_phases.mapfile')
+                                                     'combine_fast_h5parms_output.mapfile')

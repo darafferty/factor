@@ -10,6 +10,7 @@ from shapely.prepared import prep
 import pickle
 import lsmtool
 import os
+import copy
 
 
 class Sector(object):
@@ -43,7 +44,7 @@ class Sector(object):
         self.width_ra = width_ra
         self.width_dec = width_dec
         self.field = field
-        self.observations = field.observations[:]
+        self.observations = copy.deepcopy(field.observations)
         self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.pkl'.format(self.name))
         self.region_file = '[]'
 
