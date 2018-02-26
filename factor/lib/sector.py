@@ -49,6 +49,7 @@ class Sector(object):
 
         # Make copies of the observation objects, as each sector may have its own
         # observation-specific settings
+        self.observations = []
         for obs in field.observations:
             obs.log = None
             cobs = copy.deepcopy(obs)
