@@ -47,7 +47,7 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
     i = 0
     model_list = []
     while True:
-        matches = glob.glob('{0}{1}_{2}'.format(msin,model_suffix, i))
+        matches = glob.glob('{0}{1}_{2}'.format(msin, model_suffix, i))
         if len(matches) == 0:
             break
         model_list.extend(matches)
@@ -63,9 +63,8 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
     tout_list = []
     for msmod in model_list:
         msout = '{}_sub'.format(msmod)
-        if os.path.exists(msout):
-            os.system('/bin/rm -rf {0}'.format(msout))
-        os.system('/bin/cp -r {0} {1}'.format(msin, msout))
+        if not os.path.exists(msout):
+            os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout_list.append(pt.table(msout, readonly=False, ack=False))
 
     # Define chunks based on available memory
@@ -109,7 +108,7 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
             datamod_all = None
             for sector_ind in other_sectors_ind:
                 if datamod_all is None:
-                    datamod_all = datamod_list[sector_ind]
+                    datamod_all = datamod_list[sector_ind].copy()
                 else:
                     datamod_all += datamod_list[sector_ind]
             tout.putcol(out_column, datain-datamod_all, startrow=startrow, nrow=nrow)
