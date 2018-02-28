@@ -146,7 +146,6 @@ class Operation(object):
                            'script_dir': self.factor_script_dir,
                            'local_dir': self.local_scratch_dir,
                            'local_dir_parent': self.local_dir_parent,
-                           'selfcal_local_dir': self.local_selfcal_scratch_dir,
                            'pipeline_parset_dir': self.pipeline_parset_dir,
                            'hosts': self.node_list}
 
@@ -333,13 +332,6 @@ class Operation(object):
                     cmd = ['rm', '-rf', self.local_scratch_dir]
                 else:
                     cmd = ['ssh', node, 'rm', '-rf', self.local_scratch_dir]
-                tmp = subprocess.call(cmd)
-        if self.local_selfcal_scratch_dir is not None:
-            for node in self.node_list:
-                if node == 'localhost':
-                    cmd = ['rm', '-rf', self.local_selfcal_scratch_dir]
-                else:
-                    cmd = ['ssh', node, 'rm', '-rf', self.local_selfcal_scratch_dir]
                 tmp = subprocess.call(cmd)
 
             # Check whether we need to reset the pipeline state to before the sync step

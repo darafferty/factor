@@ -180,7 +180,7 @@ image.argument.scale                 = {{ cellsize_deg }}
 image.argument.mem                   = {{ max_percent_memory_per_proc_single }}
 image.argument.j                     = {{ max_cpus_per_proc_single }}
 image.argument.multiscale-scales     = {{ multiscale_scales_pixel }}
-{% if local_dir_parent is not none %}
+{% if local_dir is not none %}
 image.argument.temp-dir              = {{ local_dir_parent }}
 {% endif %}
 {% if wsclean_nchannels > 3 %}
