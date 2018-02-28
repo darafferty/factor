@@ -85,6 +85,14 @@ def parset_read(parset_file, use_log_file=True):
     log.info("Input MS directory is {}".format(parset_dict['dir_ms']))
     log.info("Working on {} input file(s).".format(len(parset_dict['mss'])))
 
+    # Make sure the initial skymodel is present
+    if 'initial_skymodel' not in parset_dict:
+        log.error('No initial sky model file given. Exiting...')
+        sys.exit(1)
+    elif not os.path.exists(parset_dict['initial_skymodel']):
+        log.error('Initial sky model file "{}" not found. Exiting...'.format(parset_dict['initial_skymodel']))
+        sys.exit(1)
+
     # Check for unused sections
     given_sections = parset._sections.keys()
     allowed_sections = ['global', 'calibration', 'imaging', 'directions',
@@ -148,6 +156,12 @@ def get_global_options(parset):
     else:
         parset_dict['interactive'] = False
 
+    # Regroup initial skymodel (default = True)
+    if 'regroup_initial_skymodel' in parset_dict:
+        parset_dict['regroup_initial_skymodel'] = parset.getboolean('global', 'regroup_initial_skymodel')
+    else:
+        parset_dict['regroup_initial_skymodel'] = False
+
     # Flagging ranges (default = no flagging). A range of times baselines, and
     # frequencies to flag can be specified (see the DPPP documentation for
     # details of syntax) By default, the ranges are AND-ed to produce the final flags,
@@ -179,7 +193,7 @@ def get_global_options(parset):
     given_options = parset.options('global')
     allowed_options = ['dir_working', 'dir_ms', 'interactive', 'chunk_size_sec',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
-                       'flag_expr', 'chunk_size_hz', 'initial_skymodel']
+                       'flag_expr', 'chunk_size_hz', 'initial_skymodel', 'regroup_initial_skymodel']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [global] section of the '

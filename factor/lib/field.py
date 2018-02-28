@@ -364,7 +364,8 @@ class Field(object):
                 blank_image.main(input_image_file, vertices_file, output_image_file)
 
             # Make the mosaic
-            outfile = os.path.join(self.parset['dir_working'], 'results', 'image_{}'.format(iter), 'field', 'field_mosaic.fits'
+            outfile = os.path.join(self.parset['dir_working'], 'results', 'image_{}'.format(iter),
+                                   'field', 'field_mosaic.fits')
             self.output_image_filename = outfile
             mosaic_images.main(blanked_images, outfile)
         else:
