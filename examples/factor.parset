@@ -203,10 +203,6 @@ dir_ms = /data/bands
 
 
 [directions]
-# Full path to file containing calibrator directions. If not given, directions
-# are selected internally using the flux density and size cuts below
-# directions_file = /data/directions.txt
-
 # Full path to sky model (in makesourcedb format) to be used for calibrator
 # selection and facet-boundary source avoidance (default is to use re-grouped
 # direction-independent sky model of the highest-frequency band). The sky

@@ -46,6 +46,8 @@ class Sector(object):
         self.field = field
         self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.pkl'.format(self.name))
         self.region_file = '[]'
+        self.output_image_filename = {}
+        self.output_skymodel_filename = {}
 
         # Make copies of the observation objects, as each sector may have its own
         # observation-specific settings
@@ -99,6 +101,10 @@ class Sector(object):
         self.max_uv_lambda = max_uv_lambda
         self.use_idg = use_idg
         self.idg_mode = idg_mode
+
+        # Set ID for current imaging parameters
+        self.current_image_id = self.get_image_id(cellsize_arcsec, robust, taper_arcsec,
+                                                  min_uv_lambda, max_uv_lambda)
 
         # Set image size
         self.imsize = [int(self.width_ra / self.cellsize_deg * 1.1),
@@ -159,6 +165,79 @@ class Sector(object):
         else:
             self.wsclean_nwavelengths = 0
 
+    def get_image_id(self, cellsize_arcsec, robust, taper_arcsec, min_uv_lambda, max_uv_lambda):
+        """
+        Returns the imaging ID for given values
+
+        Parameters
+        ----------
+        cellsize_arcsec : float
+            Pixel size in arcsec for imaging
+        robust : float
+            Briggs robust parameter for imaging
+        taper_arcsec : float
+            Taper in arcsec for imaging
+        min_uv_lambda : float
+            Minimum uv cut in lamdba
+        max_uv_lambda : float
+            Maximum uv cut in lamdba
+        """
+        return '{0}_{1}_{2}_{3}_{4}'.format(cellsize_arcsec, robust, taper_arcsec,
+                                            min_uv_lambda, max_uv_lambda)
+
+    def store_output_image_filename(self, filename):
+        """
+        Stores path to output image filename
+
+        Parameters
+        ----------
+        filename : str
+            Path to file
+        """
+        self.output_image_filename[self.current_image_id] = filename
+
+    def store_output_skymodel_filename(self, filename):
+        """
+        Stores path to output skymodel filename
+
+        Parameters
+        ----------
+        filename : str
+            Path to file
+        """
+        self.output_skymodel_filename[self.current_image_id] = filename
+
+    def get_output_image_filename(self, image_id=None):
+        """
+        Returns path to output image for given ID
+
+        Parameters
+        ----------
+        image_id : str, optional
+            Imaging ID
+        """
+        if image_id is None:
+            image_id = self.current_image_id
+        try:
+            return self.output_image_filename[image_id]
+        except KeyError:
+            return None
+
+    def get_output_skymodel_filename(self, image_id=None):
+        """
+        Returns path to output sky model for given ID
+
+        Parameters
+        ----------
+        image_id : str, optional
+            Imaging ID
+        """
+        if image_id is None:
+            image_id = self.current_image_id
+        try:
+            return self.output_skymodel_filename[image_id]
+        except KeyError:
+            return None
 
     def get_nwavelengths(self, cellsize_deg, timestep_sec):
         """

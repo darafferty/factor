@@ -74,7 +74,7 @@ class Calibrate(Operation):
         """
         Finalize this operation
         """
-        # Add output datamaps to field object for later use
+        # Save output mapfiles for later use
         if self.field.do_slowgain_solve:
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
                                                      'combine_all_h5parms_output.mapfile')

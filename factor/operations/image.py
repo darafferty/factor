@@ -4,13 +4,14 @@ Module that holds all the Image class
 import os
 import logging
 from factor.lib.operation import Operation
+from lofarpipe.support.data_map import DataMap
 
 log = logging.getLogger('factor:image')
 
 
 class Image(Operation):
     """
-    Operation to image the field
+    Operation to image a field sector
     """
     def __init__(self, field, sector, index):
         name = 'Image_{0}'.format(index)
@@ -34,19 +35,14 @@ class Image(Operation):
                                 'image_freqstep': image_freqstep,
                                 'image_timestep': image_timestep})
 
-
     def finalize(self):
         """
         Finalize this operation
         """
-        # Add output datamaps to field object for later use
-        if hasattr(self.field, 'image_mapfile'):
-            self.field.image_mapfile['facetimage'] = os.path.join(self.pipeline_mapfile_dir,
-                'sector_image.mapfile')
-            self.field.premask_mapfile['facetimage'] = os.path.join(self.pipeline_mapfile_dir,
-                'premask.mapfile')
-        else:
-            self.field.image_mapfile = {'facetimage': os.path.join(self.pipeline_mapfile_dir,
-                'sector_image.mapfile')}
-            self.field.premask_mapfile = {'facetimage': os.path.join(self.pipeline_mapfile_dir,
-                'premask.mapfile')}
+        # Save output mapfiles for later use
+        mapfile = os.path.join(self.pipeline_mapfile_dir, 'image-MFS-image.fits.mapfile')
+        in_map = DataMap.load(mapfile)
+        self.field.sector.add_output_image_filename(in_map[0].file)
+        mapfile = os.path.join(self.pipeline_mapfile_dir, 'image-sources.txt.mapfile')
+        in_map = DataMap.load(mapfile)
+        self.field.sector.add_output_skymodel_filename(in_map[0].file)

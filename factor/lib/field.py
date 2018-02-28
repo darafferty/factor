@@ -8,6 +8,7 @@ import numpy as np
 import lsmtool
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
+from factor.scripts import blank_image, mosaic_images
 
 
 class Field(object):
@@ -39,7 +40,7 @@ class Field(object):
         self.scan_observations()
 
         # Make calibration and source sky models by grouping the initial sky model
-        self.make_calibration_skymodel(self.parset['initial_skymodel'])
+        self.make_skymodels(self.parset['initial_skymodel'], self.parset['regroup_initial_skymodel'])
 
         # Set up imaging sectors
         self.makeWCS()
@@ -124,9 +125,9 @@ class Field(object):
         """
         return sum([obs.calibration_parameters[parameter] for obs in self.observations], [])
 
-    def make_calibration_skymodel(self, skymodel_filename):
+    def make_source_skymodel(self, skymodel_filename, regroup=True):
         """
-        Groups the sky model into groups of target flux and saves to disk
+        Groups the sky model into sources
 
         Parameters
         ----------
@@ -134,20 +135,57 @@ class Field(object):
             Filename of input makesourcedb sky model file
         """
         skymodel = lsmtool.load(skymodel_filename)
-        flux = self.parset['direction_specific']['patch_target_flux_jy']
-        self.log.info('Grouping sky model to form calibration patches...')
 
-        # Write out the thresholded sky model, as it is used later for source avoidance
-        # and to determine source sizes
+        # Group by thresholding
         skymodel.group('threshold', FWHM='60.0 arcsec')
         self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
         skymodel.write(self.source_skymodel_file, clobber=True)
 
-        # Now tesselate to get patches of the target flux
-        skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+    def make_skymodels(self, skymodel, regroup=True):
+        """
+        Groups a sky model into source and calibration patches
+
+        Parameters
+        ----------
+        skymodel : str or LSMTool skymodel object
+            Filename of input makesourcedb sky model file
+        regroup : bool, optional
+            If False, the calibration sky model is not regrouped to the target flux.
+            Instead, the existing calibration groups are used
+        """
+        if type(skymodel) is str:
+            skymodel = lsmtool.load(skymodel)
+
+        if regroup:
+            flux = self.parset['direction_specific']['patch_target_flux_jy']
+            self.log.info('Grouping sky model to form calibration patches...')
+            source_skymodel = skymodel
+        else:
+            source_skymodel = skymodel.copy()
+
+        # Group by thresholding and write out the source sky model
+        source_skymodel.group('threshold', FWHM='60.0 arcsec')
+        self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
+        source_skymodel.write(self.source_skymodel_file, clobber=True)
+
+        # Now tesselate to get patches of the target flux and write out calibration sky model
+        if regroup:
+            self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel.getPatchNames()), flux))
+            skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         skymodel.write(self.calibration_skymodel_file, clobber=True)
-        self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel.getPatchNames()), flux))
+
+    def update_skymodels(self, iter):
+        """
+        Updates the source and calibration sky models from the output sector sky model(s)
+        """
+        sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
+        skymodel = lsmtool.load(sector_skymodels[0])
+        sector_skymodels.pop(0)
+        for s2 in sector_skymodels:
+            skymodel.concatenate(s2)
+        skymodel.write(self.calibration_skymodel_file, clobber=True)
+        self.make_skymodels(skymodel)
 
     def define_sectors(self):
         """
@@ -155,9 +193,10 @@ class Field(object):
         """
         nsectors_ra = self.parset['imaging_specific']['nsectors_per_side']
         if nsectors_ra == 1 and len(self.parset['cluster_specific']['node_list']) == 1:
+            # For a single machine, use a single sector
             nsectors_dec = 1
-            width_ra = self.fwhm_ra_deg / nsectors_ra
-            width_dec = self.fwhm_dec_deg / nsectors_dec
+            width_ra = self.fwhm_ra_deg
+            width_dec = self.fwhm_dec_deg
             center_x, center_y = self.radec2xy([self.ra], [self.dec])
             x = np.array([center_x])
             y = np.array([center_y])
@@ -183,7 +222,10 @@ class Field(object):
         n = 0
         for i in range(nsectors_ra):
             for j in range(nsectors_dec):
-                name = 'sector_{0}'.format(n)
+                if nsectors_ra == 1 and nsectors_dec == 1:
+                    name = 'field'
+                else:
+                    name = 'sector_{0}'.format(n)
                 n += 1
                 ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
                 self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
@@ -241,7 +283,6 @@ class Field(object):
             ra_dec = np.array([[ra_deg, dec_deg]])
             x.append(self.wcs.wcs_world2pix(ra_dec, 0)[0][0])
             y.append(self.wcs.wcs_world2pix(ra_dec, 0)[0][1])
-
         return x, y
 
     def xy2radec(self, x, y):
@@ -268,7 +309,6 @@ class Field(object):
             x_y = np.array([[xp, yp]])
             RA.append(self.wcs.wcs_pix2world(x_y, 0)[0][0])
             Dec.append(self.wcs.wcs_pix2world(x_y, 0)[0][1])
-
         return RA, Dec
 
     def makeWCS(self):
@@ -279,7 +319,6 @@ class Field(object):
         -------
         w : astropy.wcs.WCS object
             A simple TAN-projection WCS object for specified reference position
-
         """
         from astropy.wcs import WCS
 
@@ -292,3 +331,41 @@ class Field(object):
         w.wcs.set_pv([(2, 1, 45.0)])
         self.wcs = w
 
+    def check_selfcal_convergence(self):
+        """
+        Checks whether selfcal has converged or not on a sector-by-sector basis
+
+        Returns
+        -------
+        result : bool
+            True if all sectors have converged, False if not
+        """
+        return False
+
+    def make_mosaic(self, iter, image_id=None):
+        """
+        Make mosaic of the sector images
+
+        Parameters
+        ----------
+        iter : int
+            Iteration index
+        image_id : str, optional
+            Imaging ID
+        """
+        if len(self.sectors) > 1:
+            # Blank the sector images
+            blanked_images = []
+            for sector in self.sectors:
+                input_image_file = sector.get_output_image_filename(image_id)
+                vertices_file = sector.vertices_file
+                output_image_file = input_image_file * '_blanked'
+                blanked_images.append(output_image_file)
+                blank_image.main(input_image_file, vertices_file, output_image_file)
+
+            # Make the mosaic
+            outfile = os.path.join(self.parset['dir_working'], 'results', 'image_{}'.format(iter), 'field', 'field_mosaic.fits'
+            self.output_image_filename = outfile
+            mosaic_images.main(blanked_images, outfile)
+        else:
+            self.output_image_filename = self.sectors[0].get_output_image_filename(image_id)

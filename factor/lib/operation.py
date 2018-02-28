@@ -82,13 +82,13 @@ class Operation(object):
             self.local_scratch_dir = None
             self.local_dir_parent = None
             self.dppp_nodescript = 'executable_args'
-        elif self.parset['cluster_specific']['clusterdesc_file'].lower() == 'pbs':
+        elif self.parset['cluster_specific']['cluster_type'].lower() == 'pbs':
             # PBS: use special DPPP node script
             self.local_scratch_dir = os.path.join(self.parset['cluster_specific']['dir_local'],
                                                   scratch_subdir)
             self.local_dir_parent = self.parset['cluster_specific']['dir_local']
             self.dppp_nodescript = 'dppp_scratch'
-        elif self.parset['cluster_specific']['clusterdesc_file'].lower() == 'slurm':
+        elif self.parset['cluster_specific']['cluster_type'].lower() == 'slurm':
             # SLURM: use special DPPP node script
             self.local_scratch_dir = os.path.join(self.parset['cluster_specific']['dir_local'],
                                                   scratch_subdir)
@@ -100,11 +100,6 @@ class Operation(object):
                                                   scratch_subdir)
             self.local_dir_parent = self.parset['cluster_specific']['dir_local']
             self.dppp_nodescript = 'executable_args'
-        if self.parset['cluster_specific']['dir_local_selfcal'] is None:
-            self.local_selfcal_scratch_dir = None
-        else:
-            self.local_selfcal_scratch_dir = os.path.join(self.parset['cluster_specific']['dir_local_selfcal'],
-                                                          scratch_subdir)
 
         # Directory that holds logs in a convenient place
         self.log_dir = os.path.join(self.factor_working_dir, 'logs', self.name)
