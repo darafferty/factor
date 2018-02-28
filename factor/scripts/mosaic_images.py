@@ -10,7 +10,6 @@ from casacore import quanta
 import numpy as np
 from astropy.io import fits as pyfits
 import os
-from factor.directions import mask_vertices
 
 
 def main(images, outfits, maxwidth=0):
