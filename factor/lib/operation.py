@@ -139,7 +139,6 @@ class Operation(object):
         # pipeline-specific, parameters should be defined in the subclasses by
         # updating this dictionary
         self.parms_dict = {'parset_dir': self.factor_parset_dir,
-                           'skymodel_dir': self.factor_skymodel_dir,
                            'mapfile_dir': self.pipeline_mapfile_dir,
                            'pipeline_dir': self.factor_pipeline_dir,
                            'script_dir': self.factor_script_dir,
