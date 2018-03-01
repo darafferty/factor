@@ -47,8 +47,9 @@ class Image(Operation):
                                            'image-sources.txt.mapfile'))
         self.direction.store_output_skymodel_filename(in_map[0].file)
 
-        # Create sym links to images
-        sol_map = DataMap.load(self.field.h5parm_mapfile)
-        os.symlink(self.direction.get_output_image_filename(),
-                   os.path.join(self.factor_working_dir, 'images',
-                                'field-MFS-image.fits'.format(self.index)))
+        # Create sym links to image files
+        dst = os.path.join(self.factor_working_dir, 'images',
+                           'field-MFS-image_{}.fits'.format(self.index))
+        if os.path.exists(dst):
+            os.unlink(dst)
+        os.symlink(self.direction.get_output_image_filename(), dst)
