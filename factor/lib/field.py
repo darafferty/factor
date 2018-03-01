@@ -9,6 +9,7 @@ import lsmtool
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
 from factor.scripts import blank_image, mosaic_images
+from lofarpipe.support.utilities import create_directory
 
 
 class Field(object):
@@ -365,8 +366,17 @@ class Field(object):
 
             # Make the mosaic
             outfile = os.path.join(self.parset['dir_working'], 'results', 'image_{}'.format(iter),
-                                   'field', 'field_mosaic.fits')
+                                   'field_mosaic.fits')
             self.output_image_filename = outfile
             mosaic_images.main(blanked_images, outfile)
         else:
             self.output_image_filename = self.sectors[0].get_output_image_filename(image_id)
+
+        # Create sym links to image files
+        dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(self.index))
+        create_directory(dst_dir)
+        dst = os.path.join(dst_dir, 'field-MFS-image.fits')
+        if os.path.exists(dst):
+            os.unlink(dst)
+        os.symlink(self.direction.get_output_image_filename(), dst)
+

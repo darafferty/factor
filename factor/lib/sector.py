@@ -117,7 +117,7 @@ class Sector(object):
                        self.imsize[0], self.imsize[1]))
 
         # Set number of output channels to get 5 channels, but of no less than ~ 2 MHz each
-        target_nchannels = 5
+        target_nchannels = 4
         tot_bandwidth = 0.0
         for obs in self.observations:
             # Find observation with largest bandwidth

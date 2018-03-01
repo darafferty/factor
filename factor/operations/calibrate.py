@@ -5,6 +5,7 @@ import os
 import logging
 from factor.lib.operation import Operation
 from lofarpipe.support.data_map import DataMap
+from lofarpipe.support.utilities import create_directory
 
 log = logging.getLogger('factor:calibrate')
 
@@ -84,9 +85,10 @@ class Calibrate(Operation):
                                                      'combine_fast_h5parms_output.mapfile')
 
         # Create sym link to solutions file
-        sol_map = DataMap.load(self.field.h5parm_mapfile)
-        dst = os.path.join(self.factor_working_dir, 'solutions',
-                           'solutions_{}.h5'.format(self.index))
+        dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))
+        create_directory(dst_dir)
+        dst = os.path.join(dst_dir, 'field-solutions.h5')
         if os.path.exists(dst):
             os.unlink(dst)
+        sol_map = DataMap.load(self.field.h5parm_mapfile)
         os.symlink(sol_map[0].file, dst)
