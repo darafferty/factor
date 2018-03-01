@@ -42,7 +42,13 @@ class Image(Operation):
         # Save output mapfiles for later use
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'image-MFS-image.fits.mapfile'))
-        self.sector.add_output_image_filename(in_map[0].file)
+        self.direction.add_output_image_filename(in_map[0].file)
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'image-sources.txt.mapfile'))
-        self.sector.add_output_skymodel_filename(in_map[0].file)
+        self.direction.add_output_skymodel_filename(in_map[0].file)
+
+        # Create sym links to images
+        sol_map = DataMap.load(self.field.h5parm_mapfile)
+        os.symlink(self.direction.get_output_image_filename(),
+                   os.path.join(self.factor_image_dir,
+                                'field-MFS-image.fits'.format(self.index)))

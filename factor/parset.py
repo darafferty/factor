@@ -61,7 +61,7 @@ def parset_read(parset_file, use_log_file=True):
         os.mkdir(parset_dict['dir_working'])
     try:
         os.chdir(parset_dict['dir_working'])
-        for subdir in ['logs', 'results', 'regions', 'skymodels']:
+        for subdir in ['logs', 'results', 'pipelines', 'regions', 'skymodels', 'images', 'solutions']:
             subdir_path = os.path.join(parset_dict['dir_working'], subdir)
             if not os.path.isdir(subdir_path):
                 os.mkdir(subdir_path)
