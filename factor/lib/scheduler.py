@@ -229,8 +229,6 @@ class Scheduler(object):
             else:
                 log.error('Operation {0} failed due to an error (direction: '
                           '{1})'.format(op_name, direction_name))
-                import thread
-                thread.interrupt_main()
 
     def run(self, operation_list):
         """

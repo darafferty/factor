@@ -40,9 +40,9 @@ class Image(Operation):
         Finalize this operation
         """
         # Save output mapfiles for later use
-        mapfile = os.path.join(self.pipeline_mapfile_dir, 'image-MFS-image.fits.mapfile')
-        in_map = DataMap.load(mapfile)
-        self.field.sector.add_output_image_filename(in_map[0].file)
-        mapfile = os.path.join(self.pipeline_mapfile_dir, 'image-sources.txt.mapfile')
-        in_map = DataMap.load(mapfile)
-        self.field.sector.add_output_skymodel_filename(in_map[0].file)
+        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'image-MFS-image.fits.mapfile'))
+        self.sector.add_output_image_filename(in_map[0].file)
+        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'image-sources.txt.mapfile'))
+        self.sector.add_output_skymodel_filename(in_map[0].file)

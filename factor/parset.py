@@ -336,10 +336,10 @@ def get_imaging_options(parset):
         given_options = []
 
     # Number of sectors to use in imaging
-    if 'nsectors_per_side' in parset_dict:
-        parset_dict['nsectors_per_side'] = parset.getint('imaging', 'nsectors_per_side')
+    if 'nsectors_ra' in parset_dict:
+        parset_dict['nsectors_ra'] = parset.getint('imaging', 'nsectors_ra')
     else:
-        parset_dict['nsectors_per_side'] = 1
+        parset_dict['nsectors_ra'] = 1
 
     # Use IDG (image domain gridder) in WSClean. The mode can be cpu, gpu, or hybrid.
     if 'use_idg' in parset_dict:
