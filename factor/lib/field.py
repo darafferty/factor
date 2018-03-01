@@ -191,7 +191,7 @@ class Field(object):
         """
         Defines the imaging sectors
         """
-        nsectors_ra = self.parset['imaging_specific']['nsectors_per_side']
+        nsectors_ra = self.parset['imaging_specific']['nsectors_ra']
         if nsectors_ra == 1 and len(self.parset['cluster_specific']['node_list']) == 1:
             # For a single machine, use a single sector
             nsectors_dec = 1

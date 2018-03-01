@@ -463,7 +463,7 @@ def get_imaging_options(parset):
                        'selfcal_multiscale_scales_pixel',
                        'facet_cellsize_arcsec', 'facet_taper_arcsec', 'facet_robust',
                        'wsclean_image_padding', 'selfcal_min_uv_lambda', 'facet_min_uv_lambda',
-                       'selfcal_robust_wsclean', 'wsclean_bl_averaging', 'nsectors_per_side',
+                       'selfcal_robust_wsclean', 'wsclean_bl_averaging', 'nsectors_ra',
                        'fractional_bandwidth_selfcal_facet_image', 'use_idg', 'idg_mode']
     for option in given_options:
         if option not in allowed_options:
