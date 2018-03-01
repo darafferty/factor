@@ -106,7 +106,6 @@ class Scheduler(object):
 
         node_list = self.operation_list[0].node_list
         ncpu_max = self.operation_list[0].parset['cluster_specific']['ncpu']
-        nthread_io = self.operation_list[0].parset['cluster_specific']['nthread_io']
         fmem_max = self.operation_list[0].parset['cluster_specific']['fmem']
         ntimes = self.operation_list[0].field.ntimechunks
         nfreqs = self.operation_list[0].field.nfreqchunks
@@ -137,12 +136,9 @@ class Scheduler(object):
                     nops_per_node = 1
                 op.direction.hosts = h
 
-                # Maximum number of normal and IO-intensive processes that the
-                # pipeline should run at once
+                # Maximum number of processes that the pipeline should run at once
                 op.direction.max_proc_per_node = max(1, int(np.ceil(ncpu_max /
                                                      float(nops_per_node))))
-                op.direction.max_io_proc_per_node = max(1, int(np.ceil(nthread_io /
-                                                        float(nops_per_node))))
 
             # Adjust resources to stay within limits for each node by adding or
             # subtracting CPUs from the most appropriate operation(s). For now,
@@ -166,15 +162,9 @@ class Scheduler(object):
                 op.direction.max_cpus_per_proc_ntimes = int(np.ceil(
                     op.direction.max_proc_per_node /
                     float(min(ntimes, op.direction.max_proc_per_node))))
-                op.direction.max_cpus_per_io_proc_ntimes = int(np.ceil(
-                    op.direction.max_proc_per_node /
-                    float(min(ntimes, op.direction.max_io_proc_per_node))))
                 op.direction.max_cpus_per_proc_nfreqs = int(np.ceil(
                     op.direction.max_proc_per_node /
                     float(min(nfreqs, op.direction.max_proc_per_node))))
-                op.direction.max_cpus_per_io_proc_nfreqs = int(np.ceil(
-                    op.direction.max_proc_per_node /
-                    float(min(nfreqs, op.direction.max_io_proc_per_node))))
 
                 # Maximum percentage of memory to give to jobs that allow memory
                 # limits (e.g., WSClean jobs)
@@ -183,15 +173,9 @@ class Scheduler(object):
                 op.direction.max_percent_memory_per_proc_ntimes = (fmem_max /
                     float(nops_per_node) * 100.0 /
                     float(min(ntimes, op.direction.max_proc_per_node)))
-                op.direction.max_percent_memory_per_io_proc_ntimes = (fmem_max /
-                    float(nops_per_node) * 100.0 /
-                    float(min(ntimes, op.direction.max_io_proc_per_node)))
                 op.direction.max_percent_memory_per_proc_nfreqs = (fmem_max /
                     float(nops_per_node) * 100.0 /
                     float(min(nfreqs, op.direction.max_proc_per_node)))
-                op.direction.max_percent_memory_per_io_proc_nfreqs = (fmem_max /
-                    float(nops_per_node) * 100.0 /
-                    float(min(nfreqs, op.direction.max_io_proc_per_node)))
 
     def result_callback(self, result):
         """
