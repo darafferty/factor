@@ -360,7 +360,7 @@ class Field(object):
             for sector in self.sectors:
                 input_image_file = sector.get_output_image_filename(image_id)
                 vertices_file = sector.vertices_file
-                output_image_file = input_image_file * '_blanked'
+                output_image_file = input_image_file + '_blanked'
                 blanked_images.append(output_image_file)
                 blank_image.main(input_image_file, vertices_file, output_image_file)
 

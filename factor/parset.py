@@ -83,7 +83,7 @@ def parset_read(parset_file, use_log_file=True):
         log.error('No MS files found in {}!'.format(parset_dict['dir_ms']))
         sys.exit(1)
     log.info("Input MS directory is {}".format(parset_dict['dir_ms']))
-    log.info("Working on {} input file(s).".format(len(parset_dict['mss'])))
+    log.info("Working on {} input MS file(s)".format(len(parset_dict['mss'])))
 
     # Make sure the initial skymodel is present
     if 'initial_skymodel' not in parset_dict:
@@ -494,34 +494,8 @@ def get_directions_options(parset):
         parset_dict = {}
         given_options = []
 
-    # Full path to sky model (in makesourcedb format) to be used for calibrator
-    # selection and facet-boundary source avoidance (default is to use
-    # direction-independent sky model of the highest-frequency band). The sky
-    # model must be grouped into patches by source (in PyBDSF, this grouping can be
-    # done by setting bbs_patches = 'source' in the write_catalog task)
-    if 'faceting_skymodel' not in parset_dict:
-        parset_dict['faceting_skymodel'] = None
-
-    # Check whether any sources from the initial subtract sky model fall on facet
-    # edges. If any are found, the facet regions are adjusted to avoid them (default
-    # is True)
-    if 'check_edges' in parset_dict:
-        parset_dict['check_edges'] = parset.getboolean('directions', 'check_edges')
-    else:
-        parset_dict['check_edges'] = True
-
-    # Parameters for selecting directions internally (radius from phase center
-    # within which to consider sources as potential calibrators, min flux, max size
-    # of a source, and max separation between sources below which they are grouped
-    # into one direction; required if no directions_file is given). The number of
-    # internally derived directions can be limited to a maximum number of directions
-    # if desired with max_num (default = all). Lastly, faceting_radius_deg sets the
-    # radius within which facets will be used; outside of this radius, small patches
-    # are used that do not appear in the final mosaic.  These parameters will
-    # determine the faceting of the field
-
-    # Radius from phase center within which to consider sources as potential
-    # calibrators (default = 2 * FWHM of primary beam of highest-frequency band)
+    # Radius from phase center within which to consider sources during calibration
+    # (default = 2 * FWHM of primary beam of highest-frequency band)
     if 'max_radius_deg' in parset_dict:
         parset_dict['max_radius_deg'] = parset.getfloat('directions',
             'max_radius_deg')
@@ -534,119 +508,6 @@ def get_directions_options(parset):
             'patch_target_flux_jy')
     else:
         parset_dict['patch_target_flux_jy'] = 2.5
-
-    # If no directions_file is given, the selection criteria for calibrator sources
-    # that follow must be given. For merging of multiple sources into one calibrator
-    # group, flux_min_for_merging_Jy (default = 0.1 Jy) and size_max_arcmin set the min
-    # flux density and max size of individual sources to be considered for grouping,
-    # and separation_max_arcmin sets the max separation between sources below which
-    # they are grouped into one calibrator. After grouping, flux_min_Jy sets the
-    # min total flux density of a source (or group) to be considered as a DDE
-    # calibrator
-    if 'flux_min_for_merging_jy' in parset_dict:
-        parset_dict['flux_min_for_merging_jy'] = parset.getfloat('directions',
-            'flux_min_for_merging_jy')
-    else:
-        parset_dict['flux_min_for_merging_jy'] = 0.1
-    if 'size_max_arcmin' in parset_dict:
-        parset_dict['size_max_arcmin'] = parset.getfloat('directions',
-            'size_max_arcmin')
-    else:
-        parset_dict['size_max_arcmin'] = None
-    if 'separation_max_arcmin' in parset_dict:
-        parset_dict['separation_max_arcmin'] = parset.getfloat('directions',
-            'separation_max_arcmin')
-    else:
-        parset_dict['separation_max_arcmin'] = None
-    if 'flux_min_jy' in parset_dict:
-        parset_dict['flux_min_jy'] = parset.getfloat('directions',
-            'flux_min_jy')
-    else:
-        parset_dict['flux_min_jy'] = None
-
-    # Number of internally derived directions can be limited to a maximum number
-    # of directions if desired with max_num (default = all).
-    if 'ndir_max' in parset_dict:
-        parset_dict['ndir_max'] = parset.getint('directions', 'ndir_max')
-    elif 'max_num' in parset_dict:
-        log.warning('Option "max_num" is deprecated and should be changed to "ndir_max"')
-        parset_dict['ndir_max'] = parset.getint('directions', 'max_num')
-    else:
-        parset_dict['ndir_max'] = None
-
-    # Radius within which facets will be used (default = 1.25 * FWHM of primary beam
-    # of highest-frequency band); outside of this radius, small patches are used
-    # that do not appear in the final mosaic.
-    if 'faceting_radius_deg' in parset_dict:
-        parset_dict['faceting_radius_deg'] = parset.getfloat('directions',
-            'faceting_radius_deg')
-    else:
-        parset_dict['faceting_radius_deg'] = None
-
-    # Grouping of directions into groups that are selfcal-ed in parallel, defined as
-    # grouping:n_total_per_grouping. For example, groupings = 1:5, 4:0 means two
-    # groupings are used, with the first 5 directions put into groups of one (i.e.,
-    # each direction processed in series) and the rest of the directions divided
-    # into groups of 4 (i.e., 4 directions processed in parallel). Default is one at
-    # a time (i.e., groupings = 1:0)
-    if 'groupings' in parset_dict:
-        groupings=[]
-        keys = []
-        vals = []
-        kvs = parset_dict['groupings'].split(',')
-        for kv in kvs:
-            key, val = kv.split(':')
-            keys.append(key.strip())
-            vals.append(val.strip())
-        for key, val in zip(keys, vals):
-            groupings.append({key: int(val)})
-        parset_dict['groupings'] = groupings
-    else:
-        parset_dict['groupings'] = [{'1': 0}]
-    log.info("Using the following groupings for directions: {}"
-        .format(', '.join(['{0}:{1}'.format(n.keys()[0], n.values()[0])
-        for n in parset_dict['groupings']])))
-
-    # If groups are used to process more than one direction in parallel, reordering
-    # of the directions in the groups can be done to maximize the flux-weighted
-    # separation between directions in each group (default = True)
-    if 'allow_reordering' in parset_dict:
-        parset_dict['allow_reordering'] = parset.getboolean('directions',
-            'allow_reordering')
-    else:
-        parset_dict['allow_reordering'] = True
-
-    # Total number of directions to selfcal (default = all)
-    if 'ndir_selfcal' in parset_dict:
-        parset_dict['ndir_selfcal'] = parset.getint('directions', 'ndir_selfcal')
-        if parset_dict['ndir_selfcal'] < 1:
-            log.error('Total number of directions to selfcal must be 1 or more')
-            sys.exit(1)
-        log.info("Self calibrating up to %s direction(s)" % (parset_dict['ndir_selfcal']))
-    else:
-        parset_dict['ndir_selfcal'] = None
-
-    # Total number of directions to process (default = all). If this number is
-    # greater than ndir_selfcal, then the remaining directions will not be selfcal-
-    # ed but will instead be imaged with the selfcal solutions from the nearest
-    # direction for which selfcal succeeded (if a target is specified and
-    # target_has_own_facet = True, it will be imaged in this way after ndir_total
-    # number of directions are processed)
-    if 'ndir_process' in parset_dict:
-        parset_dict['ndir_process'] = parset.getint('directions', 'ndir_process')
-        if parset_dict['ndir_process'] < 1:
-            log.error('Total number of directions to process must be 1 or more')
-            sys.exit(1)
-        log.info("Processing up to %s direction(s) in total" % (parset_dict['ndir_process']))
-    elif 'ndir_total' in parset_dict:
-        log.warning('Option "ndir_total" is deprecated and should be changed to "ndir_process"')
-        parset_dict['ndir_process'] = parset.getint('directions', 'ndir_total')
-        if parset_dict['ndir_process'] < 1:
-            log.error('Total number of directions to process must be 1 or more')
-            sys.exit(1)
-        log.info("Processing up to %s direction(s) in total" % (parset_dict['ndir_process']))
-    else:
-        parset_dict['ndir_process'] = None
 
     # A target can be specified to ensure that it falls entirely within a single
     # facet. The values should be those of a circular region that encloses the
@@ -663,19 +524,10 @@ def get_directions_options(parset):
             'target_radius_arcmin')
     else:
         parset_dict['target_radius_arcmin'] = None
-    if 'target_has_own_facet' in parset_dict:
-        parset_dict['target_has_own_facet'] = parset.getboolean('directions',
-            'target_has_own_facet')
-    else:
-        parset_dict['target_has_own_facet'] = False
 
     # Check for unused options
-    allowed_options = ['faceting_skymodel', 'directions_file', 'max_radius_deg',
-                       'flux_min_for_merging_jy', 'flux_min_jy', 'size_max_arcmin',
-                       'separation_max_arcmin', 'max_num', 'ndir_max',
-                       'faceting_radius_deg', 'check_edges', 'ndir_total', 'ndir_process',
-                       'ndir_selfcal', 'groupings', 'allow_reordering', 'target_ra', 'target_dec',
-                       'target_radius_arcmin', 'target_has_own_facet', 'patch_target_flux_jy']
+    allowed_options = ['max_radius_deg', 'target_ra', 'target_dec',
+                       'target_radius_arcmin', 'patch_target_flux_jy']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [directions] section of the '
@@ -735,7 +587,6 @@ def get_cluster_options(parset):
     else:
         import multiprocessing
         parset_dict['ncpu'] = multiprocessing.cpu_count()
-    log.info("Using up to %s CPU(s) per node" % (parset_dict['ncpu']))
 
     # Maximum fraction of the total memory per node to use (default = 0.9)
     if 'fmem' in parset_dict:
@@ -744,54 +595,23 @@ def get_cluster_options(parset):
             parset_dict['fmem'] = 1.0
     else:
         parset_dict['fmem'] = 0.9
-    log.info("Using up to {0}% of the memory per node".format(parset_dict['fmem']*100.0))
 
-    # Maximum number of directions to process in parallel on each node (default =
-    # 1). Note that the number of CPUs (set with the ncpu parameter) and the amount
-    # of memory available to WSClean (set with the wsclean_fmem parameter) will be
-    # divided among the directions on each node
-    if 'ndir_per_node' in parset_dict:
-        parset_dict['ndir_per_node'] = parset.getint('cluster', 'ndir_per_node')
-    else:
-        parset_dict['ndir_per_node'] = 1
-    log.info("Processing up to %i direction(s) in parallel per node" %
-             (parset_dict['ndir_per_node']))
-
-    # Maximum number of io-intensive threads to run per node. If unset, defaults
-    # to sqrt of the number of CPUs that will be used (set with the ncpu
-    # parameter). Note that this number will be divided among the directions on
-    # each node
-    if 'nthread_io' in parset_dict:
-        parset_dict['nthread_io'] = parset.getint('cluster',
-            'nthread_io')
-    else:
-        parset_dict['nthread_io'] = int(np.ceil(np.sqrt(parset_dict['ncpu'])))
-    log.info("Running up to %i IO-intensive job(s) in parallel per node" %
-             (parset_dict['nthread_io']))
-
-    # Type of compute cluster. Use cluster_type = localhost for a single machine, cluster_type = PBS to use
-    # the PBS / torque reserved nodes, and cluster_type = SLURM to use SLURM
-    # reserved ones. If not given, the cluster_type for a single (i.e.,
-    # local) node is used
+    # Cluster type (default = localhost). Use cluster_type = pbs to use PBS / torque
+    # reserved nodes and cluster_type = slurm to use SLURM reserved ones
     if 'cluster_type' not in parset_dict:
         parset_dict['cluster_type'] = 'localhost'
     parset_dict['node_list'] = get_compute_nodes(parset_dict['cluster_type'])
 
     # Full path to a local disk on the nodes for I/O-intensive processing. The path
-    # must be the same for all nodes. A selfcal-only path can also be specified to
-    # allow certain selfcal data to be cached in memory by setting it to a ram
-    # drive (e.g., /dev/shm). By default, dir_local_selfcal is set to dir_local
+    # must be the same for all nodes
     if 'dir_local' not in parset_dict:
         parset_dict['dir_local'] = None
     else:
         parset_dict['dir_local'] = parset_dict['dir_local'].rstrip('/')
-    if 'dir_local_selfcal' not in parset_dict:
-        parset_dict['dir_local_selfcal'] = parset_dict['dir_local']
 
     # Check for unused options
-    allowed_options = ['ncpu', 'fmem', 'fmem', 'ndir_per_node',
-                       'clusterdesc_file', 'cluster_type', 'dir_local', 'dir_local_selfcal',
-                       'node_list', 'lofarroot', 'lofarpythonpath', 'nthread_io']
+    allowed_options = ['ncpu', 'fmem', 'cluster_type', 'dir_local', 'lofarroot',
+                       'lofarpythonpath']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [cluster] section of the '
