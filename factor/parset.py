@@ -69,7 +69,7 @@ def parset_read(parset_file, use_log_file=True):
         log.critical("Cannot use the working dir {0}: {1}".format(parset_dict['dir_working'], e))
         sys.exit(1)
     if use_log_file:
-        set_log_file(os.path.join(parset_dict['dir_working'], 'factor.log'))
+        set_log_file(os.path.join(parset_dict['dir_working'], 'logs', 'factor.log'))
     log.info("=========================================================\n")
     log.info("Working directory is {}".format(parset_dict['dir_working']))
 

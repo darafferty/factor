@@ -50,5 +50,5 @@ class Image(Operation):
         # Create sym links to images
         sol_map = DataMap.load(self.field.h5parm_mapfile)
         os.symlink(self.direction.get_output_image_filename(),
-                   os.path.join(self.factor_image_dir,
+                   os.path.join(self.factor_working_dir, 'images',
                                 'field-MFS-image.fits'.format(self.index)))

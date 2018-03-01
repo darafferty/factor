@@ -113,9 +113,6 @@ class Operation(object):
         self.factor_pipeline_dir = os.path.join(self.factor_root_dir, 'pipeline')
         self.factor_script_dir = os.path.join(self.factor_root_dir, 'scripts')
         self.factor_parset_dir = os.path.join(self.factor_root_dir, 'parsets')
-        self.factor_skymodel_dir = os.path.join(self.factor_root_dir, 'skymodels')
-        self.factor_image_dir = os.path.join(self.factor_root_dir, 'images')
-        self.factor_solution_dir = os.path.join(self.factor_root_dir, 'solutions')
 
         # Below are the templates and output paths for the pipeline parset and
         # config files. These may need to be re-defined in the subclasses

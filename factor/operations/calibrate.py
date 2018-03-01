@@ -83,7 +83,7 @@ class Calibrate(Operation):
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
                                                      'combine_fast_h5parms_output.mapfile')
 
-        # Create sym links to solutions
+        # Create sym link to solutions
         sol_map = DataMap.load(self.field.h5parm_mapfile)
-        os.symlink(sol_map[0].file, os.path.join(self.factor_solution_dir,
+        os.symlink(sol_map[0].file, os.path.join(self.factor_working_dir, 'solutions',
                                                  'solutions_{}.h5'.format(self.index)))
