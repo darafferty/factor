@@ -255,7 +255,7 @@ class Field(object):
         skymodel = self.source_skymodel
         RA = skymodel.getColValues('Ra')
         Dec = skymodel.getColValues('Dec')
-        x, y = self.field.radec2xy(RA, Dec)
+        x, y = self.radec2xy(RA, Dec)
         sizes = skymodel.getPatchSizes(units='degree', weight=False)
 
         for i, (xs, ys, ss) in enumerate(zip(x, y, sizes)):
