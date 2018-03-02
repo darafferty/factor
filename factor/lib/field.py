@@ -263,19 +263,19 @@ class Field(object):
             xmax = xs + (ss / 2.0 / self.wcs_pixel_scale)
             ymin = ys - (ss / 2.0 / self.wcs_pixel_scale)
             ymax = ys + (ss / 2.0 / self.wcs_pixel_scale)
-            idx.insert(i, (xmin, xmax, ymin, ymax))
+            idx.insert(i, (xmin, ymin, xmax, ymax))
 
         # For each sector side, query the index to find intersections
         intersecting_ind = []
         for sector in self.sectors:
             xmin, xmax, ymin, ymax = sector.initial_poly.bounds
-            side1 = (xmin-1, xmin+1, ymin, ymax)
+            side1 = (xmin-1, ymin, xmin+1, ymax)
             intersecting_ind.extend(list(idx.intersection(side1)))
-            side2 = (xmax-1, xmax+1, ymin, ymax)
+            side2 = (xmax-1, ymin, xmax+1, ymax)
             intersecting_ind.extend(list(idx.intersection(side2)))
-            side3 = (xmin, xmax, ymin-1, ymin+1)
+            side3 = (xmin, ymin-1, xmax, ymin+1)
             intersecting_ind.extend(list(idx.intersection(side3)))
-            side4 = (xmin, xmax, ymax-1, ymax+1)
+            side4 = (xmin, ymax-1, xmax, ymax+1)
             intersecting_ind.extend(list(idx.intersection(side4)))
 
         # Make point polys
