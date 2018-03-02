@@ -10,7 +10,8 @@ from factor.lib.observation import Observation
 from factor.lib.sector import Sector
 from factor.scripts import blank_image, mosaic_images
 from lofarpipe.support.utilities import create_directory
-
+from shapely.geometry import Point, Polygon
+import rtree
 
 class Field(object):
     """
@@ -126,22 +127,6 @@ class Field(object):
         """
         return sum([obs.calibration_parameters[parameter] for obs in self.observations], [])
 
-    def make_source_skymodel(self, skymodel_filename, regroup=True):
-        """
-        Groups the sky model into sources
-
-        Parameters
-        ----------
-        skymodel_filename : str
-            Filename of input makesourcedb sky model file
-        """
-        skymodel = lsmtool.load(skymodel_filename)
-
-        # Group by thresholding
-        skymodel.group('threshold', FWHM='60.0 arcsec')
-        self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
-        skymodel.write(self.source_skymodel_file, clobber=True)
-
     def make_skymodels(self, skymodel, regroup=True):
         """
         Groups a sky model into source and calibration patches
@@ -168,6 +153,7 @@ class Field(object):
         source_skymodel.group('threshold', FWHM='60.0 arcsec')
         self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
         source_skymodel.write(self.source_skymodel_file, clobber=True)
+        self.source_skymodel = source_skymodel
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
@@ -175,26 +161,32 @@ class Field(object):
             skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         skymodel.write(self.calibration_skymodel_file, clobber=True)
+        self.calibration_skymodel = skymodel
 
     def update_skymodels(self, iter):
         """
         Updates the source and calibration sky models from the output sector sky model(s)
         """
+        # Concat all output sector sky models
         sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
         skymodel = lsmtool.load(sector_skymodels[0])
         sector_skymodels.pop(0)
         for s2 in sector_skymodels:
             skymodel.concatenate(s2)
-        skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.make_skymodels(skymodel)
+
+        # Re-adjust sector boundaries and update their sky models
+        self.adjust_sector_boundaries()
+        for sector in self.sectors:
+            sector.make_skymodels()
 
     def define_sectors(self):
         """
         Defines the imaging sectors
         """
         nsectors_ra = self.parset['imaging_specific']['nsectors_ra']
-        if nsectors_ra == 1 and len(self.parset['cluster_specific']['node_list']) == 1:
-            # For a single machine, use a single sector
+        if nsectors_ra == 0:
+            # Use a single sector
             nsectors_dec = 1
             width_ra = self.fwhm_ra_deg
             width_dec = self.fwhm_dec_deg
@@ -218,7 +210,7 @@ class Field(object):
             self.log.info('Using {0} imaging sectors ({1} in RA, {2} in Dec)'.format(
                           nsectors_ra*nsectors_dec, nsectors_ra, nsectors_dec))
 
-        # Define sectors
+        # Initialize the sectors
         self.sectors = []
         n = 0
         for i in range(nsectors_ra):
@@ -231,34 +223,90 @@ class Field(object):
                 ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
                 self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
 
-        for this_sector in self.sectors:
-            # For each sector, check for intersection with other sectors
-            for other_sector in self.sectors:
-                if this_sector is not other_sector and this_sector.poly.intersects(other_sector.poly):
-                    this_sector.poly = this_sector.poly.difference(other_sector.poly)
+        # Adjust sector boundaries to avoid known sources and update their sky models
+        self.adjust_sector_boundaries()
+        for sector in self.sectors:
+            sector.make_skymodels()
 
-            # Make sector region and vertices files
-            this_sector.make_vertices_file()
-            this_sector.make_region_file(os.path.join(self.working_dir, 'regions',
-                                                      '{}_region_ds9.reg'.format(this_sector.name)))
-
+        for sector in self.sectors:
             # Set the imaging parameters for selfcal
-            this_sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
-                                               self.parset['imaging_specific']['selfcal_robust'],
-                                               0.0,
-                                               self.parset['imaging_specific']['selfcal_min_uv_lambda'],
-                                               None,
-                                               0.15,
-                                               self.parset['imaging_specific']['wsclean_bl_averaging'],
-                                               self.parset['imaging_specific']['selfcal_multiscale_scales_pixel'],
-                                               self.parset['imaging_specific']['use_idg'],
-                                               self.parset['imaging_specific']['idg_mode'])
+            sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
+                                          self.parset['imaging_specific']['selfcal_robust'],
+                                          0.0,
+                                          self.parset['imaging_specific']['selfcal_min_uv_lambda'],
+                                          None,
+                                          0.15,
+                                          self.parset['imaging_specific']['wsclean_bl_averaging'],
+                                          self.parset['imaging_specific']['selfcal_multiscale_scales_pixel'],
+                                          self.parset['imaging_specific']['use_idg'],
+                                          self.parset['imaging_specific']['idg_mode'])
 
             # Transfer flagging parameters so they are also used during imaging
-            this_sector.flag_abstime = self.flag_abstime
-            this_sector.flag_baseline = self.flag_baseline
-            this_sector.flag_freqrange = self.flag_freqrange
-            this_sector.flag_expr = self.flag_expr
+            sector.flag_abstime = self.flag_abstime
+            sector.flag_baseline = self.flag_baseline
+            sector.flag_freqrange = self.flag_freqrange
+            sector.flag_expr = self.flag_expr
+
+    def find_intersecting_sources(self):
+        """
+        Finds sources in the source sky model that intersect with the sector polygons
+        """
+        idx = rtree.index.Index()
+        skymodel = self.source_skymodel
+        RA = skymodel.getColValues('Ra')
+        Dec = skymodel.getColValues('Dec')
+        x, y = self.field.radec2xy(RA, Dec)
+        sizes = skymodel.getPatchSizes(units='degree', weight=False)
+
+        for i, (xs, ys, ss) in enumerate(zip(x, y, sizes)):
+            xmin = xs - (ss / 2.0 / self.wcs_pixel_scale)
+            xmax = xs + (ss / 2.0 / self.wcs_pixel_scale)
+            ymin = ys - (ss / 2.0 / self.wcs_pixel_scale)
+            ymax = ys + (ss / 2.0 / self.wcs_pixel_scale)
+            idx.insert(i, (xmin, xmax, ymin, ymax))
+
+        # For each sector side, query the index to find intersections
+        intersecting_ind = []
+        for sector in self.sectors:
+            xmin, xmax, ymin, ymax = sector.initial_poly.bounds
+            side1 = (xmin-1, xmin+1, ymin, ymax)
+            intersecting_ind.extend(list(idx.intersection(side1)))
+            side2 = (xmax-1, xmax+1, ymin, ymax)
+            intersecting_ind.extend(list(idx.intersection(side2)))
+            side3 = (xmin, xmax, ymin-1, ymin+1)
+            intersecting_ind.extend(list(idx.intersection(side3)))
+            side4 = (xmin, xmax, ymax-1, ymax+1)
+            intersecting_ind.extend(list(idx.intersection(side4)))
+
+        # Make point polys
+        points = [Point(xp, yp) for xp, yp in zip(x[intersecting_ind], y[intersecting_ind])]
+        return points
+
+    def adjust_sector_boundaries(self):
+        """
+        Adjusts the imaging sector boundaries for overlaping sources
+        """
+        intersecting_source_polys = self.find_intersecting_sources()
+
+        finalized = False
+        for sector in self.sectors:
+            while not finalized:
+                # Adjust boundaries for intersection with sources
+                prev_poly = Polygon(sector.poly)
+                for p2 in intersecting_source_polys:
+                    if sector.poly.contains(p2.centroid):
+                        # If point is inside, union the sector poly with the source one
+                        sector.poly = sector.poly.union(p2)
+                    else:
+                        # If centroid of point is outside, difference the sector poly with
+                        # the source one
+                        sector.poly = sector.poly.difference(p2)
+                finalized = sector.poly.equals(prev_poly)
+
+            # Make sector region and vertices files
+            sector.make_vertices_file()
+            sector.make_region_file(os.path.join(self.working_dir, 'regions',
+                                                 '{}_region_ds9.reg'.format(sector.name)))
 
     def radec2xy(self, RA, Dec):
         """
@@ -323,10 +371,10 @@ class Field(object):
         """
         from astropy.wcs import WCS
 
-        wcs_pixel_scale = 0.066667 # degrees/pixel
+        self.wcs_pixel_scale = 0.0027777778 # degrees/pixel (= 10"/pixel)
         w = WCS(naxis=2)
         w.wcs.crpix = [1000, 1000]
-        w.wcs.cdelt = np.array([-wcs_pixel_scale, wcs_pixel_scale])
+        w.wcs.cdelt = np.array([-self.wcs_pixel_scale, self.wcs_pixel_scale])
         w.wcs.crval = [self.ra, self.dec]
         w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
         w.wcs.set_pv([(2, 1, 45.0)])
@@ -373,7 +421,7 @@ class Field(object):
             self.output_image_filename = self.sectors[0].get_output_image_filename(image_id)
 
         # Create sym links to image files
-        dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(self.index))
+        dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
         create_directory(dst_dir)
         dst = os.path.join(dst_dir, 'field-MFS-image.fits')
         if os.path.exists(dst):

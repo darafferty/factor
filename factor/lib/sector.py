@@ -5,8 +5,9 @@ set
 import logging
 import numpy as np
 from astropy.coordinates import Angle
-from shapely.geometry import Point, Polygon, box
+from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
+from PIL import Image, ImageDraw
 import pickle
 import lsmtool
 import os
@@ -58,10 +59,8 @@ class Sector(object):
             cobs.log = logging.getLogger('factor:{}'.format(cobs.name))
             self.observations.append(cobs)
 
-        # Define the sector polygon vertices and sky model
+        # Define the initial sector polygon vertices and sky model
         self.define_vertices()
-        self.make_skymodel()
-        self.adjust_boundary()
 
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
                                min_uv_lambda, max_uv_lambda, max_peak_smearing,
@@ -134,7 +133,7 @@ class Sector(object):
         self.multiscale = None
         large_size_arcmin = 4.0
         if self.multiscale is None:
-            sizes_arcmin, _, _ = self.get_source_sizes_arcmin('inside')
+            sizes_arcmin = self.get_source_sizes_arcmin('inside')
             if sizes_arcmin is not None and any([s > large_size_arcmin for s in sizes_arcmin]):
                 self.multiscale = True
             else:
@@ -263,74 +262,19 @@ class Sector(object):
             (24 * 60 * 60) / 4)
         return wsclean_nwavelengths_time
 
-    def make_skymodel(self):
+    def make_skymodels(self):
         """
-        Makes a sky model for the sector from the parent field calibration sky model
+        Makes predict and source sky models from the parent field sky models
         """
-        skymodel = lsmtool.load(self.field.calibration_skymodel_file)
+        # Load and filter the predict sky model
+        skymodel = self.field.calibration_skymodel.copy()
+        skymodel = self.filter_skymodel(skymodel)
 
-        # Make list of sources in full sky model
-        RA = skymodel.getColValues('Ra')
-        Dec = skymodel.getColValues('Dec')
-        x, y = self.field.radec2xy(RA, Dec)
-        x = np.array(x)
-        y = np.array(y)
-
-        # Identify sources near poly bounding box
-        minx, miny, maxx, maxy = self.poly.bounds
-        delx = (maxx - minx) * 0.2
-        minx -= delx
-        maxx += delx
-        dely = (maxy - miny) * 0.2
-        miny -= dely
-        maxy += dely
-        inner_poly = self.get_inner_poly()
-        if inner_poly is not None:
-            iminx, iminy, imaxx, imaxy = inner_poly.bounds
-            inside_ind = np.where( (x > iminx) & (x < imaxx) &
-                                   (y > iminy) & (y < imaxy) )
-            near_ind = np.where( ((x > minx) & (x < iminx) & (y > miny) & (y < maxy)) |
-                                 ((x > imaxx) & (x < maxx) & (y > miny) & (y < maxy)) |
-                                 ((y > miny) & (y < iminy) & (x > minx) & (x < maxx)) |
-                                 ((y > imaxy) & (y < maxy) & (x > minx) & (x < maxx)) )
-        else:
-            inside_ind = [[]]
-            near_ind = np.where((x > minx) & (y > miny) &
-                                (x < maxx) & (y < maxy))
-
-        points = []
-        near_boundary = np.zeros(len(skymodel), dtype=bool)
-        inside = np.zeros(len(skymodel), dtype=bool)
-        for i, (xp, yp) in enumerate(zip(x, y)):
-            if i in near_ind[0]:
-                p = Point((xp, yp))
-                p.index = i
-                points.append(p)
-                near_boundary[i] = True
-            if i in inside_ind[0]:
-                inside[i] = True
-
-        # Make sky model with sources near boundary only (for source avoidance)
-        boundary_skymodel = skymodel.copy()
-        boundary_skymodel.select(near_boundary)
-        self.num_sources_near_boundary = len(boundary_skymodel)
-        if self.num_sources_near_boundary > 0:
-            self.boundary_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
-                                                   '{}_boundary_skymodel.txt'.format(self.name))
-            boundary_skymodel.write(self.boundary_skymodel_file, clobber=True)
-
-        # Find all sources that are inside the sector
-        prepared_polygon = prep(self.poly)
-        intersecting_points = filter(prepared_polygon.contains, points)
-        for p in intersecting_points:
-            inside[p.index] = True
-        skymodel.select(inside)
-
-        # Write sky model to file
+        # Write filtered sky model to file
         skymodel.setPatchPositions(method='wmean')
-        self.calibration_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
-                                                      '{}_skymodel.txt'.format(self.name))
-        skymodel.write(self.calibration_skymodel_file, clobber=True)
+        self.predict_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
+                                                      '{}_predict_skymodel.txt'.format(self.name))
+        skymodel.write(self.predict_skymodel_file, clobber=True)
 
         # Save list of patches (directions) in the format written by DDECal in the h5parm
         self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
@@ -340,14 +284,64 @@ class Sector(object):
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
-    def get_source_sizes_arcmin(self, filter='inside'):
+        # Load and filter the source sky model
+        skymodel = self.field.source_skymodel.copy()
+        skymodel = self.filter_skymodel(skymodel)
+
+        # Write filtered sky model to file
+        skymodel.setPatchPositions(method='wmean')
+        self.source_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
+                                                      '{}_source_skymodel.txt'.format(self.name))
+        skymodel.write(self.source_skymodel_file, clobber=True)
+
+    def filter_skymodel(self, skymodel):
         """
-        Returns list of source sizes in arcmin
+        Filters input skymodel to select only sources that lie inside the sector
 
         Parameters
         ----------
-        filter : str, optional
-            One of "inside" or "near boundary"
+        skymodel : LSMTool skymodel object
+            Input sky model
+
+        Returns
+        -------
+        filtered_skymodel : LSMTool skymodel object
+            Filtered sky model
+        """
+        # Make list of sources
+        RA = skymodel.getColValues('Ra')
+        Dec = skymodel.getColValues('Dec')
+        x, y = self.field.radec2xy(RA, Dec)
+        x = np.array(x)
+        y = np.array(y)
+        xsize = int(1.1 * (max(x) - min(x)))
+        ysize = int(1.1 * (max(y) - min(y)))
+        inside = [0] * len(skymodel)
+        prepared_polygon = prep(self.poly)
+
+        # Unmask everything outside of the polygon + its border (outline)
+        mask = Image.new('L', (xsize, ysize), 0)
+        verts = [(yv, xv) for xv, yv in zip(self.poly.exterior.coords.xy)]
+        ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
+        inside_ind = np.where(np.array(mask)[(x, y)])
+        inside[inside_ind] = 1
+
+        # Now check sources in the border precisely
+        mask = Image.new('L', (xsize, ysize), 0)
+        ImageDraw.Draw(mask).polygon(verts, outline=1, fill=0)
+        border_ind = np.where(np.array(mask)[(x, y)])
+        points = [Point(xs, ys) for xs, ys in zip(x[border_ind], y[border_ind])]
+        for i, p in enumerate(points):
+            p.index = border_ind[0][i]
+        outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
+        for outside_point in outside_points:
+            inside[outside_point.index] = 0
+        skymodel.select(inside)
+        return skymodel
+
+    def get_source_sizes_arcmin(self):
+        """
+        Returns list of source sizes in arcmin
 
         Returns
         -------
@@ -355,15 +349,9 @@ class Sector(object):
             List of source sizes in arcmin
         """
         lsmtool._logging.setLevel('debug')
-        if filter == 'inside':
-            skymodel = lsmtool.load(self.calibration_skymodel_file)
-        elif filter == 'near boundary':
-            skymodel = lsmtool.load(self.boundary_skymodel_file)
-
-        skymodel.group('threshold', FWHM='60.0 arcsec')
+        skymodel = lsmtool.load(self.source_skymodel_file)
         sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
-        RA, Dec = skymodel.getPatchPositions(asArray=True)
-        return sizes, RA, Dec
+        return sizes
 
     def get_obs_parameters(self, parameter):
         """
@@ -395,67 +383,8 @@ class Sector(object):
                       (x0+ra_width_pix, y0+dec_width_pix),
                       (x0+ra_width_pix, y0), (x0, y0)]
         poly = Polygon(poly_verts)
-        self.poly = poly
-
-    def adjust_boundary(self):
-        """
-        Adjusts the boundary of the sector for known sources
-        """
-        if self.num_sources_near_boundary == 0:
-            return
-
-        # Find nearby sources in input sky model and adjust sector boundaries
-        # if necessary
-        poly = self.poly
-        sizes, RA, Dec = self.get_source_sizes_arcmin('near boundary')
-
-        # Make buffered points for all sources
-        points = []
-        sx, sy = self.field.radec2xy(RA, Dec)
-        for xp, yp, sp in zip(sx, sy, sizes):
-            radius = sp * 1.2 / 2.0 / self.field.wcs.wcs.cdelt[0] # size of source in pixels
-            points.append(Point((xp, yp)).buffer(radius))
-
-        # Alter sector polygon to avoid sources in the input sky model
-        niter = 0
-        while niter < 3:
-            niter += 1
-            prepared_polygon = prep(poly)
-            intersecting_points = filter(prepared_polygon.intersects, points)
-
-            # Adjust sector polygon for each source that intersects it
-            for p2 in intersecting_points:
-                if poly.contains(p2.centroid):
-                    # If point is inside, union the polys
-                    poly = poly.union(p2)
-                else:
-                    # If centroid of point is outside, difference the polys
-                    poly = poly.difference(p2)
-        self.poly = poly
-
-    def get_inner_poly(self):
-        """
-        Return the poly that fits inside the sector without touching it
-        """
-        # Find poly that fits inside
-        minx, miny, maxx, maxy = self.poly.bounds
-        stepx = (maxx - minx) / 10
-        stepy = (maxy - miny) / 10
-        success = False
-        for i in range(10):
-            # Shrink inner_poly until it's fully within poly
-            minx += stepx
-            maxx -= stepx
-            miny += stepy
-            maxy -= stepy
-            inner_poly = box(minx, miny, maxx, maxy)
-            if self.poly.contains(inner_poly):
-                success = True
-                break
-        if success:
-            return inner_poly
-        else:
-            return None
+        self.initial_poly = poly
+        self.poly = Polygon(poly)
 
     def get_vertices_radec(self):
         """

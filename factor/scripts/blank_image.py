@@ -1,15 +1,14 @@
 #! /usr/bin/env python
 """
-Script to blank regions (with zeros or NaNs) in a fits image
+Script to blank regions (with zeros or NaNs) in a fits image. Can also be used to make
+a clean mask
 """
 import argparse
 from argparse import RawTextHelpFormatter
 import numpy as np
 import sys
-import os
 import pickle
-import glob
-from shapely.geometry import Point, Polygon, box
+from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
 from astropy.io import fits as pyfits
 from astropy import wcs
@@ -25,67 +24,141 @@ def read_vertices(filename):
     return vertices
 
 
-def main(input_image_file, vertices_file, output_image_file, blank_value='zero',
-    image_is_wsclean_model=False):
+def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
+    ximsize=512, yimsize=512, cellsize_deg=0.000417):
+    """
+    Make a blank image and save it to disk
+
+    Parameters
+    ----------
+    image_name : str
+        Filename of output image
+    reference_ra_deg : float, optional
+        RA for center of output mask image
+    reference_dec_deg : float, optional
+        Dec for center of output mask image
+    imsize : int, optional
+        Size of output image
+    cellsize_deg : float, optional
+        Size of a pixel in degrees
+
+    """
+    shape_out = [1, 1, yimsize, ximsize]
+    hdu = pyfits.PrimaryHDU(np.ones(shape_out, dtype=np.float32))
+    hdulist = pyfits.HDUList([hdu])
+    header = hdulist[0].header
+
+    # Add WCS info
+    header['CRVAL1'] = reference_ra_deg
+    header['CDELT1'] = -cellsize_deg
+    header['CRPIX1'] = ximsize/2.0
+    header['CUNIT1'] = 'deg'
+    header['CTYPE1'] = 'RA---SIN'
+    header['CRVAL2'] = reference_dec_deg
+    header['CDELT2'] = cellsize_deg
+    header['CRPIX2'] = yimsize/2.0
+    header['CUNIT2'] = 'deg'
+    header['CTYPE2'] = 'DEC--SIN'
+
+    # Add STOKES info
+    header['CRVAL3'] = 1.0
+    header['CDELT3'] = 1.0
+    header['CRPIX3'] = 1.0
+    header['CUNIT3'] = ''
+    header['CTYPE3'] = 'STOKES'
+
+    # Add frequency info
+    header['RESTFRQ'] = 15036
+    header['CRVAL4'] = 150e6
+    header['CDELT4'] = 3e8
+    header['CRPIX4'] = 1.0
+    header['CUNIT4'] = 'HZ'
+    header['CTYPE4'] = 'FREQ'
+    header['SPECSYS'] = 'TOPOCENT'
+
+    # Add equinox
+    header['EQUINOX'] = 2000.0
+
+    # Add telescope
+    header['TELESCOP'] = 'LOFAR'
+
+    hdulist[0].header = header
+    hdulist.writeto(image_name, overwrite=True)
+    hdulist.close()
+
+
+def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
+         reference_dec_deg=None, cellsize_deg=None, imsize=None, make_blank_image=False):
     """
     Blank a region in an image
 
     Parameters
     ----------
-    input_image_file : str
+    input_image : str
         Filename of input image to blank
-    vertices_file : str, optional
-        Filename of file with vertices (must be a pickle file containing
-        a dictionary with the vertices in the 'vertices' entry)
-    output_image_file : str
+    output_image : str
         Filename of output image
-    blank_value : str, optional
-        Value for blanks (one of 'zero' or 'nan')
-    image_is_wsclean_model : bool, optional
-        If True, the input and output image files are treated as the root name
-        of a WSClean model image (or images)
-
+    vertices_file : str, optional
+        Filename of file with vertices
+    reference_ra_deg : float, optional
+        RA for center of output mask image
+    reference_dec_deg : float, optional
+        Dec for center of output mask image
+    cellsize_deg : float, optional
+        Size of a pixel in degrees
+    imsize : int, optional
+        Size of image as "xsize ysize"
+    region_file : str, optional
+        Filename of region file in CASA format to use as a mask
+    make_blank_image : bool, optional
+        If True, a blank template image is made. In this case, reference_ra_deg
+        and reference_dec_deg must be specified
     """
-    if type(image_is_wsclean_model) is str:
-        if image_is_wsclean_model.lower() == 'true':
-            image_is_wsclean_model = True
+    if type(make_blank_image) is str:
+        if make_blank_image.lower() == 'true':
+            make_blank_image = True
         else:
-            image_is_wsclean_model = False
+            make_blank_image = False
 
-    if image_is_wsclean_model:
-        input_image_files = glob.glob(input_image_file+'*-model.fits')
-        output_image_files = [f.replace(input_image_file, output_image_file) for f in input_image_files]
-    else:
-        input_image_files = [input_image_file]
-        output_image_files = [output_image_file]
+    if make_blank_image:
+        print('Making empty image...')
+        if reference_ra_deg is not None and reference_dec_deg is not None:
+            reference_ra_deg = float(reference_ra_deg)
+            reference_dec_deg = float(reference_dec_deg)
+            temp_image = output_image + '.tmp'
+            ximsize = int(imsize.split(' ')[0])
+            yimsize = int(imsize.split(' ')[1])
+            make_template_image(temp_image, reference_ra_deg, reference_dec_deg,
+                ximsize=ximsize, yimsize=yimsize, cellsize_deg=float(cellsize_deg))
+        else:
+            print('ERROR: a reference position must be given to make an empty template image')
+            sys.exit(1)
 
-    if blank_value == 'zero':
-        blank_val = 0.0
-    elif blank_value == 'nan':
-        blank_val = np.nan
-    else:
-        print('Blank value type "{}" not understood.'.format(blank_with))
-        sys.exit(1)
+    if vertices_file is not None:
+        # Construct polygon
+        if make_blank_image:
+            header = pyfits.getheader(temp_image, 0)
+        else:
+            header = pyfits.getheader(input_image, 0)
+        w = wcs.WCS(header)
+        RAind = w.axis_type_names.index('RA')
+        Decind = w.axis_type_names.index('DEC')
+        vertices = read_vertices(vertices_file)
+        RAverts = vertices[0]
+        Decverts = vertices[1]
+        verts = []
+        for RAvert, Decvert in zip(RAverts, Decverts):
+            ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
+            ra_dec[0][RAind] = RAvert
+            ra_dec[0][Decind] = Decvert
+            verts.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
+        poly = Polygon(verts)
+        prepared_polygon = prep(poly)
 
-    # Construct polygon of facet region
-    header = pyfits.getheader(input_image_files[0], 0)
-    w = wcs.WCS(header)
-    RAind = w.axis_type_names.index('RA')
-    Decind = w.axis_type_names.index('DEC')
-    vertices = read_vertices(vertices_file)
-    RAverts = vertices[0]
-    Decverts = vertices[1]
-    verts = []
-    for RAvert, Decvert in zip(RAverts, Decverts):
-        ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
-        ra_dec[0][RAind] = RAvert
-        ra_dec[0][Decind] = Decvert
-        verts.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
-    poly = Polygon(verts)
-    prepared_polygon = prep(poly)
-
-    for input_image, output_image in zip(input_image_files, output_image_files):
-        hdu = pyfits.open(input_image, memmap=False)
+        if make_blank_image:
+            hdu = pyfits.open(temp_image, memmap=False)
+        else:
+            hdu = pyfits.open(input_image, memmap=False)
         data = hdu[0].data
 
         # Mask everything outside of the polygon + plus its border (outline)
