@@ -9,9 +9,11 @@ import sys
 import os
 import pickle
 import glob
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, box
+from shapely.prepared import prep
 from astropy.io import fits as pyfits
 from astropy import wcs
+from PIL import Image, ImageDraw
 
 
 def read_vertices(filename):
@@ -78,36 +80,30 @@ def main(input_image_file, vertices_file, output_image_file, blank_value='zero',
         ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
         ra_dec[0][RAind] = RAvert
         ra_dec[0][Decind] = Decvert
-        verts.append((w.wcs_world2pix(ra_dec, 0)[0][Decind], w.wcs_world2pix(ra_dec, 0)[0][RAind]))
+        verts.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
     poly = Polygon(verts)
+    prepared_polygon = prep(poly)
 
     for input_image, output_image in zip(input_image_files, output_image_files):
         hdu = pyfits.open(input_image, memmap=False)
         data = hdu[0].data
 
-        # Find limits of facet poly and blank pixels outside them
-        xmin = max(int(np.min(xvert)) - 2, 0)
-        xmax = min(int(np.max(xvert)) + 2, data.shape[2])
-        ymin = max(int(np.min(yvert)) - 2, 0)
-        ymax = min(int(np.max(yvert)) + 2, data.shape[3])
-        data[0, 0, :, :ymin] = blank_val
-        data[0, 0, :, ymax:] = blank_val
-        data[0, 0, :xmin, :] = blank_val
-        data[0, 0, xmax:, :] = blank_val
+        # Mask everything outside of the polygon + plus its border (outline)
+        mask = Image.new('L', (data.shape[2], data.shape[3]), 0)
+        ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
+        data[0, 0, :, :] *= mask
 
-        # Find distance to nearest poly edge and blank those that
-        # are outside the facet (dist < 0)
-        pix_ind = np.indices((xmax-xmin, ymax-ymin))
-        pix_ind[0] += xmin
-        pix_ind[1] += ymin
-        points = [Point(xm, ym) for xm, ym in zip(pix_ind[0], pix_ind[1])]
-        prepared_polygon = prep(poly)
+        # Now check the border precisely
+        mask = Image.new('L', (data.shape[2], data.shape[3]), 0)
+        ImageDraw.Draw(mask).polygon(verts, outline=1, fill=0)
+        masked_ind = np.where(np.array(mask).transpose())
+        points = [Point(xm, ym) for xm, ym in zip(masked_ind[0], masked_ind[1])]
         outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
         for outside_point in outside_points:
-            data[0, 0, masked_ind[0][int(outside_point.x)], masked_ind[1][int(outside_point.y)]] = blank_val
+            data[0, 0, int(outside_point.y), int(outside_point.x)] = 0
 
         hdu[0].data = data
-        hdu.writeto(output_image, clobber=True)
+        hdu.writeto(output_image, overwrite=True)
 
 
 if __name__ == '__main__':

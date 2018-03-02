@@ -106,9 +106,8 @@ initial_skymodel = /data/skymodel.txt
 
 
 [cluster]
-# Cluster type (default = localhost). Use cluster_type = pbs to use
-# PBS / torque reserved nodes and cluster_type = slurm to use SLURM reserved
-# ones
+# Cluster type (default = localhost). Use cluster_type = pbs to use PBS / torque
+# reserved nodes and cluster_type = slurm to use SLURM reserved ones
 # clusterdesc_type = slurm
 
 # Full path to a local disk on the nodes for I/O-intensive processing. The path
