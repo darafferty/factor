@@ -316,7 +316,7 @@ class Sector(object):
         y = np.array(y)
         xsize = int(1.1 * (max(x) - min(x)))
         ysize = int(1.1 * (max(y) - min(y)))
-        inside = [0] * len(skymodel)
+        inside = np.zeros(len(skymodel), dtype=int)
         prepared_polygon = prep(self.poly)
 
         # Unmask everything outside of the polygon + its border (outline)

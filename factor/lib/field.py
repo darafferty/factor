@@ -151,12 +151,14 @@ class Field(object):
         else:
             source_skymodel = skymodel.copy()
 
-        # Group by thresholding and write out the source sky model
-        self.log.info('Identifying sources...')
-        source_skymodel.group('threshold', FWHM='60.0 arcsec')
-        self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
-        source_skymodel.write(self.source_skymodel_file, clobber=True)
-        self.source_skymodel = source_skymodel
+        # Group by thresholding and write out the source sky model (only used when there
+        # is more than one imaging sector)
+        if self.parset['imaging_specific']['nsectors_ra'] > 0:
+            self.log.info('Identifying sources...')
+            source_skymodel.group('threshold', FWHM='60.0 arcsec')
+            self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
+            source_skymodel.write(self.source_skymodel_file, clobber=True)
+            self.source_skymodel = source_skymodel
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
