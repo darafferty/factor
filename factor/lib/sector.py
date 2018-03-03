@@ -316,7 +316,7 @@ class Sector(object):
         y = np.array(y)
         xsize = int(1.1 * (max(x) - min(x)))
         ysize = int(1.1 * (max(y) - min(y)))
-        inside = np.zeros(len(skymodel), dtype=int)
+        inside = np.zeros(len(skymodel), dtype=bool)
         prepared_polygon = prep(self.poly)
 
         # Unmask everything outside of the polygon + its border (outline)
@@ -325,7 +325,7 @@ class Sector(object):
                                             self.poly.exterior.coords.xy[1])]
         ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
         inside_ind = np.where(np.array(mask)[(x.astype(int), y.astype(int))])
-        inside[inside_ind] = 1
+        inside[inside_ind] = True
 
         # Now check sources in the border precisely
         mask = Image.new('L', (xsize, ysize), 0)
@@ -335,8 +335,9 @@ class Sector(object):
         for i, p in enumerate(points):
             p.index = border_ind[0][i]
         outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
+        0/0
         for outside_point in outside_points:
-            inside[outside_point.index] = 0
+            inside[outside_point.index] = False
         skymodel.select(inside)
         return skymodel
 
