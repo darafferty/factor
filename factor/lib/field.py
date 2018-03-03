@@ -140,7 +140,7 @@ class Field(object):
             If False, the calibration sky model is not regrouped to the target flux.
             Instead, the existing calibration groups are used
         """
-        self.log.info('Reading input sky model...')
+        self.log.info('Reading sky model...')
         if type(skymodel) is str:
             skymodel = lsmtool.load(skymodel)
 
@@ -152,6 +152,7 @@ class Field(object):
             source_skymodel = skymodel.copy()
 
         # Group by thresholding and write out the source sky model
+        self.log.info('Identifying sources...')
         source_skymodel.group('threshold', FWHM='60.0 arcsec')
         self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
         source_skymodel.write(self.source_skymodel_file, clobber=True)
@@ -159,8 +160,9 @@ class Field(object):
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
-            self.log.info('Using {0} calibration patches of ~ {1} Jy each'.format(len(skymodel.getPatchNames()), flux))
+            self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(len(flux))
             skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+        self.log.info('Using {} calibration patches'.format(len(skymodel.getPatchNames())))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.calibration_skymodel = skymodel
@@ -281,13 +283,16 @@ class Field(object):
             intersecting_ind.extend(list(idx.intersection(side4)))
 
         # Make point polys
-        points = [Point(xp, yp) for xp, yp in zip(x[intersecting_ind], y[intersecting_ind])]
+        xfilt = np.array(x)[(np.array(intersecting_ind),)]
+        yfilt = np.array(y)[(np.array(intersecting_ind),)]
+        points = [Point(xp, yp) for xp, yp in zip(xfilt, yfilt)]
         return points
 
     def adjust_sector_boundaries(self):
         """
         Adjusts the imaging sector boundaries for overlaping sources
         """
+        self.log.info('Adusting sector boudaries to avoid sources...')
         intersecting_source_polys = self.find_intersecting_sources()
 
         finalized = False
