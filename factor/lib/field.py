@@ -52,6 +52,7 @@ class Field(object):
         """
         Checks input MS and stores the associated Observation objects
         """
+        self.log.debug('Scanning observations...')
         self.observations = []
         for ms_filename in self.ms_filenames:
             self.observations.append(Observation(ms_filename))
@@ -139,6 +140,7 @@ class Field(object):
             If False, the calibration sky model is not regrouped to the target flux.
             Instead, the existing calibration groups are used
         """
+        self.log.info('Reading input sky model...')
         if type(skymodel) is str:
             skymodel = lsmtool.load(skymodel)
 
@@ -268,7 +270,7 @@ class Field(object):
         # For each sector side, query the index to find intersections
         intersecting_ind = []
         for sector in self.sectors:
-            xmin, xmax, ymin, ymax = sector.initial_poly.bounds
+            xmin, ymin, xmax, ymax = sector.initial_poly.bounds
             side1 = (xmin-1, ymin, xmin+1, ymax)
             intersecting_ind.extend(list(idx.intersection(side1)))
             side2 = (xmax-1, ymin, xmax+1, ymax)
