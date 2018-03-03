@@ -296,7 +296,6 @@ class Field(object):
         sfilt = np.array(sizes)[(np.array(intersecting_ind),)]
         points = [Point(xp, yp).buffer(sp/self.wcs_pixel_scale) for xp, yp, sp in
                   zip(xfilt, yfilt, sfilt)]
-        0/0
         return points
 
     def adjust_sector_boundaries(self):
@@ -314,10 +313,12 @@ class Field(object):
                 for p2 in intersecting_source_polys:
                     if sector.poly.contains(p2.centroid):
                         # If point is inside, union the sector poly with the source one
+                        self.log.info('inside')
                         sector.poly = sector.poly.union(p2)
                     else:
                         # If centroid of point is outside, difference the sector poly with
                         # the source one
+                        self.log.info('outside')
                         sector.poly = sector.poly.difference(p2)
                 finalized = sector.poly.equals(prev_poly)
 
