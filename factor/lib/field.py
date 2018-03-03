@@ -191,6 +191,9 @@ class Field(object):
         Defines the imaging sectors
         """
         nsectors_ra = self.parset['imaging_specific']['nsectors_ra']
+        nsectors_dec = int(np.ceil(nsectors_ra / np.sin(self.mean_el_rad)))
+        if nsectors_ra == 1 and nsectors_dec == 1:
+            nsectors_ra == 0
         if nsectors_ra == 0:
             # Use a single sector
             nsectors_dec = 1
@@ -200,7 +203,6 @@ class Field(object):
             x = np.array([center_x])
             y = np.array([center_y])
         else:
-            nsectors_dec = int(np.ceil(nsectors_ra / np.sin(self.mean_el_rad)))
             width_ra = self.fwhm_ra_deg / nsectors_ra
             width_dec = self.fwhm_dec_deg / nsectors_dec
             width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
@@ -221,7 +223,7 @@ class Field(object):
         n = 0
         for i in range(nsectors_ra):
             for j in range(nsectors_dec):
-                if nsectors_ra == 1 and nsectors_dec == 1:
+                if nsectors_ra == 0:
                     name = 'field'
                 else:
                     name = 'sector_{0}'.format(n)
@@ -230,9 +232,11 @@ class Field(object):
                 self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
 
         # Adjust sector boundaries to avoid known sources and update their sky models
-        self.adjust_sector_boundaries()
-        for sector in self.sectors:
-            sector.make_skymodels()
+        if nsectors_ra > 0:
+            self.adjust_sector_boundaries()
+            self.log.info('Making sector sky models (for predicting)...')
+            for sector in self.sectors:
+                sector.make_skymodels()
 
         for sector in self.sectors:
             # Set the imaging parameters for selfcal
@@ -287,7 +291,9 @@ class Field(object):
         # Make point polys
         xfilt = np.array(x)[(np.array(intersecting_ind),)]
         yfilt = np.array(y)[(np.array(intersecting_ind),)]
-        points = [Point(xp, yp) for xp, yp in zip(xfilt, yfilt)]
+        sfilt = np.array(sizes)[(np.array(intersecting_ind),)]
+        points = [Point(xp, yp).buffer(sp/self.wcs_pixel_scale) for xp, yp, sp in
+                  zip(xfilt, yfilt, sfilt)]
         return points
 
     def adjust_sector_boundaries(self):
