@@ -292,8 +292,8 @@ class Field(object):
         xfilt = np.array(x)[(np.array(intersecting_ind),)]
         yfilt = np.array(y)[(np.array(intersecting_ind),)]
         sfilt = np.array(sizes)[(np.array(intersecting_ind),)]
-        points = [Point(xp, yp).buffer(sp/self.wcs_pixel_scale) for xp, yp, sp in
-                  zip(xfilt, yfilt, sfilt)]
+        points = [Point(xp, yp) for xp, yp in zip(xfilt, yfilt)]
+        points = [p.buffer(s/self.wcs_pixel_scale) for p, s in zip(points, sfilt)]
         return points
 
     def adjust_sector_boundaries(self):
