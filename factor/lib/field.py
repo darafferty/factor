@@ -160,7 +160,7 @@ class Field(object):
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
-            self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(len(flux))
+            self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(len(flux)))
             skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
         self.log.info('Using {} calibration patches'.format(len(skymodel.getPatchNames())))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
