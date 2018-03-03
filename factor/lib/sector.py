@@ -133,7 +133,7 @@ class Sector(object):
         self.multiscale = None
         large_size_arcmin = 4.0
         if self.multiscale is None:
-            sizes_arcmin = self.get_source_sizes_arcmin('inside')
+            sizes_arcmin = self.get_source_sizes_arcmin()
             if sizes_arcmin is not None and any([s > large_size_arcmin for s in sizes_arcmin]):
                 self.multiscale = True
             else:
@@ -314,14 +314,20 @@ class Sector(object):
         x, y = self.field.radec2xy(RA, Dec)
         x = np.array(x)
         y = np.array(y)
-        xsize = int(1.1 * (max(x) - min(x)))
-        ysize = int(1.1 * (max(y) - min(y)))
+        xpadding = int(0.1 * (max(x) - min(x)))
+        ypadding = int(0.1 * (max(y) - min(y)))
+        xshift = int(min(x)) + xpadding
+        yshift = int(min(y)) + ypadding
+        xsize = int((max(x) - min(x))) + 2*xpadding
+        ysize = int((max(y) - min(y))) + 2*ypadding
+        x -= xshift
+        y -= yshift
         inside = np.zeros(len(skymodel), dtype=bool)
         prepared_polygon = prep(self.poly)
 
         # Unmask everything outside of the polygon + its border (outline)
         mask = Image.new('L', (xsize, ysize), 0)
-        verts = [(yv, xv) for xv, yv in zip(self.poly.exterior.coords.xy[0],
+        verts = [(yv-xshift, xv-yshift) for xv, yv in zip(self.poly.exterior.coords.xy[0],
                                             self.poly.exterior.coords.xy[1])]
         ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
         inside_ind = np.where(np.array(mask)[(x.astype(int), y.astype(int))])
