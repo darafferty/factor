@@ -335,7 +335,6 @@ class Sector(object):
         for i, p in enumerate(points):
             p.index = border_ind[0][i]
         outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
-        0/0
         for outside_point in outside_points:
             inside[outside_point.index] = False
         skymodel.select(inside)
