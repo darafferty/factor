@@ -156,17 +156,19 @@ class Field(object):
         if self.parset['imaging_specific']['nsectors_ra'] > 0:
             self.log.info('Identifying sources...')
             source_skymodel.group('threshold', FWHM='60.0 arcsec')
+            source_skymodel_filt = source_skymodel.copy()
+            source_skymodel_filt.remove('Patch = patch_*', force=True) # Remove sources that did not threshold
             self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
             source_skymodel.write(self.source_skymodel_file, clobber=True)
-            self.source_skymodel = source_skymodel
+            self.source_skymodel = source_skymodel_filt
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(len(flux)))
-            skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
-        self.log.info('Using {} calibration patches'.format(len(skymodel.getPatchNames())))
+            source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+        self.log.info('Using {} calibration patches'.format(len(source_skymodel.getPatchNames())))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
-        skymodel.write(self.calibration_skymodel_file, clobber=True)
+        source_skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.calibration_skymodel = skymodel
 
     def update_skymodels(self, iter):
