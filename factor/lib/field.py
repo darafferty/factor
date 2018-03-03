@@ -292,8 +292,9 @@ class Field(object):
         xfilt = np.array(x)[(np.array(intersecting_ind),)]
         yfilt = np.array(y)[(np.array(intersecting_ind),)]
         sfilt = np.array(sizes)[(np.array(intersecting_ind),)]
-        points = [Point(xp, yp) for xp, yp in zip(xfilt, yfilt)]
-        points = [p.buffer(s/self.wcs_pixel_scale) for p, s in zip(points, sfilt)]
+        points = [Point(xp, yp).buffer(sp/self.wcs_pixel_scale) for xp, yp, sp in
+                  zip(xfilt, yfilt, sfilt)]
+        0/0
         return points
 
     def adjust_sector_boundaries(self):
@@ -308,7 +309,6 @@ class Field(object):
             while not finalized:
                 # Adjust boundaries for intersection with sources
                 prev_poly = Polygon(sector.poly)
-                0/0
                 for p2 in intersecting_source_polys:
                     if sector.poly.contains(p2.centroid):
                         # If point is inside, union the sector poly with the source one
