@@ -346,12 +346,11 @@ class Sector(object):
         ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
         inside_ind = np.where(np.array(mask).transpose()[(x.astype(int), y.astype(int))])
         inside[inside_ind] = True
-        0/0
 
         # Now check sources in the border precisely
         mask = Image.new('L', (xsize, ysize), 0)
         ImageDraw.Draw(mask).polygon(verts, outline=1, fill=0)
-        border_ind = np.where(np.array(mask)[(x.astype(int), y.astype(int))])
+        border_ind = np.where(np.array(mask).transpose()[(x.astype(int), y.astype(int))])
         points = [Point(xs, ys) for xs, ys in zip(x[border_ind], y[border_ind])]
         for i, p in enumerate(points):
             p.index = border_ind[0][i]
