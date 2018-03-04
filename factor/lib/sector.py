@@ -341,10 +341,10 @@ class Sector(object):
         # Unmask everything outside of the polygon + its border (outline)
         inside = np.zeros(len(skymodel), dtype=bool)
         mask = Image.new('L', (xsize, ysize), 0)
-        verts = [(yv-xshift, xv-yshift) for xv, yv in zip(self.poly.exterior.coords.xy[0],
+        verts = [(xv-xshift, yv-yshift) for xv, yv in zip(self.poly.exterior.coords.xy[0],
                                             self.poly.exterior.coords.xy[1])]
         ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
-        inside_ind = np.where(np.array(mask)[(x.astype(int), y.astype(int))])
+        inside_ind = np.where(np.array(mask).transpose()[(x.astype(int), y.astype(int))])
         inside[inside_ind] = True
         0/0
 
