@@ -310,7 +310,6 @@ class Field(object):
             while not finalized:
                 # Adjust boundaries for intersection with sources
                 prev_poly = Polygon(sector.poly)
-                0/0
                 for p2 in intersecting_source_polys:
                     if sector.poly.contains(p2.centroid):
                         # If point is inside, union the sector poly with the source one
@@ -322,6 +321,7 @@ class Field(object):
                         self.log.info('outside')
                         sector.poly = sector.poly.difference(p2)
                 finalized = sector.poly.equals(prev_poly)
+                print(finalized)
 
             # Make sector region and vertices files
             sector.make_vertices_file()
