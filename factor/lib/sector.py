@@ -330,8 +330,8 @@ class Sector(object):
         y = np.array(y)
         xpadding = int(0.1 * (max(x) - min(x)))
         ypadding = int(0.1 * (max(y) - min(y)))
-        xshift = int(min(x)) + xpadding
-        yshift = int(min(y)) + ypadding
+        xshift = int(min(x)) - xpadding
+        yshift = int(min(y)) - ypadding
         xsize = int((max(x) - min(x))) + 2*xpadding
         ysize = int((max(y) - min(y))) + 2*ypadding
         x -= xshift
