@@ -143,13 +143,7 @@ class Field(object):
         self.log.info('Reading sky model...')
         if type(skymodel) is str:
             skymodel = lsmtool.load(skymodel)
-
-        if regroup:
-            flux = self.parset['direction_specific']['patch_target_flux_jy']
-            self.log.info('Grouping sky model to form calibration patches...')
-            source_skymodel = skymodel
-        else:
-            source_skymodel = skymodel.copy()
+        source_skymodel = skymodel.copy()
 
         # Group by thresholding and write out the source sky model (only used when there
         # is more than one imaging sector)
@@ -161,15 +155,21 @@ class Field(object):
             self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
             source_skymodel.write(self.source_skymodel_file, clobber=True)
             self.source_skymodel = source_skymodel_filt
+        if regroup:
+            flux = self.parset['direction_specific']['patch_target_flux_jy']
+            self.log.info('Grouping sky model to form calibration patches...')
+            calibration_skymodel = source_skymodel
+        else:
+            calibration_skymodel = skymodel
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(len(flux)))
-            source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
-        self.log.info('Using {} calibration patches'.format(len(source_skymodel.getPatchNames())))
+            calibration_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+        self.log.info('Using {} calibration patches'.format(len(calibration_skymodel.getPatchNames())))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
-        source_skymodel.write(self.calibration_skymodel_file, clobber=True)
-        self.calibration_skymodel = skymodel
+        calibration_skymodel.write(self.calibration_skymodel_file, clobber=True)
+        self.calibration_skymodel = calibration_skymodel
 
     def update_skymodels(self, iter):
         """
@@ -305,9 +305,10 @@ class Field(object):
         self.log.info('Adusting sector boudaries to avoid sources...')
         intersecting_source_polys = self.find_intersecting_sources()
 
-        finalized = False
         for sector in self.sectors:
-            while not finalized:
+            print(sector.name)
+            for i in range(3):
+                print(i)
                 # Adjust boundaries for intersection with sources
                 prev_poly = Polygon(sector.poly)
                 for p2 in intersecting_source_polys:
@@ -320,8 +321,9 @@ class Field(object):
                         # the source one
                         self.log.info('outside')
                         sector.poly = sector.poly.difference(p2)
-                finalized = sector.poly.equals(prev_poly)
-                print(finalized)
+                if sector.poly.equals(prev_poly):
+                    print('break')
+                    break
 
             # Make sector region and vertices files
             sector.make_vertices_file()
