@@ -346,6 +346,7 @@ class Sector(object):
         ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
         inside_ind = np.where(np.array(mask)[(x.astype(int), y.astype(int))])
         inside[inside_ind] = True
+        0/0
 
         # Now check sources in the border precisely
         mask = Image.new('L', (xsize, ysize), 0)

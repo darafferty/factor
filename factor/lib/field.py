@@ -306,23 +306,18 @@ class Field(object):
         intersecting_source_polys = self.find_intersecting_sources()
 
         for sector in self.sectors:
-            print(sector.name)
             for i in range(3):
-                print(i)
                 # Adjust boundaries for intersection with sources
                 prev_poly = Polygon(sector.poly)
                 for p2 in intersecting_source_polys:
                     if sector.poly.contains(p2.centroid):
                         # If point is inside, union the sector poly with the source one
-                        self.log.info('inside')
                         sector.poly = sector.poly.union(p2)
                     else:
                         # If centroid of point is outside, difference the sector poly with
                         # the source one
-                        self.log.info('outside')
                         sector.poly = sector.poly.difference(p2)
                 if sector.poly.equals(prev_poly):
-                    print('break')
                     break
 
             # Make sector region and vertices files
