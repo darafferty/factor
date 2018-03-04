@@ -316,12 +316,18 @@ class Sector(object):
         y = np.array(y)
 
         # Keep only those inside the sector bounding box
+        inside = np.zeros(len(skymodel), dtype=bool)
         xmin, ymin, xmax, ymax = self.poly.bounds
-        inside = np.where( (x < xmin) | (x > xmax) | (y < ymin ) | (y > ymax ))
-        x = x[inside]
-        y = y[inside]
+        inside_ind = np.where( (x >= xmin) & (x <= xmax) & (y >= ymin ) & (y <= ymax ))
+        inside[inside_ind] = True
+        skymodel.select(inside)
 
-        # Now check the actual sector boundary
+        # Now check the actual sector boundary against filtered sky model
+        RA = skymodel.getColValues('Ra')
+        Dec = skymodel.getColValues('Dec')
+        x, y = self.field.radec2xy(RA, Dec)
+        x = np.array(x)
+        y = np.array(y)
         xpadding = int(0.1 * (max(x) - min(x)))
         ypadding = int(0.1 * (max(y) - min(y)))
         xshift = int(min(x)) + xpadding
@@ -330,10 +336,10 @@ class Sector(object):
         ysize = int((max(y) - min(y))) + 2*ypadding
         x -= xshift
         y -= yshift
-        inside = np.zeros(len(skymodel), dtype=bool)
         prepared_polygon = prep(self.poly)
 
         # Unmask everything outside of the polygon + its border (outline)
+        inside = np.zeros(len(skymodel), dtype=bool)
         mask = Image.new('L', (xsize, ysize), 0)
         verts = [(yv-xshift, xv-yshift) for xv, yv in zip(self.poly.exterior.coords.xy[0],
                                             self.poly.exterior.coords.xy[1])]
