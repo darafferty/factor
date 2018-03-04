@@ -284,16 +284,6 @@ class Sector(object):
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
-        # Load and filter the source sky model
-        skymodel = self.field.source_skymodel.copy()
-        skymodel = self.filter_skymodel(skymodel)
-
-        # Write filtered sky model to file
-        skymodel.setPatchPositions(method='wmean')
-        self.source_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
-                                                      '{}_source_skymodel.txt'.format(self.name))
-        skymodel.write(self.source_skymodel_file, clobber=True)
-
     def filter_skymodel(self, skymodel):
         """
         Filters input skymodel to select only sources that lie inside the sector
