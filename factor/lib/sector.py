@@ -271,7 +271,6 @@ class Sector(object):
         skymodel = self.filter_skymodel(skymodel)
 
         # Write filtered sky model to file
-        skymodel.setPatchPositions(method='wmean')
         self.predict_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
                                                       '{}_predict_skymodel.txt'.format(self.name))
         skymodel.write(self.predict_skymodel_file, clobber=True)
@@ -283,6 +282,15 @@ class Sector(object):
         patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True).tolist()
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
+
+        # Load and filter the source sky model
+        skymodel.group('threshold', FWHM='60.0 arcsec')
+        skymodel.remove('Patch = patch_*', force=True) # Remove sources that did not threshold
+
+        # Write filtered sky model to file
+        self.source_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
+                                                      '{}_source_skymodel.txt'.format(self.name))
+        skymodel.write(self.source_skymodel_file, clobber=True)
 
     def filter_skymodel(self, skymodel):
         """
