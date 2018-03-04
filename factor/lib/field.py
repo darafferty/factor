@@ -310,6 +310,7 @@ class Field(object):
             while not finalized:
                 # Adjust boundaries for intersection with sources
                 prev_poly = Polygon(sector.poly)
+                0/0
                 for p2 in intersecting_source_polys:
                     if sector.poly.contains(p2.centroid):
                         # If point is inside, union the sector poly with the source one
