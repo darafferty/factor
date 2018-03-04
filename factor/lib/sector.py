@@ -314,6 +314,14 @@ class Sector(object):
         x, y = self.field.radec2xy(RA, Dec)
         x = np.array(x)
         y = np.array(y)
+
+        # Keep only those inside the sector bounding box
+        xmin, ymin, xmax, ymax = self.poly.bounds
+        inside = np.where( (x < xmin) | (x > xmax) | (y < ymin ) | (y > ymax ))
+        x = x[inside]
+        y = y[inside]
+
+        # Now check the actual sector boundary
         xpadding = int(0.1 * (max(x) - min(x)))
         ypadding = int(0.1 * (max(y) - min(y)))
         xshift = int(min(x)) + xpadding
