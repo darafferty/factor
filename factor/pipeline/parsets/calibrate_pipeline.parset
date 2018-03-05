@@ -112,7 +112,7 @@ create_slow_h5parms_map.control.filename    = slow_h5parms.mapfile
 create_skymodel_map.control.kind        = plugin
 create_skymodel_map.control.type        = addListMapfile
 create_skymodel_map.control.hosts       = {{ hosts }}
-create_skymodel_map.control.files       = {{ calibration_skymodel_file }}
+create_skymodel_map.control.files       = [{{ calibration_skymodel_file }}]
 create_skymodel_map.control.mapfile_dir = input.output.mapfile_dir
 create_skymodel_map.control.filename    = skymodels.mapfile
 
