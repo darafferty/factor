@@ -148,7 +148,6 @@ class Field(object):
         self.log.info('Identifying sources...')
         source_skymodel = skymodel.copy()
         source_skymodel.group('threshold', FWHM='60.0 arcsec', threshold=0.05)
-        self.source_sizes = source_skymodel.getPatchSizes(units='degree')
         self.source_skymodel = source_skymodel
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
@@ -260,7 +259,7 @@ class Field(object):
         skymodel = self.source_skymodel
         RA, Dec = skymodel.getPatchPositions(asArray=True)
         x, y = self.radec2xy(RA, Dec)
-        sizes = self.source_sizes
+        sizes = skymodel.getPatchSizes(units='degree')
         minsize = 1 #  minimum allowed source size in pixels
         sizes = [max(minsize, s/2.0/self.wcs_pixel_scale) for s in sizes] #  radii in pixels
 

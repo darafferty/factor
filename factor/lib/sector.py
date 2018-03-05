@@ -287,7 +287,9 @@ class Sector(object):
         all_source_names = self.field.source_skymodel.getColValues('Name').tolist()
         source_names = skymodel.getColValues('Name')
         in_sector = np.array([all_source_names.index(sn) for sn in source_names])
-        self.source_sizes = self.field.source_sizes[(in_sector,)] #  in degree
+        source_skymodel = self.field.source_skymodel.copy()
+        source_skymodel.select(in_sector)
+        self.source_sizes = source_skymodel.getPatchSizes(units='degree')
 
     def filter_skymodel(self, skymodel):
         """
