@@ -143,29 +143,22 @@ class Field(object):
         self.log.info('Reading sky model...')
         if type(skymodel) is str:
             skymodel = lsmtool.load(skymodel)
-        source_skymodel = skymodel.copy()
 
-        # Group by thresholding and write out the source sky model (only used when there
-        # is more than one imaging sector)
-        if self.parset['imaging_specific']['nsectors_ra'] > 0:
-            self.log.info('Identifying sources...')
-            source_skymodel.group('threshold', FWHM='60.0 arcsec')
-            source_skymodel_filt = source_skymodel.copy()
-            source_skymodel_filt.remove('Patch = patch_*', force=True) # Remove sources that did not threshold
-            self.source_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'source_skymodel.txt')
-            source_skymodel.write(self.source_skymodel_file, clobber=True)
-            self.source_skymodel = source_skymodel_filt
-        if regroup:
-            flux = self.parset['direction_specific']['patch_target_flux_jy']
-            self.log.info('Grouping sky model to form calibration patches...')
-            calibration_skymodel = source_skymodel
-        else:
-            calibration_skymodel = skymodel
+        # Group by thresholding
+        self.log.info('Identifying sources...')
+        source_skymodel = skymodel.copy()
+        source_skymodel.group('threshold', FWHM='60.0 arcsec', threshold=0.05)
+        self.source_sizes = source_skymodel.getPatchSizes(units='degree')
+        self.source_skymodel = source_skymodel
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
+            flux = self.parset['direction_specific']['patch_target_flux_jy']
             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(len(flux)))
-            calibration_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+            source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+            calibration_skymodel = source_skymodel
+        else:
+            calibration_skymodel = skymodel
         self.log.info('Using {} calibration patches'.format(len(calibration_skymodel.getPatchNames())))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         calibration_skymodel.write(self.calibration_skymodel_file, clobber=True)
@@ -186,7 +179,7 @@ class Field(object):
         # Re-adjust sector boundaries and update their sky models
         self.adjust_sector_boundaries()
         for sector in self.sectors:
-            sector.make_skymodels()
+            sector.make_skymodel()
 
     def define_sectors(self):
         """
@@ -238,7 +231,7 @@ class Field(object):
             self.adjust_sector_boundaries()
             self.log.info('Making sector sky models (for predicting)...')
             for sector in self.sectors:
-                sector.make_skymodels()
+                sector.make_skymodel()
 
         for sector in self.sectors:
             # Set the imaging parameters for selfcal
@@ -265,21 +258,22 @@ class Field(object):
         """
         idx = rtree.index.Index()
         skymodel = self.source_skymodel
-        RA = skymodel.getColValues('Ra')
-        Dec = skymodel.getColValues('Dec')
+        RA, Dec = skymodel.getPatchPositions(asArray=True)
         x, y = self.radec2xy(RA, Dec)
-        sizes = skymodel.getPatchSizes(units='degree', weight=False)
+        sizes = self.source_sizes
+        minsize = 1 #  minimum allowed source size in pixels
+        sizes = [max(minsize, s/2.0/self.wcs_pixel_scale) for s in sizes] #  radii in pixels
 
         for i, (xs, ys, ss) in enumerate(zip(x, y, sizes)):
-            xmin = xs - (ss / 2.0 / self.wcs_pixel_scale)
-            xmax = xs + (ss / 2.0 / self.wcs_pixel_scale)
-            ymin = ys - (ss / 2.0 / self.wcs_pixel_scale)
-            ymax = ys + (ss / 2.0 / self.wcs_pixel_scale)
+            xmin = xs - ss
+            xmax = xs + ss
+            ymin = ys - ss
+            ymax = ys + ss
             idx.insert(i, (xmin, ymin, xmax, ymax))
 
         # For each sector side, query the index to find intersections
         intersecting_ind = []
-        buffer = 10 # how many pixels away from each side to check
+        buffer = 2 #  how many pixels away from each side to check
         for sector in self.sectors:
             xmin, ymin, xmax, ymax = sector.initial_poly.bounds
             side1 = (xmin-buffer, ymin, xmin+buffer, ymax)
@@ -291,12 +285,11 @@ class Field(object):
             side4 = (xmin, ymax-buffer, xmax, ymax+buffer)
             intersecting_ind.extend(list(idx.intersection(side4)))
 
-        # Make point polys
+        # Make polygons for intersecting sources, with a size = 1.5 * radius of source
         xfilt = np.array(x)[(np.array(intersecting_ind),)]
         yfilt = np.array(y)[(np.array(intersecting_ind),)]
         sfilt = np.array(sizes)[(np.array(intersecting_ind),)]
-        points = [Point(xp, yp).buffer(sp/self.wcs_pixel_scale) for xp, yp, sp in
-                  zip(xfilt, yfilt, sfilt)]
+        points = [Point(xp, yp).buffer(sp*1.5) for xp, yp, sp in zip(xfilt, yfilt, sfilt)]
         return points
 
     def adjust_sector_boundaries(self):
@@ -307,21 +300,23 @@ class Field(object):
         intersecting_source_polys = self.find_intersecting_sources()
 
         for sector in self.sectors:
-            self.log.info('sector {}'.format(sector.name))
             for i in range(10):
                 # Adjust boundaries for intersection with sources
-                self.log.info('  iter {}'.format(i+1))
                 prev_poly = Polygon(sector.poly)
                 for p2 in intersecting_source_polys:
                     if sector.poly.contains(p2.centroid):
                         # If point is inside, union the sector poly with the source one
-                        self.log.info('  {} in'.format(p2.bounds))
                         sector.poly = sector.poly.union(p2)
                     else:
                         # If centroid of point is outside, difference the sector poly with
                         # the source one
-                        self.log.info('  {} out'.format(p2.bounds))
                         sector.poly = sector.poly.difference(p2)
+
+                # Check whether the sector has been broken into two or more separate polygons
+                if type(sector.poly) is not Polygon:
+                    # If so, keep largest one only
+                    sector.poly = sector.poly[np.argmax([p.area for p in sector.poly])]
+
                 if sector.poly.equals(prev_poly):
                     break
 

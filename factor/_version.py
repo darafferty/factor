@@ -3,13 +3,18 @@ Module that stores the version and changelog
 """
 
 # Version number
-__version__ = '1.3'
+__version__ = '2.0'
 
 # Change log
 def changelog():
     """
     FACTOR Changelog.
     ----------------------------------------------------------------------------
+
+    Version 2.0
+
+        Restructured to support DDECal + WSClean + IDG. This version is not
+        compatible with previous versions.
 
     18/07/2017
 

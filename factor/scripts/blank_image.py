@@ -88,7 +88,8 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
 
 
 def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
-         reference_dec_deg=None, cellsize_deg=None, imsize=None, make_blank_image=False):
+         reference_dec_deg=None, cellsize_deg=None, imsize=None, make_blank_image=False,
+         region_file=None):
     """
     Blank a region in an image
 
@@ -113,6 +114,8 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
     make_blank_image : bool, optional
         If True, a blank template image is made. In this case, reference_ra_deg
         and reference_dec_deg must be specified
+    region_file : str, optional
+        Filename of region file in CASA format to use as the mask
     """
     if type(make_blank_image) is str:
         if make_blank_image.lower() == 'true':

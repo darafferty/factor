@@ -133,7 +133,7 @@ class Sector(object):
         self.multiscale = None
         large_size_arcmin = 4.0
         if self.multiscale is None:
-            sizes_arcmin = self.get_source_sizes_arcmin()
+            sizes_arcmin = self.source_sizes * 60.0
             if sizes_arcmin is not None and any([s > large_size_arcmin for s in sizes_arcmin]):
                 self.multiscale = True
             else:
@@ -262,11 +262,11 @@ class Sector(object):
             (24 * 60 * 60) / 4)
         return wsclean_nwavelengths_time
 
-    def make_skymodels(self):
+    def make_skymodel(self):
         """
-        Makes predict and source sky models from the parent field sky models
+        Makes predict sky model from the field calibration sky model
         """
-        # Load and filter the predict sky model
+        # Filter the predict sky model
         skymodel = self.field.calibration_skymodel.copy()
         skymodel = self.filter_skymodel(skymodel)
 
@@ -283,14 +283,11 @@ class Sector(object):
         patch_names = skymodel.getPatchNames()
         self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
-        # Load and filter the source sky model
-        skymodel.group('threshold', FWHM='60.0 arcsec')
-        skymodel.remove('Patch = patch_*', force=True) # Remove sources that did not threshold
-
-        # Write filtered sky model to file
-        self.source_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
-                                                      '{}_source_skymodel.txt'.format(self.name))
-        skymodel.write(self.source_skymodel_file, clobber=True)
+        # Filter the field source sky model and store source sizes
+        all_source_names = self.field.source_skymodel.getColValues('Name').tolist()
+        source_names = skymodel.getColValues('Name')
+        in_sector = np.array([all_source_names.index(sn) for sn in source_names])
+        self.source_sizes = self.field.source_sizes[(in_sector,)] #  in degree
 
     def filter_skymodel(self, skymodel):
         """
@@ -357,20 +354,6 @@ class Sector(object):
             inside[outside_point.index] = False
         skymodel.select(inside)
         return skymodel
-
-    def get_source_sizes_arcmin(self):
-        """
-        Returns list of source sizes in arcmin
-
-        Returns
-        -------
-        sizes : list
-            List of source sizes in arcmin
-        """
-        lsmtool._logging.setLevel('debug')
-        skymodel = lsmtool.load(self.source_skymodel_file)
-        sizes = skymodel.getPatchSizes(units='arcmin', weight=False)
-        return sizes
 
     def get_obs_parameters(self, parameter):
         """
