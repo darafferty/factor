@@ -261,7 +261,7 @@ class Field(object):
 
     def find_intersecting_sources(self):
         """
-        Finds sources in the source sky model that intersect with the sector polygons
+        Finds sources that intersect with the intial sector boundaries
         """
         idx = rtree.index.Index()
         skymodel = self.source_skymodel
@@ -279,15 +279,16 @@ class Field(object):
 
         # For each sector side, query the index to find intersections
         intersecting_ind = []
+        buffer = 10 # how many pixels away from each side to check
         for sector in self.sectors:
             xmin, ymin, xmax, ymax = sector.initial_poly.bounds
-            side1 = (xmin-1, ymin, xmin+1, ymax)
+            side1 = (xmin-buffer, ymin, xmin+buffer, ymax)
             intersecting_ind.extend(list(idx.intersection(side1)))
-            side2 = (xmax-1, ymin, xmax+1, ymax)
+            side2 = (xmax-buffer, ymin, xmax+buffer, ymax)
             intersecting_ind.extend(list(idx.intersection(side2)))
-            side3 = (xmin, ymin-1, xmax, ymin+1)
+            side3 = (xmin, ymin-buffer, xmax, ymin+buffer)
             intersecting_ind.extend(list(idx.intersection(side3)))
-            side4 = (xmin, ymax-1, xmax, ymax+1)
+            side4 = (xmin, ymax-buffer, xmax, ymax+buffer)
             intersecting_ind.extend(list(idx.intersection(side4)))
 
         # Make point polys
@@ -306,16 +307,20 @@ class Field(object):
         intersecting_source_polys = self.find_intersecting_sources()
 
         for sector in self.sectors:
-            for i in range(3):
+            self.log.info('sector {}'.format(sector.name))
+            for i in range(10):
                 # Adjust boundaries for intersection with sources
+                self.log.info('  iter {}'.format(i+1))
                 prev_poly = Polygon(sector.poly)
                 for p2 in intersecting_source_polys:
                     if sector.poly.contains(p2.centroid):
                         # If point is inside, union the sector poly with the source one
+                        self.log.info('  {} in'.format(p2.bounds))
                         sector.poly = sector.poly.union(p2)
                     else:
                         # If centroid of point is outside, difference the sector poly with
                         # the source one
+                        self.log.info('  {} out'.format(p2.bounds))
                         sector.poly = sector.poly.difference(p2)
                 if sector.poly.equals(prev_poly):
                     break
