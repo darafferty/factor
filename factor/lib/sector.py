@@ -116,7 +116,7 @@ class Sector(object):
                        self.imsize[0], self.imsize[1]))
 
         # Set number of output channels to get 5 channels, but of no less than ~ 2 MHz each
-        target_nchannels = 4
+        target_nchannels = 5
         tot_bandwidth = 0.0
         for obs in self.observations:
             # Find observation with largest bandwidth
@@ -126,7 +126,11 @@ class Sector(object):
         self.wsclean_nchannels = min(target_nchannels, int(np.ceil(tot_bandwidth / 2e6)))
 
         # Set number of iterations and threshold
-        scaling_factor = np.sqrt(np.float(tot_bandwidth / 2e6))
+        total_time_hr = 0.0
+        for obs in self.observations:
+            # Find total observation time
+            total_time_hr += (obs.endtime - obs.starttime) / 60.0
+        scaling_factor = np.sqrt(np.float(tot_bandwidth / 2e6) * total_time_hr / 8.0)
         self.wsclean_niter = int(12000 * scaling_factor)
 
         # Set multiscale: get source sizes and check for large sources
