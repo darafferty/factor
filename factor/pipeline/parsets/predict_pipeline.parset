@@ -1,6 +1,3 @@
-{% if do_slowgain_solve %}
-pipeline.steps = [create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, make_predict_output_map, create_combined_output_map, combine_h5parms, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, subtract_models]
-{% else %}
 pipeline.steps = [create_sector_skymodels_map, make_sector_sourcedbs, create_sector_files_map, make_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, subtract_models]
 
 # create a mapfile with the sector sky models, length = nsectors*nobs
@@ -36,32 +33,10 @@ make_predict_output_map.control.filename     = sector_files_output_map.mapfile
 make_predict_output_map.control.append_index = True
 make_predict_output_map.control.append       = .sector
 
-{% if do_slowgain_solve %}
-# create a mapfile for output of combine step, length = 1
-create_combined_output_map.control.kind        = plugin
-create_combined_output_map.control.type        = addListMapfile
-create_combined_output_map.control.hosts       = {{ hosts }}
-create_combined_output_map.control.files       = [input.output.working_directory/input.output.job_name/combined_solutions.h5]
-create_combined_output_map.control.mapfile_dir = input.output.mapfile_dir
-create_combined_output_map.control.filename    = combine_all_h5parms_output.mapfile
-
-# combine fast and slow h5parms, length = 2 -> 1
-combine_h5parms.control.type        = combine_h5parms
-combine_h5parms.control.mapfiles_in = [combine_fast_phases.output.mapfile,combine_slow_gains.output.mapfile]
-combine_h5parms.control.inputkeys   = [h1,h2]
-combine_h5parms.control.mapfile_out = create_combined_output_map.output.mapfile
-combine_h5parms.control.outputkey   = outfile
-combine_h5parms.argument.flags      = [h1,h2,outfile]
-{% endif %}
-
 # expand the combined h5parms mapfile, length = 1 -> nsectors*nobs
 expand_combined_h5parms_map.control.kind             = plugin
 expand_combined_h5parms_map.control.type             = expandMapfile
-{% if do_slowgain_solve %}
-expand_combined_h5parms_map.control.mapfile_in       = combine_h5parms.output.mapfile
-{% else %}
-expand_combined_h5parms_map.control.mapfile_in       = combine_fast_phases.output.mapfile
-{% endif %}
+expand_combined_h5parms_map.control.mapfile_in       = {{ h5parm_mapfile }}
 expand_combined_h5parms_map.control.mapfile_to_match = create_sector_files_map.output.mapfile
 expand_combined_h5parms_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_combined_h5parms_map.control.filename         = expand_h5parms_sectors.mapfile

@@ -1,5 +1,5 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, create_slow_output_map, combine_slow_gains]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, create_slow_output_map, combine_slow_gains, create_combined_output_map, combine_h5parms]
 {% else %}
 pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens]
 {% endif %}
@@ -202,6 +202,7 @@ fit_fast_screens.control.mapfile_in = combine_fast_phases.output.mapfile
 fit_fast_screens.control.inputkey   = infile
 fit_fast_screens.argument.flags     = [infile]
 
+{% if do_slowgain_solve %}
 # expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks*nobs
 expand_fast_phases_mapfile.control.kind             = plugin
 expand_fast_phases_mapfile.control.type             = expandMapfile
@@ -267,3 +268,21 @@ combine_slow_gains.argument.outh5parm  = outfile
 # fit_slow_screens.control.mapfile_in = append_h5_slow.output.mapfile
 # fit_slow_screens.control.inputkey   = infile
 # fit_slow_screens.argument.flags     = [infile]
+
+# create a mapfile for output of combine step, length = 1
+create_combined_output_map.control.kind        = plugin
+create_combined_output_map.control.type        = addListMapfile
+create_combined_output_map.control.hosts       = {{ hosts }}
+create_combined_output_map.control.files       = [input.output.working_directory/input.output.job_name/combined_solutions.h5]
+create_combined_output_map.control.mapfile_dir = input.output.mapfile_dir
+create_combined_output_map.control.filename    = combine_all_h5parms_output.mapfile
+
+# combine fast and slow h5parms, length = 2 -> 1
+combine_h5parms.control.type        = combine_h5parms
+combine_h5parms.control.mapfiles_in = [combine_fast_phases.output.mapfile,combine_slow_gains.output.mapfile]
+combine_h5parms.control.inputkeys   = [h1,h2]
+combine_h5parms.control.mapfile_out = create_combined_output_map.output.mapfile
+combine_h5parms.control.outputkey   = outfile
+combine_h5parms.argument.flags      = [h1,h2,outfile]
+{% endif %}
+
