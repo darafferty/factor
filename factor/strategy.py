@@ -33,12 +33,13 @@ def set_strategy(field):
         #     - imaging of all sources (excluding outliers)
         max_selfcal_loops = field.parset['calibration_specific']['max_selfcal_loops']
         for i in range(max_selfcal_loops):
-            strategy_list.append({'do_calibrate': True})
+            strategy_list.append({})
+            strategy_list[i]['do_calibrate'] = True
             if i < 3 and not always_do_slowgain:
-                strategy_list.append({'do_slowgain': False})
+                strategy_list[i]['do_slowgain'] = False
             else:
-                strategy_list.append({'do_slowgain': True})
-            strategy_list.append({'do_peel': False})
+                strategy_list[i]['do_slowgain'] = True
+            strategy_list[i]['do_peel'] = False
             if field.sectors[-1].name == 'outlier':
                 has_outlier = True
                 nr_imaging_sectors = len(field.sectors) - 1
@@ -46,13 +47,13 @@ def set_strategy(field):
                 has_outlier = False
                 nr_imaging_sectors = len(field.sectors)
             if nr_imaging_sectors > 1 or has_outlier:
-                strategy_list.append({'do_predict': True})
-            strategy_list.append({'do_image': True})
-            strategy_list.append({'do_update': True})
+                strategy_list[i]['do_predict'] = True
+            strategy_list[i]['do_image'] = True
+            strategy_list[i]['do_update'] = True
             if i < 4:
-                strategy_list.append({'do_check': False})
+                strategy_list[i]['do_check'] = False
             else:
-                strategy_list.append({'do_check': True})
+                strategy_list[i]['do_check'] = True
 
     if field.parset['strategy'] == 'sectorselfcal':
         # Selfcal of target(s) only:
@@ -62,29 +63,31 @@ def set_strategy(field):
         #     - imaging of target(s) only
         max_selfcal_loops = field.parset['calibration_specific']['max_selfcal_loops']
         for i in range(max_selfcal_loops):
-            strategy_list.append({'do_calibrate': True})
-            strategy_list.append({'do_slowgain': True})
-            strategy_list.append({'do_peel': True})
-            strategy_list.append({'do_predict': False})
-            strategy_list.append({'do_image': True})
-            strategy_list.append({'do_update': True})
+            strategy_list.append({})
+            strategy_list[i]['do_calibrate'] = True
+            strategy_list[i]['do_slowgain'] = True
+            strategy_list[i]['do_peel'] = True
+            strategy_list[i]['do_predict'] = False
+            strategy_list[i]['do_image'] = True
+            strategy_list[i]['do_update'] = True
             if i < 1:
-                strategy_list.append({'do_check': False})
+                strategy_list[i]['do_check'] = False
             else:
-                strategy_list.append({'do_check': True})
+                strategy_list[i]['do_check'] = True
 
     if field.parset['strategy'] == 'targetexport':
         # Export of target data:
         #     - no calibration
         #     - peeling of non-target sources
         #     - export of target(s) only
-        strategy_list.append({'do_calibrate': False})
-        strategy_list.append({'do_peel': True})
-        strategy_list.append({'do_predict': False})
-        strategy_list.append({'do_image': False})
-        strategy_list.append({'do_update': False})
-        strategy_list.append({'do_check': False})
-        strategy_list.append({'do_export': True})
+        strategy_list.append({})
+        strategy_list[0]['do_calibrate'] = False
+        strategy_list[0]['do_peel'] = True
+        strategy_list[0]['do_predict'] = False
+        strategy_list[0]['do_image'] = False
+        strategy_list[0]['do_update'] = False
+        strategy_list[0]['do_check'] = False
+        strategy_list[0]['do_export'] = True
 
     return strategy_list
 
