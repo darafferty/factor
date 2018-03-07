@@ -191,7 +191,7 @@ class Field(object):
             sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
             sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
             sector_width_dec_deg_list = self.parset['imaging_specific']['sector_width_dec_deg_list']
-            for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list
+            for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list,
                                                     sector_width_ra_deg_list, sector_width_dec_deg_list):
                 self.sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
 
