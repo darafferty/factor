@@ -86,3 +86,5 @@ def set_strategy(field):
         strategy_list.append({'do_check': False})
         strategy_list.append({'do_export': True})
 
+    return strategy_list
+
