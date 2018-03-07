@@ -350,6 +350,8 @@ def get_imaging_options(parset):
         val_list = [Angle(v).to('deg').value for v in val_list]
         parset_dict['sector_center_ra_list'] = val_list
         len_list.append(len(val_list))
+    else:
+        parset_dict['sector_center_ra_list'] = []
     if 'sector_center_dec_list' in parset_dict:
         val_list = parset_dict['sector_center_dec_list'].strip('[]').split(',')
         if val_list[0] == '':
@@ -357,6 +359,8 @@ def get_imaging_options(parset):
         val_list = [Angle(v).to('deg').value for v in val_list]
         parset_dict['sector_center_dec_list'] = val_list
         len_list.append(len(val_list))
+    else:
+        parset_dict['sector_center_dec_list'] = []
     if 'sector_width_ra_deg_list' in parset_dict:
         val_list = parset_dict['sector_width_ra_deg_list'].strip('[]').split(',')
         if val_list[0] == '':
@@ -364,6 +368,8 @@ def get_imaging_options(parset):
         val_list = [float(v) for v in val_list]
         parset_dict['sector_width_ra_deg_list'] = val_list
         len_list.append(len(val_list))
+    else:
+        parset_dict['sector_width_ra_deg_list'] = []
     if 'sector_width_dec_deg_list' in parset_dict:
         val_list = parset_dict['sector_width_dec_deg_list'].strip('[]').split(',')
         if val_list[0] == '':
@@ -371,6 +377,8 @@ def get_imaging_options(parset):
         val_list = [float(v) for v in val_list]
         parset_dict['sector_width_dec_deg_list'] = val_list
         len_list.append(len(val_list))
+    else:
+        parset_dict['sector_width_dec_deg_list'] = []
 
     # Check that all the above options have the same number of entries
     if len(set(len_list)) > 1:
