@@ -290,7 +290,7 @@ class Field(object):
         # in prediction and subtraction
         outlier_skymodel = self.make_outlier_skymodel()
         nsources = len(outlier_skymodel)
-        nnodes = self.parset['cluster_specific']['node_list']
+        nnodes = len(self.parset['cluster_specific']['node_list'])
         if len(outlier_skymodel) > 0:
             for i in range(nnodes):
                 outlier_sector = Sector('outlier_{0}'.format(i), self.ra, self.dec, 1.0, 1.0, self)
