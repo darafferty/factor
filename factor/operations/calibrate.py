@@ -1,5 +1,5 @@
 """
-Module that holds all the Calibrate class
+Module that holds the Calibrate class
 """
 import os
 import logging
@@ -12,7 +12,7 @@ log = logging.getLogger('factor:calibrate')
 
 class Calibrate(Operation):
     """
-    Operation to calibrate the field
+    Operation to calibrate
     """
     def __init__(self, field, index):
         name = 'Calibrate_{0}'.format(index)
@@ -40,20 +40,6 @@ class Calibrate(Operation):
                               'slow_gain_{}.h5parm'.format(i))
                               for i in range(field.nfreqchunks)]
 
-        # If needed (i.e., nsectors > 1), define predict parameters
-        sector_filename = []
-        sector_skymodel = []
-        sector_patches = []
-        for sector in field.sectors:
-            for obs in sector.observations:
-                sector_filename.append(obs.ms_filename)
-                sector_skymodel.append(sector.predict_skymodel_file)
-                sector_patches.append(sector.patches)
-        sector_patches = '[{}]'.format(';'.join(sector_patches))
-        obs_filename = []
-        for obs in field.observations:
-            obs_filename.append(obs.ms_filename)
-
         self.parms_dict.update({'timechunk_filename': timechunk_filename,
                                 'freqchunk_filename': freqchunk_filename,
                                 'starttime': starttime,
@@ -65,12 +51,7 @@ class Calibrate(Operation):
                                 'solint_fast_freqstep': solint_fast_freqstep,
                                 'solint_slow_freqstep': solint_slow_freqstep,
                                 'output_fast_h5parm': output_fast_h5parm,
-                                'output_slow_h5parm': output_slow_h5parm,
-                                'nsectors': len(field.sectors),
-                                'sector_filename': sector_filename,
-                                'sector_skymodel': sector_skymodel,
-                                'sector_patches': sector_patches,
-                                'obs_filename': obs_filename})
+                                'output_slow_h5parm': output_slow_h5parm})
 
     def finalize(self):
         """

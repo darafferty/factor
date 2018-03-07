@@ -17,6 +17,15 @@ initial_skymodel = /data/skymodel.txt
 # patches are used for the initial calibration
 # regroup_initial_skymodel = True
 
+# Processing strategy to use (default = fieldselfcal):
+# - fieldselfcal: selfcal of entire field (all source in the input sky model are used in
+#                 in calibration)
+# - sectorselfcal: selfcal of one or more sectors only (other sources are peeled, so input
+#                  model must of sufficient quality to allow this)
+# - sectorexport: export the calibrated data for one or more sectors (one of the other
+#                 strategies must have been run successfully first)
+# strategy = fieldselfcal
+
 # Use Dysco compression for chunked files (default = False). Enabling this
 # option will result in less storage usage
 # use_compression = False
@@ -93,9 +102,28 @@ initial_skymodel = /data/skymodel.txt
 # cpu or hybrid.
 # idg_mode = hybrid
 
-# Number of sectors along RA to use in imaging (default = 1). The number of sectors in
-# Dec will be determined automatically to ensure the whole field is imaged
-# nsectors_ra = 3
+# Size of area to image when using a grid (default = mean FWHM of the primary beam)
+# grid_width_ra_deg = 5.0
+# grid_width_dec_deg = 7.0
+
+# Number of sectors along RA to use in imaging grid (default = 0). The number of sectors in
+# Dec will be determined automatically to ensure the whole area specified with grid_center_ra,
+# grid_center_dec, grid_width_ra_deg, and grid_width_dec_deg is imaged. Set grid_nsectors_ra = 0 to force a
+# single sector for the full area. Multiple sectors are useful for parallelizing the imaging
+# over multiple nodes of a cluster or for computers with limited memory
+# grid_nsectors_ra = 3
+
+# Center of grid to image (default = phase center of data)
+# grid_center_ra = 14h41m01.884
+# grid_center_dec = +35d30m31.52
+
+# Instead of a grid, imaging sectors can be defined individually by specifying
+# their centers and widths. If sectors are specified in this way, they will be
+# used instead of the sector grid. Note that the sectors should not overlap
+# sector_center_ra_list = [14h41m01.884, 14h13m23.234]
+# sector_center_dec_list = [+35d30m31.52, +37d21m56.86]
+# sector_width_ra_deg_list = [0.532, 0.127]
+# sector_width_dec_deg_list = [0.532, 0.127]
 
 # A target can be specified to ensure that it falls entirely within a single
 # sector. The values should be those of a circular region that encloses the

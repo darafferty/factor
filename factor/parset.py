@@ -9,6 +9,7 @@ import ConfigParser
 import numpy as np
 from factor._logging import set_log_file
 from factor.cluster import find_executables, get_compute_nodes
+from astropy.coordinates import Angle
 
 log = logging.getLogger('factor:parset')
 
@@ -28,7 +29,6 @@ def parset_read(parset_file, use_log_file=True):
     -------
     parset_dict : dict
         Dict of parset parameters
-
     """
     if not os.path.isfile(parset_file):
         log.critical("Missing parset file ({}), I don't know what to do :'(".format(parset_file))
@@ -149,18 +149,15 @@ def get_global_options(parset):
     else:
         parset_dict['use_compression'] = False
 
-    # Use interactive mode (default = False). Factor will ask for confirmation of
-    # internally derived DDE calibrators and facets
-    if 'interactive' in parset_dict:
-        parset_dict['interactive'] = parset.getboolean('global', 'interactive')
-    else:
-        parset_dict['interactive'] = False
-
     # Regroup initial skymodel (default = True)
     if 'regroup_initial_skymodel' in parset_dict:
         parset_dict['regroup_initial_skymodel'] = parset.getboolean('global', 'regroup_initial_skymodel')
     else:
         parset_dict['regroup_initial_skymodel'] = False
+
+    # Define strategy
+    if 'strategy' not in parset_dict:
+        parset_dict['strategy'] == 'fieldselfcal'
 
     # Flagging ranges (default = no flagging). A range of times baselines, and
     # frequencies to flag can be specified (see the DPPP documentation for
@@ -191,7 +188,7 @@ def get_global_options(parset):
 
     # Check for unused options
     given_options = parset.options('global')
-    allowed_options = ['dir_working', 'dir_ms', 'interactive', 'chunk_size_sec',
+    allowed_options = ['dir_working', 'dir_ms', 'chunk_size_sec', 'strategy',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
                        'flag_expr', 'chunk_size_hz', 'initial_skymodel', 'regroup_initial_skymodel']
     for option in given_options:
@@ -239,16 +236,6 @@ def get_calibration_options(parset):
     else:
         parset_dict['max_selfcal_loops'] = 10
 
-    # Use baseline-dependent preaveraging to increase the signal-to-noise of the
-    # phase-only solve for sources below this flux density (default = 1.0 Jy). When
-    # activated, averaging in time is done to exploit the time coherence in the TEC
-    # solutions, and averaging in frequency to exploit the frequency coherence of
-    # the beam effects
-    if 'preaverage_flux_jy' in parset_dict:
-        parset_dict['preaverage_flux_jy'] = parset.getfloat('calibration', 'preaverage_flux_jy')
-    else:
-        parset_dict['preaverage_flux_jy'] = 1.0
-
     # Use multi-resolution selfcal that starts at 20 arcsec resolution and increases the
     # resolution in stages to the full resolution (default = False). This method may
     # improve convergence, especially when the starting model is poor
@@ -265,22 +252,6 @@ def get_calibration_options(parset):
         parset_dict['solve_min_uv_lambda'] = parset.getfloat('calibration', 'solve_min_uv_lambda')
     else:
         parset_dict['solve_min_uv_lambda'] = 80.0
-
-    # Smooth amplitudes with spline fit + 2-D median (default = True, i.e., smooth
-    # with a 1-D median only)
-    if 'spline_smooth2d' in parset_dict:
-        parset_dict['spline_smooth2d'] = parset.getboolean('calibration', 'spline_smooth2d')
-    else:
-        parset_dict['spline_smooth2d'] = True
-
-    # Include XY and YX correlations during the slow gain solve for sources above
-    # this flux density (default = 1000.0). Below this value, only the XX and YY
-    # correlations are included. Note that spline_smooth2D must be True to use this
-    # option
-    if 'solve_all_correlations_flux_jy' in parset_dict:
-        parset_dict['solve_all_correlations_flux_jy'] = parset.getfloat('calibration', 'solve_all_correlations_flux_jy')
-    else:
-        parset_dict['solve_all_correlations_flux_jy'] = 1000.0
 
     # Solution intervals
     if 'fast_timestep_sec' in parset_dict:
@@ -301,11 +272,9 @@ def get_calibration_options(parset):
         parset_dict['slow_freqstep_hz'] = 1e6
 
     # Check for unused options
-    allowed_options = ['max_selfcal_loops', 'preaverage_flux_jy', 'multiscale_selfcal',
-                       'multires_selfcal', 'solve_min_uv_lambda', 'spline_smooth2d',
-                       'solve_all_correlations_flux_jy', 'solve_tecandphase',
-                       'fast_timestep_sec', 'fast_freqstep_hz', 'slow_timestep_sec',
-                       'slow_freqstep_hz']
+    allowed_options = ['max_selfcal_loops', 'multires_selfcal', 'solve_min_uv_lambda',
+                       'solve_tecandphase', 'fast_timestep_sec', 'fast_freqstep_hz',
+                       'slow_timestep_sec', 'slow_freqstep_hz']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '
@@ -335,11 +304,81 @@ def get_imaging_options(parset):
         parset_dict = {}
         given_options = []
 
-    # Number of sectors to use in imaging
-    if 'nsectors_ra' in parset_dict:
-        parset_dict['nsectors_ra'] = parset.getint('imaging', 'nsectors_ra')
+    # Size of area to image when using a grid (default = mean FWHM of the primary beam)
+    if 'grid_width_ra_deg' in parset_dict:
+        parset_dict['grid_width_ra_deg'] = parset.getfloat('imaging', 'grid_width_ra_deg')
     else:
-        parset_dict['nsectors_ra'] = 1
+        parset_dict['grid_width_ra_deg'] = None
+    if 'grid_width_dec_deg' in parset_dict:
+        parset_dict['grid_width_dec_deg'] = parset.getfloat('imaging', 'grid_width_dec_deg')
+    else:
+        parset_dict['grid_width_dec_deg'] = None
+
+    # Number of sectors along RA to use in imaging grid (default = 0). The number of sectors in
+    # Dec will be determined automatically to ensure the whole area specified with grid_center_ra,
+    # grid_center_dec, grid_width_ra_deg, and grid_width_dec_deg is imaged. Set grid_nsectors_ra = 0 to force a
+    # single sector for the full area. Multiple sectors are useful for parallelizing the imaging
+    # over multiple nodes of a cluster or for computers with limited memory
+    if 'grid_nsectors_ra' in parset_dict:
+        parset_dict['grid_nsectors_ra'] = parset.getint('imaging', 'grid_nsectors_ra')
+    else:
+        parset_dict['grid_nsectors_ra'] = 1
+
+    # Center of grid to image (default = phase center of data)
+    # grid_center_ra = 14h41m01.884
+    # grid_center_dec = +35d30m31.52
+    if 'grid_center_ra' in parset_dict:
+        parset_dict['grid_center_ra'] = Angle(parset_dict['grid_center_ra']).to('deg').value
+    else:
+        parset_dict['grid_center_ra'] = None
+    if 'grid_center_dec' in parset_dict:
+        parset_dict['grid_center_dec'] = Angle(parset_dict['grid_center_dec']).to('deg').value
+    else:
+        parset_dict['grid_center_dec'] = None
+
+    # Instead of a grid, imaging sectors can be defined individually by specifying
+    # their centers and widths. If sectors are specified in this way, they will be
+    # used instead of the sector grid. Note that the sectors should not overlap
+    # sector_center_ra_list = [14h41m01.884, 14h13m23.234]
+    # sector_center_dec_list = [+35d30m31.52, +37d21m56.86]
+    # sector_width_ra_deg_list = [0.532, 0.127]
+    # sector_width_dec_deg_list = [0.532, 0.127]
+    len_list = []
+    if 'sector_center_ra_list' in parset_dict:
+        val_list = parset_dict['sector_center_ra_list'].strip('[]').split(',')
+        if val_list[0] == '':
+            val_list = []
+        val_list = [Angle(v).to('deg').value for v in val_list]
+        parset_dict['sector_center_ra_list'] = val_list
+        len_list.append(len(val_list))
+    if 'sector_center_dec_list' in parset_dict:
+        val_list = parset_dict['sector_center_dec_list'].strip('[]').split(',')
+        if val_list[0] == '':
+            val_list = []
+        val_list = [Angle(v).to('deg').value for v in val_list]
+        parset_dict['sector_center_dec_list'] = val_list
+        len_list.append(len(val_list))
+    if 'sector_width_ra_deg_list' in parset_dict:
+        val_list = parset_dict['sector_width_ra_deg_list'].strip('[]').split(',')
+        if val_list[0] == '':
+            val_list = []
+        val_list = [float(v) for v in val_list]
+        parset_dict['sector_width_ra_deg_list'] = val_list
+        len_list.append(len(val_list))
+    if 'sector_width_dec_deg_list' in parset_dict:
+        val_list = parset_dict['sector_width_dec_deg_list'].strip('[]').split(',')
+        if val_list[0] == '':
+            val_list = []
+        val_list = [float(v) for v in val_list]
+        parset_dict['sector_width_dec_deg_list'] = val_list
+        len_list.append(len(val_list))
+
+    # Check that all the above options have the same number of entries
+    if len(set(len_list)) > 1:
+        log.error('The options sector_center_ra_list, sector_center_dec_list, '
+            'sector_width_ra_deg_list, and sector_width_dec_deg_list must all '
+            'have the same number of entires')
+        sys.exit(1)
 
     # Use IDG (image domain gridder) in WSClean. The mode can be cpu, gpu, or hybrid.
     if 'use_idg' in parset_dict:
@@ -460,11 +499,14 @@ def get_imaging_options(parset):
 
     # Check for unused options
     allowed_options = ['max_peak_smearing', 'selfcal_cellsize_arcsec', 'selfcal_robust',
-                       'selfcal_multiscale_scales_pixel',
+                       'selfcal_multiscale_scales_pixel', 'grid_center_ra', 'grid_center_dec',
+                       'grid_width_ra_deg', 'grid_width_dec_deg', 'grid_nsectors_ra',
                        'facet_cellsize_arcsec', 'facet_taper_arcsec', 'facet_robust',
                        'wsclean_image_padding', 'selfcal_min_uv_lambda', 'facet_min_uv_lambda',
-                       'selfcal_robust_wsclean', 'wsclean_bl_averaging', 'nsectors_ra',
-                       'fractional_bandwidth_selfcal_facet_image', 'use_idg', 'idg_mode']
+                       'selfcal_robust_wsclean', 'wsclean_bl_averaging',
+                       'sector_center_ra_list', 'sector_center_dec_list',
+                       'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
+                       'use_idg', 'idg_mode']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [imaging] section of the '

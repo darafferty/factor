@@ -1,5 +1,5 @@
 """
-Module that holds all the Image class
+Module that holds the Image class
 """
 import os
 import logging

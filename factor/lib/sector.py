@@ -271,8 +271,12 @@ class Sector(object):
         Makes predict sky model from the field calibration sky model
         """
         # Filter the predict sky model
-        skymodel = self.field.calibration_skymodel.copy()
-        skymodel = self.filter_skymodel(skymodel)
+        if self.name == 'outlier':
+            # For outlier sector, we use the sky model made earlier
+            skymodel = self.predict_skymodel_file
+        else:
+            skymodel = self.field.calibration_skymodel.copy()
+            skymodel = self.filter_skymodel(skymodel)
 
         # Write filtered sky model to file
         self.predict_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
@@ -283,17 +287,18 @@ class Sector(object):
         self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
 
         # Find nearest patch to sector center
-        patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True).tolist()
-        patch_names = skymodel.getPatchNames()
-        self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
+        if self.name != 'outlier':
+            patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True).tolist()
+            patch_names = skymodel.getPatchNames()
+            self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 
-        # Filter the field source sky model and store source sizes
-        all_source_names = self.field.source_skymodel.getColValues('Name').tolist()
-        source_names = skymodel.getColValues('Name')
-        in_sector = np.array([all_source_names.index(sn) for sn in source_names])
-        source_skymodel = self.field.source_skymodel.copy()
-        source_skymodel.select(in_sector)
-        self.source_sizes = source_skymodel.getPatchSizes(units='degree')
+            # Filter the field source sky model and store source sizes
+            all_source_names = self.field.source_skymodel.getColValues('Name').tolist()
+            source_names = skymodel.getColValues('Name')
+            in_sector = np.array([all_source_names.index(sn) for sn in source_names])
+            source_skymodel = self.field.source_skymodel.copy()
+            source_skymodel.select(in_sector)
+            self.source_sizes = source_skymodel.getPatchSizes(units='degree')
 
     def filter_skymodel(self, skymodel):
         """

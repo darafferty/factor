@@ -13,9 +13,9 @@ import subprocess
 
 
 def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
-         out_column='DATA', use_compression=False):
+         out_column='DATA', includes_outlier=False, use_compression=False):
     """
-    Subtract model data
+    Subtract sector model data
 
     Parameters
     ----------
@@ -32,6 +32,9 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
         Name of output column (written to ms1)
     op : str, optional
         Operation to perform: 'add', 'subtract12', or 'subtract21'
+    includes_outlier : bool, optional
+        If True, the last model file is assumed to be the outlier sector (and hence is
+        not included in output)
     use_compression : bool, optional
         If True, use Dysco compression
 
@@ -53,7 +56,11 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
         model_list.extend(matches)
         i += 1
     nsectors = len(model_list)
-    if nsectors == 0:
+    if nsectors == 1 and includes_outlier:
+        # This means we have a single imaging sector and an outlier sector, so duplicate
+        # the outlier model so that it gets subtracted properly later
+        model_list *= 2
+    elif nsectors == 0:
         print('No model data found. Exiting...')
         sys.exit(1)
     print('subtract_sector_models: found {} model data files'.format(nsectors))
@@ -61,7 +68,9 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
     # Open input and output tables
     tin = pt.table(msin, readonly=True, ack=False)
     tout_list = []
-    for msmod in model_list:
+    for i, msmod in enumerate(model_list):
+        if includes_outlier and i == len(model_list)-1:
+            break
         msout = '{}_sub'.format(msmod)
         if not os.path.exists(msout):
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))

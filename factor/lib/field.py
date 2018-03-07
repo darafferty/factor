@@ -184,56 +184,88 @@ class Field(object):
         """
         Defines the imaging sectors
         """
-        nsectors_ra = self.parset['imaging_specific']['nsectors_ra']
-        nsectors_dec = int(np.ceil(nsectors_ra / np.sin(self.mean_el_rad)))
-        if nsectors_ra == 1 and nsectors_dec == 1:
-            nsectors_ra == 0
-        if nsectors_ra == 0:
-            # Use a single sector
-            nsectors_dec = 1
-            width_ra = self.fwhm_ra_deg
-            width_dec = self.fwhm_dec_deg
-            center_x, center_y = self.radec2xy([self.ra], [self.dec])
-            x = np.array([center_x])
-            y = np.array([center_y])
-        else:
-            width_ra = self.fwhm_ra_deg / nsectors_ra
-            width_dec = self.fwhm_dec_deg / nsectors_dec
-            width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
-            width_y = width_dec / abs(self.wcs.wcs.cdelt[1])
-            center_x, center_y = self.radec2xy([self.ra], [self.dec])
-            min_x = center_x - width_x / 2.0 * (nsectors_ra - 1)
-            max_x = center_x + width_x / 2.0 * (nsectors_ra - 1)
-            min_y = center_y - width_y / 2.0 * (nsectors_dec - 1)
-            max_y = center_y + width_y / 2.0 * (nsectors_dec - 1)
-            x = np.linspace(min_x, max_x, nsectors_ra)
-            y = np.linspace(min_y, max_y, nsectors_dec)
-            x, y = np.meshgrid(x, y)
-            self.log.info('Using {0} imaging sectors ({1} in RA, {2} in Dec)'.format(
-                          nsectors_ra*nsectors_dec, nsectors_ra, nsectors_dec))
+        # Determine whether we use a user-supplied list of sectors or a grid
+        if len(sector_center_ra_list) > 0:
+            # Use user-supplied list
+            nsectors_ra =
+            sector_center_ra_list = self.parset['imaging_specific']['sector_center_ra_list']
+            sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
+            sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
+            sector_width_dec_deg_list = self.parset['imaging_specific']['sector_width_dec_deg_list']
+            for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list
+                                                    sector_width_ra_deg_list, sector_width_dec_deg_list):
+                self.sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
 
-        # Initialize the sectors
-        self.sectors = []
-        n = 0
-        for i in range(nsectors_ra):
-            for j in range(nsectors_dec):
-                if nsectors_ra == 0:
-                    name = 'field'
-                else:
+        else:
+            # Use a grid
+            if self.parset['imaging_specific']['image_ra'] is None:
+                self.image_ra = self.ra
+            else:
+                self.image_ra = self.parset['imaging_specific']['image_ra']
+            if self.parset['imaging_specific']['image_dec'] is None:
+                self.image_dec = self.dec
+            else:
+                self.image_dec = self.parset['imaging_specific']['image_dec']
+            if self.parset['imaging_specific']['width_ra_deg'] is None:
+                self.image_width_ra = self.fwhm_ra_deg
+            else:
+                self.image_width_ra = self.parset['imaging_specific']['width_ra_deg']
+            if self.parset['imaging_specific']['width_dec_deg'] is None:
+                self.image_width_dec = self.fwhm_dec_deg
+            else:
+                self.image_width_dec = self.parset['imaging_specific']['width_dec_deg']
+
+            nsectors_ra = self.parset['imaging_specific']['nsectors_ra']
+            if nsectors_ra == 0:
+                # Force a single sector
+                nsectors_ra = 1
+                nsectors_dec = 1
+            else:
+                nsectors_dec = int(np.ceil(nsectors_ra / np.sin(self.mean_el_rad)))
+            if nsectors_ra == 1 and nsectors_dec == 1:
+                # Make a single sector
+                nsectors_dec = 1
+                width_ra = self.image_width_ra
+                width_dec = self.image_width_dec
+                center_x, center_y = self.radec2xy([image_ra], [image_dec])
+                x = np.array([center_x])
+                y = np.array([center_y])
+            else:
+                # Make the grid
+                width_ra = self.image_width_ra / nsectors_ra
+                width_dec = self.image_width_dec / nsectors_dec
+                width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
+                width_y = width_dec / abs(self.wcs.wcs.cdelt[1])
+                center_x, center_y = self.radec2xy([image_ra], [image_dec])
+                min_x = center_x - width_x / 2.0 * (nsectors_ra - 1)
+                max_x = center_x + width_x / 2.0 * (nsectors_ra - 1)
+                min_y = center_y - width_y / 2.0 * (nsectors_dec - 1)
+                max_y = center_y + width_y / 2.0 * (nsectors_dec - 1)
+                x = np.linspace(min_x, max_x, nsectors_ra)
+                y = np.linspace(min_y, max_y, nsectors_dec)
+                x, y = np.meshgrid(x, y)
+                self.log.info('Using {0} imaging sectors ({1} in RA, {2} in Dec)'.format(
+                              nsectors_ra*nsectors_dec, nsectors_ra, nsectors_dec))
+
+            # Initialize the sectors
+            self.sectors = []
+            n = 0
+            for i in range(nsectors_ra):
+                for j in range(nsectors_dec):
                     name = 'sector_{0}'.format(n)
-                n += 1
-                ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
-                self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
+                    n += 1
+                    ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
+                    self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
 
         # Adjust sector boundaries to avoid known sources and update their sky models
-        if nsectors_ra > 0:
-            self.adjust_sector_boundaries()
+        self.adjust_sector_boundaries()
+        if len(self.sectors) > 1:
             self.log.info('Making sector sky models (for predicting)...')
             for sector in self.sectors:
                 sector.make_skymodel()
 
+        # Set the imaging parameters for selfcal
         for sector in self.sectors:
-            # Set the imaging parameters for selfcal
             sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
                                           self.parset['imaging_specific']['selfcal_robust'],
                                           0.0,
@@ -250,6 +282,16 @@ class Field(object):
             sector.flag_baseline = self.flag_baseline
             sector.flag_freqrange = self.flag_freqrange
             sector.flag_expr = self.flag_expr
+
+        # Make an outlier sector containing any remaining calibration sources (not
+        # included in any sector sky models). This sector is not imaged; it is only used
+        # in prediction and subtraction
+        outlier_skymodel = self.make_outlier_skymodel()
+        if len(outlier_skymodel) > 0:
+            outlier_sector = Sector('outlier', self.ra, self.dec, 1.0, 1.0, self)
+            outlier_sector.predict_skymodel = outlier_skymodel
+            outlier_sector.make_skymodel()
+            self.sectors.append(outlier_sector)
 
     def find_intersecting_sources(self):
         """
@@ -270,7 +312,7 @@ class Field(object):
             ymax = ys + ss
             idx.insert(i, (xmin, ymin, xmax, ymax))
 
-        # For each sector side, query the index to find intersections
+        # For each sector side, query the index to find any intersections
         intersecting_ind = []
         buffer = 2 #  how many pixels away from each side to check
         for sector in self.sectors:
@@ -323,6 +365,21 @@ class Field(object):
             sector.make_vertices_file()
             sector.make_region_file(os.path.join(self.working_dir, 'regions',
                                                  '{}_region_ds9.reg'.format(sector.name)))
+
+    def make_outlier_skymodel():
+        """
+        Make a sky model of any outlier calibration sources, not included in any
+        imaging sector
+        """
+        all_source_names = self.calibration_skymodel.getColValues('Name').tolist()
+        sector_source_names = []
+        for sector in self.sectors:
+            sector_source_names.extend(skymodel.getColValues('Name').tolist())
+        outlier_ind = np.array([all_source_names.index(sn) for sn in all_source_names
+                                if sn not in source_names])
+        outlier_skymodel = self.calibration_skymodel.copy()
+        outlier_skymodel.select(outlier_ind, force=True)
+        return outlier_skymodel
 
     def radec2xy(self, RA, Dec):
         """
@@ -418,7 +475,8 @@ class Field(object):
         image_id : str, optional
             Imaging ID
         """
-        if len(self.sectors) > 1:
+        imaged_sectors = [sector in self.sectors if sector.name != 'outlier']
+        if len(imaged_sectors) > 1:
             # Blank the sector images
             blanked_images = []
             for sector in self.sectors:
@@ -434,7 +492,7 @@ class Field(object):
             self.output_image_filename = outfile
             mosaic_images.main(blanked_images, outfile)
         else:
-            self.output_image_filename = self.sectors[0].get_output_image_filename(image_id)
+            self.output_image_filename = imaged_sectors[0].get_output_image_filename(image_id)
 
         # Create sym links to image files
         dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
