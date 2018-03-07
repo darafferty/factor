@@ -185,34 +185,37 @@ class Field(object):
         Defines the imaging sectors
         """
         # Determine whether we use a user-supplied list of sectors or a grid
+        sector_center_ra_list = self.parset['imaging_specific']['sector_center_ra_list']
+        sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
+        sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
+        sector_width_dec_deg_list = self.parset['imaging_specific']['sector_width_dec_deg_list']
         if len(sector_center_ra_list) > 0:
             # Use user-supplied list
-            sector_center_ra_list = self.parset['imaging_specific']['sector_center_ra_list']
-            sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
-            sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
-            sector_width_dec_deg_list = self.parset['imaging_specific']['sector_width_dec_deg_list']
+            n = 0
             for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list,
                                                     sector_width_ra_deg_list, sector_width_dec_deg_list):
+                name = 'sector_{0}'.format(n)
+                n += 1
                 self.sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
 
         else:
             # Use a grid
-            if self.parset['imaging_specific']['image_ra'] is None:
-                self.image_ra = self.ra
+            if self.parset['imaging_specific']['grid_center_ra'] is None:
+                image_ra = self.ra
             else:
-                self.image_ra = self.parset['imaging_specific']['image_ra']
-            if self.parset['imaging_specific']['image_dec'] is None:
-                self.image_dec = self.dec
+                image_ra = self.parset['imaging_specific']['grid_center_ra']
+            if self.parset['imaging_specific']['grid_center_dec'] is None:
+                image_dec = self.dec
             else:
-                self.image_dec = self.parset['imaging_specific']['image_dec']
-            if self.parset['imaging_specific']['width_ra_deg'] is None:
-                self.image_width_ra = self.fwhm_ra_deg
+                image_dec = self.parset['imaging_specific']['grid_center_dec']
+            if self.parset['imaging_specific']['grid_width_ra_deg'] is None:
+                image_width_ra = self.fwhm_ra_deg
             else:
-                self.image_width_ra = self.parset['imaging_specific']['width_ra_deg']
-            if self.parset['imaging_specific']['width_dec_deg'] is None:
-                self.image_width_dec = self.fwhm_dec_deg
+                image_width_ra = self.parset['imaging_specific']['grid_width_ra_deg']
+            if self.parset['imaging_specific']['grid_width_dec_deg'] is None:
+                image_width_dec = self.fwhm_dec_deg
             else:
-                self.image_width_dec = self.parset['imaging_specific']['width_dec_deg']
+                image_width_dec = self.parset['imaging_specific']['grid_width_dec_deg']
 
             nsectors_ra = self.parset['imaging_specific']['nsectors_ra']
             if nsectors_ra == 0:
@@ -224,15 +227,15 @@ class Field(object):
             if nsectors_ra == 1 and nsectors_dec == 1:
                 # Make a single sector
                 nsectors_dec = 1
-                width_ra = self.image_width_ra
-                width_dec = self.image_width_dec
+                width_ra = image_width_ra
+                width_dec = image_width_dec
                 center_x, center_y = self.radec2xy([image_ra], [image_dec])
                 x = np.array([center_x])
                 y = np.array([center_y])
             else:
                 # Make the grid
-                width_ra = self.image_width_ra / nsectors_ra
-                width_dec = self.image_width_dec / nsectors_dec
+                width_ra = image_width_ra / nsectors_ra
+                width_dec = image_width_dec / nsectors_dec
                 width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
                 width_y = width_dec / abs(self.wcs.wcs.cdelt[1])
                 center_x, center_y = self.radec2xy([image_ra], [image_dec])
@@ -365,7 +368,7 @@ class Field(object):
             sector.make_region_file(os.path.join(self.working_dir, 'regions',
                                                  '{}_region_ds9.reg'.format(sector.name)))
 
-    def make_outlier_skymodel():
+    def make_outlier_skymodel(self):
         """
         Make a sky model of any outlier calibration sources, not included in any
         imaging sector
@@ -373,9 +376,9 @@ class Field(object):
         all_source_names = self.calibration_skymodel.getColValues('Name').tolist()
         sector_source_names = []
         for sector in self.sectors:
-            sector_source_names.extend(skymodel.getColValues('Name').tolist())
+            sector_source_names.extend(sector.predict_skymodel.getColValues('Name').tolist())
         outlier_ind = np.array([all_source_names.index(sn) for sn in all_source_names
-                                if sn not in source_names])
+                                if sn not in sector_source_names])
         outlier_skymodel = self.calibration_skymodel.copy()
         outlier_skymodel.select(outlier_ind, force=True)
         return outlier_skymodel
@@ -474,7 +477,7 @@ class Field(object):
         image_id : str, optional
             Imaging ID
         """
-        imaged_sectors = [sector in self.sectors if sector.name != 'outlier']
+        imaged_sectors = [sector for sector in self.sectors if sector.name != 'outlier']
         if len(imaged_sectors) > 1:
             # Blank the sector images
             blanked_images = []
@@ -500,4 +503,3 @@ class Field(object):
         if os.path.exists(dst):
             os.unlink(dst)
         os.symlink(self.direction.get_output_image_filename(), dst)
-
