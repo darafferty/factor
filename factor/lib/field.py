@@ -187,7 +187,6 @@ class Field(object):
         # Determine whether we use a user-supplied list of sectors or a grid
         if len(sector_center_ra_list) > 0:
             # Use user-supplied list
-            nsectors_ra =
             sector_center_ra_list = self.parset['imaging_specific']['sector_center_ra_list']
             sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
             sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
