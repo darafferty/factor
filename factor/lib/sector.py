@@ -273,7 +273,7 @@ class Sector(object):
         # Filter the predict sky model
         if self.name == 'outlier':
             # For outlier sector, we use the sky model made earlier
-            skymodel = self.predict_skymodel_file
+            skymodel = self.predict_skymodel
         else:
             skymodel = self.field.calibration_skymodel.copy()
             skymodel = self.filter_skymodel(skymodel)
