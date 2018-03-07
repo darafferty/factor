@@ -6,7 +6,6 @@ import os
 import glob
 import logging
 import ConfigParser
-import numpy as np
 from factor._logging import set_log_file
 from factor.cluster import find_executables, get_compute_nodes
 from astropy.coordinates import Angle
@@ -157,7 +156,7 @@ def get_global_options(parset):
 
     # Define strategy
     if 'strategy' not in parset_dict:
-        parset_dict['strategy'] == 'fieldselfcal'
+        parset_dict['strategy'] = 'fieldselfcal'
 
     # Flagging ranges (default = no flagging). A range of times baselines, and
     # frequencies to flag can be specified (see the DPPP documentation for
