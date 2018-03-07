@@ -81,25 +81,10 @@ class Operation(object):
             # Not specified
             self.local_scratch_dir = None
             self.local_dir_parent = None
-            self.dppp_nodescript = 'executable_args'
-        elif self.parset['cluster_specific']['cluster_type'].lower() == 'pbs':
-            # PBS: use special DPPP node script
-            self.local_scratch_dir = os.path.join(self.parset['cluster_specific']['dir_local'],
-                                                  scratch_subdir)
-            self.local_dir_parent = self.parset['cluster_specific']['dir_local']
-            self.dppp_nodescript = 'dppp_scratch'
-        elif self.parset['cluster_specific']['cluster_type'].lower() == 'slurm':
-            # SLURM: use special DPPP node script
-            self.local_scratch_dir = os.path.join(self.parset['cluster_specific']['dir_local'],
-                                                  scratch_subdir)
-            self.local_dir_parent = self.parset['cluster_specific']['dir_local']
-            self.dppp_nodescript = 'dppp_scratch'
         else:
-            # other: use given scratch directory and standard node script
             self.local_scratch_dir = os.path.join(self.parset['cluster_specific']['dir_local'],
                                                   scratch_subdir)
             self.local_dir_parent = self.parset['cluster_specific']['dir_local']
-            self.dppp_nodescript = 'executable_args'
 
         # Directory that holds logs in a convenient place
         self.log_dir = os.path.join(self.factor_working_dir, 'logs', self.name)
@@ -131,9 +116,7 @@ class Operation(object):
                          'h5collector_executable': self.parset['cluster_specific']['h5collector_executable'],
                          'pipeline_working_dir': self.pipeline_working_dir,
                          'pipeline_runtime_dir': self.pipeline_runtime_dir,
-                         'wsclean_executable': self.parset['cluster_specific']['wsclean_executable'],
-                         'dppp_nodescript': self.dppp_nodescript,
-                         }
+                         'wsclean_executable': self.parset['cluster_specific']['wsclean_executable']}
 
         # Define global parameters needed by all pipeline parsets. Other,
         # pipeline-specific, parameters should be defined in the subclasses by

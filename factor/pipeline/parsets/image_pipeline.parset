@@ -129,7 +129,7 @@ prepare_imaging_data.argument.avg.freqstep                        = freqstep
 prepare_imaging_data.argument.avg.timestep                        = timestep
 {% if use_compression %}
 prepare_imaging_data.argument.msout.storagemanager                = "Dysco"
-prepare_imaging_data.argument.msout.storagemanager.databitrate    = 0
+prepare_imaging_data.argument.msout.storagemanager.databitrate    = 10
 prepare_imaging_data.argument.msout.storagemanager.weightbitrate  = 12
 prepare_imaging_data.argument.msout.storagemanager.distribution   = "TruncatedGaussian"
 prepare_imaging_data.argument.msout.storagemanager.disttruncation = 1.5

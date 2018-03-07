@@ -288,6 +288,8 @@ class Field(object):
         # Make an outlier sector containing any remaining calibration sources (not
         # included in any sector sky models). This sector is not imaged; it is only used
         # in prediction and subtraction
+        # TODO: split outliers among nr_node sectors to parallelize the peel/predict (just
+        # split the outlier sky model into equal parts)
         outlier_skymodel = self.make_outlier_skymodel()
         if len(outlier_skymodel) > 0:
             outlier_sector = Sector('outlier', self.ra, self.dec, 1.0, 1.0, self)

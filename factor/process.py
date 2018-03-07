@@ -42,10 +42,10 @@ def run(parset_file, logging_level='info'):
     # Initialize field object
     field = Field(parset)
 
-    # Set up strategy
+    # Set the processing strategy
     strategy_steps = set_strategy(field)
 
-    # Run strategy
+    # Run the strategy
     for iter, step in enumerate(strategy_steps):
         # Calibrate
         if step['do_calibrate']:
@@ -65,9 +65,15 @@ def run(parset_file, logging_level='info'):
 
         # Image the sectors
         if step['do_image']:
+            # Set flag for slow-gain apply
             for sector in field.sectors:
                 sector.apply_slowgains = step['do_slowgain']
-            ops = [Image(field, sector, iter+1) for sector in field.sectors
+
+            # Put the imaging ops using multiscale clean first, as they take the longest
+            sorted_sectors = [sector for sector in field.sectors if sector.multiscale]
+            sorted_sectors.extend([sector for sector in field.sectors
+                                   if not sector.multiscale])
+            ops = [Image(field, sector, iter+1) for sector in sorted_sectors
                    if sector.name != 'outlier']
             scheduler.run(ops)
             field.make_mosaic(iter+1)

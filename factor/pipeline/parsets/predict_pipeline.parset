@@ -61,9 +61,6 @@ predict_model_data.argument.numthreads                            = {{ max_cpus_
 predict_model_data.argument.msin.datacolumn                       = DATA
 predict_model_data.argument.msout.overwrite                       = True
 predict_model_data.argument.msout.writefullresflag                = False
-{% if local_dir is not none %}
-predict_model_data.argument.local_scratch_dir                     = {{ local_dir }}
-{% endif %}
 predict_model_data.argument.steps                                 = [predict]
 predict_model_data.argument.predict.type                          = h5parmpredict
 predict_model_data.argument.predict.sourcedb                      = sourcedb
