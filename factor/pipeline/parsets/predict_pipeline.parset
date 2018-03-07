@@ -98,7 +98,6 @@ predict_model_data.argument.msout.storagemanager.distribution     = "TruncatedGa
 predict_model_data.argument.msout.storagemanager.disttruncation   = 1.5
 predict_model_data.argument.msout.storagemanager.normalization    = "AF"
 {% endif %}
-{% endif %}
 
 # create a mapfile with the MS filenames for each obs, length = nobs
 create_obs_files_map.control.kind        = plugin
