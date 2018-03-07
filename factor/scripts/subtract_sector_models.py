@@ -13,7 +13,7 @@ import subprocess
 
 
 def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
-         out_column='DATA', includes_outlier=False, use_compression=False):
+         out_column='DATA', nr_outliers=0, use_compression=False):
     """
     Subtract sector model data
 
@@ -32,9 +32,9 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
         Name of output column (written to ms1)
     op : str, optional
         Operation to perform: 'add', 'subtract12', or 'subtract21'
-    includes_outlier : bool, optional
-        If True, the last model file is assumed to be the outlier sector (and hence is
-        not included in output)
+    nr_outliers : int, optional
+        Number of outlier sectors. The last nr_outliers files are assumed to be the
+        outlier sectors
     use_compression : bool, optional
         If True, use Dysco compression
 
@@ -44,6 +44,7 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
             use_compression = True
         else:
             use_compression = False
+    nr_outliers = int(nr_outliers)
 
     # Find the model data files
     data_dir = os.path.dirname(msin)
@@ -56,8 +57,8 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
         model_list.extend(matches)
         i += 1
     nsectors = len(model_list)
-    if nsectors == 1 and includes_outlier:
-        # This means we have a single imaging sector and an outlier sector, so duplicate
+    if nsectors == 1 and nr_outliers == 1:
+        # This means we have a single imaging sector and outlier sector, so duplicate
         # the outlier model so that it gets subtracted properly later
         model_list *= 2
     elif nsectors == 0:
@@ -69,7 +70,8 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
     tin = pt.table(msin, readonly=True, ack=False)
     tout_list = []
     for i, msmod in enumerate(model_list):
-        if includes_outlier and i == len(model_list)-1:
+        if nr_outliers > 0 and i == len(model_list)-nr_outliers:
+            # Don't open tables for the outliers
             break
         msout = '{}_sub'.format(msmod)
         if not os.path.exists(msout):

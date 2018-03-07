@@ -53,7 +53,8 @@ create_sector_patches_map.control.filename    = sector_patches.mapfile
 create_sector_patches_map.control.separator   = ;
 
 # predict model visibilities, length = nsectors*nobs
-predict_model_data.control.type                                   = dppp
+# note that this step uses a lot of memory, so only one DPPP is run at a time
+predict_model_data.control.type                                   = dppp_single
 predict_model_data.control.mapfiles_in                            = [create_sector_files_map.output.mapfile,make_sector_sourcedbs.output.mapfile,expand_combined_h5parms_map.output.mapfile,create_sector_patches_map.output.mapfile]
 predict_model_data.control.inputkeys                              = [msin,sourcedb,combined_h5parm,directions]
 predict_model_data.control.mapfile_out                            = make_predict_output_map.output.mapfile
@@ -107,8 +108,8 @@ create_obs_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_obs_files_map.control.filename    = obsfiles.mapfile
 
 # for each obs, loop over sectors and subtract the model visibilities of all other sectors, length = nobs
-subtract_models.control.type              = subtract_sector_models
-subtract_models.control.mapfile_in        = create_obs_files_map.output.mapfile
-subtract_models.control.inputkey          = infile
-subtract_models.argument.flags            = [infile,.sector]
-subtract_models.argument.includes_outlier = {{ has_outlier }}
+subtract_models.control.type         = subtract_sector_models
+subtract_models.control.mapfile_in   = create_obs_files_map.output.mapfile
+subtract_models.control.inputkey     = infile
+subtract_models.argument.flags       = [infile,.sector]
+subtract_models.argument.nr_outliers = {{ nr_outliers }}

@@ -49,6 +49,7 @@ class Sector(object):
         self.region_file = '[]'
         self.output_image_filename = {}
         self.output_skymodel_filename = {}
+        self.is_outlier = False
 
         # Make copies of the observation objects, as each sector may have its own
         # observation-specific settings
@@ -235,6 +236,9 @@ class Sector(object):
         image_id : str, optional
             Imaging ID
         """
+        if self.is_outlier:
+            return self.predict_skymodel_file
+
         if image_id is None:
             image_id = self.current_image_id
         try:
@@ -271,7 +275,7 @@ class Sector(object):
         Makes predict sky model from the field calibration sky model
         """
         # Filter the predict sky model
-        if self.name == 'outlier':
+        if self.is_outlier:
             # For outlier sector, we use the sky model made earlier
             skymodel = self.predict_skymodel
         else:
@@ -287,7 +291,7 @@ class Sector(object):
         self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
 
         # Find nearest patch to sector center
-        if self.name != 'outlier':
+        if not self.is_outlier:
             patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True).tolist()
             patch_names = skymodel.getPatchNames()
             self.central_patch = patch_names[patch_dist.index(min(patch_dist))]

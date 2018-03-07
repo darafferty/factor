@@ -285,17 +285,25 @@ class Field(object):
             sector.flag_freqrange = self.flag_freqrange
             sector.flag_expr = self.flag_expr
 
-        # Make an outlier sector containing any remaining calibration sources (not
-        # included in any sector sky models). This sector is not imaged; it is only used
+        # Make outlier sectors containing any remaining calibration sources (not
+        # included in any sector sky model). These sectors are not imaged; they are only used
         # in prediction and subtraction
-        # TODO: split outliers among nr_node sectors to parallelize the peel/predict (just
-        # split the outlier sky model into equal parts)
         outlier_skymodel = self.make_outlier_skymodel()
+        nsources = len(outlier_skymodel)
+        nnodes = self.parset['cluster_specific']['node_list']
         if len(outlier_skymodel) > 0:
-            outlier_sector = Sector('outlier', self.ra, self.dec, 1.0, 1.0, self)
-            outlier_sector.predict_skymodel = outlier_skymodel
-            outlier_sector.make_skymodel()
-            self.sectors.append(outlier_sector)
+            for i in range(nnodes):
+                outlier_sector = Sector('outlier_{0}'.format(i), self.ra, self.dec, 1.0, 1.0, self)
+                outlier_sector.predict_skymodel = outlier_skymodel.copy()
+                startind = i * int(nsources/nnodes)
+                if i == nnodes-1:
+                    endind = nsources
+                else:
+                    endind = startind + int(nsources/nnodes)
+                outlier_sector.predict_skymodel.select(np.array(range(startind, endind)))
+                outlier_sector.make_skymodel()
+                outlier_sector.is_outlier = True
+                self.sectors.append(outlier_sector)
 
     def find_intersecting_sources(self):
         """
@@ -320,6 +328,8 @@ class Field(object):
         intersecting_ind = []
         buffer = 2 #  how many pixels away from each side to check
         for sector in self.sectors:
+            if sector.is_outlier:
+                continue
             xmin, ymin, xmax, ymax = sector.initial_poly.bounds
             side1 = (xmin-buffer, ymin, xmin+buffer, ymax)
             intersecting_ind.extend(list(idx.intersection(side1)))
@@ -345,6 +355,8 @@ class Field(object):
         intersecting_source_polys = self.find_intersecting_sources()
 
         for sector in self.sectors:
+            if sector.is_outlier:
+                continue
             for i in range(10):
                 # Adjust boundaries for intersection with sources
                 prev_poly = Polygon(sector.poly)

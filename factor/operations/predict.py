@@ -22,16 +22,12 @@ class Predict(Operation):
         # Set the pipeline parset to use
         self.pipeline_parset_template = 'predict_pipeline.parset'
 
-        # Determine if we have an outlier sector (it's always last)
-        if field.sectors[-1].name == 'outlier':
-            has_outlier = True
-            nr_imaging_sectors = len(field.sectors) - 1
-        else:
-            has_outlier = False
-            nr_imaging_sectors = len(field.sectors)
+        # Determine if we have any outlier sectors
+        nr_outliers = sum([1 for sector in field.sectors if sector.is_outlier])
+        nr_imaging_sectors = len(field.sectors) - nr_outliers
 
-        # If we have a single sector in addition to the outlier, we don't need to predict
-        # its model data, just that of the outlier sector
+        # If we have a single sector in addition to outliers, we don't need to predict
+        # its model data, just that of the outlier sector(s)
         if nr_imaging_sectors == 1:
             start_sector = 1
         else:
@@ -53,4 +49,4 @@ class Predict(Operation):
                                 'sector_skymodel': sector_skymodel,
                                 'sector_patches': sector_patches,
                                 'obs_filename': obs_filename,
-                                'has_outlier': has_outlier})
+                                'nr_outliers': nr_outliers})
