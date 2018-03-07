@@ -376,7 +376,7 @@ class Field(object):
         all_source_names = self.calibration_skymodel.getColValues('Name').tolist()
         sector_source_names = []
         for sector in self.sectors:
-            skymodel = lsmtool.load('sector.predict_skymodel_file')
+            skymodel = lsmtool.load(sector.predict_skymodel_file)
             sector_source_names.extend(skymodel.getColValues('Name').tolist())
         outlier_ind = np.array([all_source_names.index(sn) for sn in all_source_names
                                 if sn not in sector_source_names])
