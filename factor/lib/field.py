@@ -217,7 +217,7 @@ class Field(object):
             else:
                 image_width_dec = self.parset['imaging_specific']['grid_width_dec_deg']
 
-            nsectors_ra = self.parset['imaging_specific']['nsectors_ra']
+            nsectors_ra = self.parset['imaging_specific']['grid_nsectors_ra']
             if nsectors_ra == 0:
                 # Force a single sector
                 nsectors_ra = 1
