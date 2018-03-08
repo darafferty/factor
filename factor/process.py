@@ -66,15 +66,16 @@ def run(parset_file, logging_level='info'):
         # Image the sectors
         if step['do_image']:
             # Set flag for slow-gain apply
-            for sector in field.sectors:
+            imaging_sectors = [sector for sector in field.sectors if not sector.is_outlier]
+            for sector in imaging_sectors:
                 sector.apply_slowgains = step['do_slowgain']
 
-            # Put the imaging ops using multiscale clean first, as they take the longest
-            sorted_sectors = [sector for sector in field.sectors if sector.multiscale]
-            sorted_sectors.extend([sector for sector in field.sectors
+            # Put the sectors using multiscale clean first, as they take the longest to
+            # image
+            sorted_sectors = [sector for sector in imaging_sectors if sector.multiscale]
+            sorted_sectors.extend([sector for sector in imaging_sectors
                                    if not sector.multiscale])
-            ops = [Image(field, sector, iter+1) for sector in sorted_sectors
-                   if sector.name != 'outlier']
+            ops = [Image(field, sector, iter+1) for sector in sorted_sectors]
             scheduler.run(ops)
             field.make_mosaic(iter+1)
 
