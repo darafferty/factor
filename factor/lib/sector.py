@@ -129,8 +129,8 @@ class Sector(object):
         # Set number of iterations and threshold
         total_time_hr = 0.0
         for obs in self.observations:
-            # Find total observation time
-            total_time_hr += (obs.endtime - obs.starttime) / 60.0
+            # Find total observation time in hours
+            total_time_hr += (obs.endtime - obs.starttime) / 3600.0
         scaling_factor = np.sqrt(np.float(tot_bandwidth / 2e6) * total_time_hr / 8.0)
         self.wsclean_niter = int(12000 * scaling_factor)
 

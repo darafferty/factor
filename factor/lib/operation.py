@@ -54,7 +54,7 @@ class Operation(object):
         # Pipeline runtime and working dirs (pipeline makes subdir here with
         # name of direction)
         self.pipeline_runtime_dir = os.path.join(self.factor_working_dir,
-                                                 'results', self.name)
+                                                 'pipelines', self.name)
         self.pipeline_working_dir = self.pipeline_runtime_dir
         create_directory(self.pipeline_runtime_dir)
 
