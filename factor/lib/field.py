@@ -153,7 +153,7 @@ class Field(object):
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
             flux = self.parset['direction_specific']['patch_target_flux_jy']
-            self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(len(flux)))
+            self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(flux))
             source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
             calibration_skymodel = source_skymodel
         else:
@@ -184,6 +184,8 @@ class Field(object):
         """
         Defines the imaging sectors
         """
+        self.imaging_sectors = []
+
         # Determine whether we use a user-supplied list of sectors or a grid
         sector_center_ra_list = self.parset['imaging_specific']['sector_center_ra_list']
         sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
@@ -196,7 +198,7 @@ class Field(object):
                                                     sector_width_ra_deg_list, sector_width_dec_deg_list):
                 name = 'sector_{0}'.format(n)
                 n += 1
-                self.sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
+                self.imaging_sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
 
         else:
             # Use a grid
@@ -250,24 +252,23 @@ class Field(object):
                               nsectors_ra*nsectors_dec, nsectors_ra, nsectors_dec))
 
             # Initialize the sectors
-            self.sectors = []
             n = 0
             for i in range(nsectors_ra):
                 for j in range(nsectors_dec):
                     name = 'sector_{0}'.format(n)
                     n += 1
                     ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
-                    self.sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
+                    self.imaging_sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
 
         # Adjust sector boundaries to avoid known sources and update their sky models
         self.adjust_sector_boundaries()
-        if len(self.sectors) > 1:
+        if len(self.imaging_sectors) > 1:
             self.log.info('Making sector sky models (for predicting)...')
-            for sector in self.sectors:
+            for sector in self.imaging_sectors:
                 sector.make_skymodel()
 
         # Set the imaging parameters for selfcal
-        for sector in self.sectors:
+        for sector in self.imaging_sectors:
             sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
                                           self.parset['imaging_specific']['selfcal_robust'],
                                           0.0,
@@ -288,12 +289,14 @@ class Field(object):
         # Make outlier sectors containing any remaining calibration sources (not
         # included in any sector sky model). These sectors are not imaged; they are only used
         # in prediction and subtraction
+        self.outlier_sectors = []
         outlier_skymodel = self.make_outlier_skymodel()
         nsources = len(outlier_skymodel)
         nnodes = len(self.parset['cluster_specific']['node_list'])
         if len(outlier_skymodel) > 0:
             for i in range(nnodes):
                 outlier_sector = Sector('outlier_{0}'.format(i), self.ra, self.dec, 1.0, 1.0, self)
+                outlier_sector.is_outlier = True
                 outlier_sector.predict_skymodel = outlier_skymodel.copy()
                 startind = i * int(nsources/nnodes)
                 if i == nnodes-1:
@@ -302,8 +305,10 @@ class Field(object):
                     endind = startind + int(nsources/nnodes)
                 outlier_sector.predict_skymodel.select(np.array(range(startind, endind)))
                 outlier_sector.make_skymodel()
-                outlier_sector.is_outlier = True
-                self.sectors.append(outlier_sector)
+                self.outlier_sectors.append(outlier_sector)
+
+        # Finally, make a list of all sectors
+        self.sectors = self.imaging_sectors[:] + self.outlier_sectors
 
     def find_intersecting_sources(self):
         """
@@ -327,9 +332,7 @@ class Field(object):
         # For each sector side, query the index to find any intersections
         intersecting_ind = []
         buffer = 2 #  how many pixels away from each side to check
-        for sector in self.sectors:
-            if sector.is_outlier:
-                continue
+        for sector in self.imaging_sectors:
             xmin, ymin, xmax, ymax = sector.initial_poly.bounds
             side1 = (xmin-buffer, ymin, xmin+buffer, ymax)
             intersecting_ind.extend(list(idx.intersection(side1)))
@@ -354,9 +357,7 @@ class Field(object):
         self.log.info('Adusting sector boudaries to avoid sources...')
         intersecting_source_polys = self.find_intersecting_sources()
 
-        for sector in self.sectors:
-            if sector.is_outlier:
-                continue
+        for sector in self.imaging_sectors:
             for i in range(10):
                 # Adjust boundaries for intersection with sources
                 prev_poly = Polygon(sector.poly)
@@ -389,7 +390,7 @@ class Field(object):
         """
         all_source_names = self.calibration_skymodel.getColValues('Name').tolist()
         sector_source_names = []
-        for sector in self.sectors:
+        for sector in self.imaging_sectors:
             skymodel = lsmtool.load(sector.predict_skymodel_file)
             sector_source_names.extend(skymodel.getColValues('Name').tolist())
         outlier_ind = np.array([all_source_names.index(sn) for sn in all_source_names
@@ -492,29 +493,30 @@ class Field(object):
         image_id : str, optional
             Imaging ID
         """
-        imaged_sectors = [sector for sector in self.sectors if sector.name != 'outlier']
-        if len(imaged_sectors) > 1:
-            # Blank the sector images
-            blanked_images = []
-            for sector in self.sectors:
-                input_image_file = sector.get_output_image_filename(image_id)
-                vertices_file = sector.vertices_file
-                output_image_file = input_image_file + '_blanked'
-                blanked_images.append(output_image_file)
-                blank_image.main(input_image_file, vertices_file, output_image_file)
+        if len(self.imaging_sectors) > 1:
+            # Blank the sector images before making mosaic
+            output_image_filename = os.path.join(self.parset['dir_working'], 'pipelines',
+                                                 'image_{}'.format(iter), 'field_mosaic.fits')
+            if not os.path.exists(output_image_filename):
+                self.log.info('Making mosiac of sector images...')
+                blanked_images = []
+                for sector in self.imaging_sectors:
+                    input_image_file = sector.get_output_image_filename(image_id)
+                    vertices_file = sector.vertices_file
+                    output_image_file = input_image_file + '_blanked'
+                    blanked_images.append(output_image_file)
+                    blank_image.main(input_image_file, output_image_file, vertices_file=vertices_file)
 
-            # Make the mosaic
-            outfile = os.path.join(self.parset['dir_working'], 'pipelines', 'image_{}'.format(iter),
-                                   'field_mosaic.fits')
-            self.output_image_filename = outfile
-            mosaic_images.main(blanked_images, outfile)
+                # Make the mosaic
+                mosaic_images.main(blanked_images, output_image_filename)
         else:
-            self.output_image_filename = imaged_sectors[0].get_output_image_filename(image_id)
+            # No need to mosaic a single image
+            output_image_filename = self.imaging_sectors[0].get_output_image_filename(image_id)
 
-        # Create sym links to image files
+        # Create sym link to image file
         dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
         create_directory(dst_dir)
         dst = os.path.join(dst_dir, 'field-MFS-image.fits')
         if os.path.exists(dst):
             os.unlink(dst)
-        os.symlink(self.direction.get_output_image_filename(), dst)
+        os.symlink(output_image_filename, dst)

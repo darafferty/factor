@@ -108,8 +108,9 @@ create_obs_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_obs_files_map.control.filename    = obsfiles.mapfile
 
 # for each obs, loop over sectors and subtract the model visibilities of all other sectors, length = nobs
-subtract_models.control.type         = subtract_sector_models
-subtract_models.control.mapfile_in   = create_obs_files_map.output.mapfile
-subtract_models.control.inputkey     = infile
-subtract_models.argument.flags       = [infile,.sector]
-subtract_models.argument.nr_outliers = {{ nr_outliers }}
+subtract_models.control.type           = subtract_sector_models
+subtract_models.control.mapfile_in     = create_obs_files_map.output.mapfile
+subtract_models.control.inputkey       = infile
+subtract_models.argument.flags         = [infile,.sector]
+subtract_models.argument.nr_outliers   = {{ nr_outliers }}
+subtract_models.argument.peel_outliers = {{ peel_outliers }}

@@ -49,4 +49,5 @@ class Predict(Operation):
                                 'sector_skymodel': sector_skymodel,
                                 'sector_patches': sector_patches,
                                 'obs_filename': obs_filename,
-                                'nr_outliers': nr_outliers})
+                                'nr_outliers': nr_outliers,
+                                'peel_outliers': peel_outliers})
