@@ -168,6 +168,7 @@ class Field(object):
         Updates the source and calibration sky models from the output sector sky model(s)
         """
         # Concat all output sector sky models
+        self.log.info('Updating sky model...')
         sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
         skymodel = lsmtool.load(sector_skymodels[0])
         sector_skymodels.pop(0)
@@ -493,11 +494,12 @@ class Field(object):
         image_id : str, optional
             Imaging ID
         """
-        if len(self.imaging_sectors) > 1:
-            # Blank the sector images before making mosaic
-            output_image_filename = os.path.join(self.parset['dir_working'], 'pipelines',
-                                                 'image_{}'.format(iter), 'field_mosaic.fits')
-            if not os.path.exists(output_image_filename):
+        dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
+        create_directory(dst_dir)
+        field_image_filename = os.path.join(dst_dir, 'field-MFS-image.fits')
+        if not os.path.exists(field_image_filename):
+            if len(self.imaging_sectors) > 1:
+                # Blank the sector images before making mosaic
                 self.log.info('Making mosiac of sector images...')
                 blanked_images = []
                 for sector in self.imaging_sectors:
@@ -508,15 +510,8 @@ class Field(object):
                     blank_image.main(input_image_file, output_image_file, vertices_file=vertices_file)
 
                 # Make the mosaic
-                mosaic_images.main(blanked_images, output_image_filename)
-        else:
-            # No need to mosaic a single image
-            output_image_filename = self.imaging_sectors[0].get_output_image_filename(image_id)
-
-        # Create sym link to image file
-        dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
-        create_directory(dst_dir)
-        dst = os.path.join(dst_dir, 'field-MFS-image.fits')
-        if os.path.exists(dst):
-            os.unlink(dst)
-        os.symlink(output_image_filename, dst)
+                mosaic_images.main(blanked_images, field_image_filename)
+            else:
+                # No need to mosaic a single image; just copy it
+                output_image_filename = self.imaging_sectors[0].get_output_image_filename(image_id)
+                os.system('cp {} {}'.format(output_image_filename, field_image_filename))
