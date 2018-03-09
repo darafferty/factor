@@ -7,7 +7,6 @@ from factor.parset import parset_read
 from factor.strategy import set_strategy
 from factor.operations.calibrate import Calibrate
 from factor.operations.image import Image
-from factor.operations.peel import Peel
 from factor.operations.predict import Predict
 from factor.lib.scheduler import Scheduler
 from factor.lib.field import Field
