@@ -174,7 +174,7 @@ class Field(object):
         skymodel.group('single', root='sector_0')
         sector_skymodels.pop(0)
         for i, s2 in enumerate(sector_skymodels):
-            skymodel2 = lsmtool.load(s2[0])
+            skymodel2 = lsmtool.load(s2)
             skymodel2.group('single', root='sector_{}'.format(i+1))
             skymodel.concatenate(skymodel2)
         if self.parset['strategy'] == 'sectorselfcal':
@@ -182,7 +182,7 @@ class Field(object):
             regroup = False
         else:
             regroup = True
-        self.make_skymodels(skymodel)
+        self.make_skymodels(skymodel, regroup=regroup)
 
         # Re-adjust sector boundaries and update their sky models
         self.adjust_sector_boundaries()
@@ -208,7 +208,7 @@ class Field(object):
                 name = 'sector_{0}'.format(n)
                 n += 1
                 self.imaging_sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
-
+            self.log.info('Using {0} user-defined imaging sectors'.format(len(self.imaging_sectors)))
         else:
             # Use a grid
             if self.parset['imaging_specific']['grid_center_ra'] is None:
@@ -365,6 +365,9 @@ class Field(object):
         """
         self.log.info('Adusting sector boudaries to avoid sources...')
         intersecting_source_polys = self.find_intersecting_sources()
+        for sector in self.imaging_sectors:
+            # Make sure all sectors start from their initial polygons
+            sector.poly = sector.initial_poly
 
         for sector in self.imaging_sectors:
             for i in range(10):
@@ -471,7 +474,7 @@ class Field(object):
         """
         from astropy.wcs import WCS
 
-        self.wcs_pixel_scale = 0.0027777778 # degrees/pixel (= 10"/pixel)
+        self.wcs_pixel_scale = 10.0 / 3600.0 # degrees/pixel (= 10"/pixel)
         w = WCS(naxis=2)
         w.wcs.crpix = [1000, 1000]
         w.wcs.cdelt = np.array([-self.wcs_pixel_scale, self.wcs_pixel_scale])

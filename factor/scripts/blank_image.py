@@ -72,7 +72,7 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
     header['CRVAL4'] = 150e6
     header['CDELT4'] = 3e8
     header['CRPIX4'] = 1.0
-    header['CUNIT4'] = 'HZ'
+    header['CUNIT4'] = 'Hz'
     header['CTYPE4'] = 'FREQ'
     header['SPECSYS'] = 'TOPOCENT'
 

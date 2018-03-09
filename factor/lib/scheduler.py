@@ -61,7 +61,10 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
 
     # Run the pipeline, redirecting screen output to log files
     time.sleep(2.0)  # pause to allow Scheduler.result_callback() to transfer resources
-    log.info('<-- Operation {0} started (direction: {1})'.format(op_name, direction_name))
+    if direction_name == 'field':
+        log.info('<-- Operation {0} started'.format(op_name))
+    else:
+        log.info('<-- Operation {0} started (direction: {1})'.format(op_name, direction_name))
     with open("{0}.log".format(logbasename), "wb") as out:
         with RedirectStdStreams(stdout=out, stderr=out):
             status = pipeline.run(pipeline.name)
@@ -202,8 +205,11 @@ class Scheduler(object):
 
         # Finalize the operation
         if status == 0:
-            log.info('--> Operation {0} completed (direction: '
-                     '{1})'.format(op_name, direction_name))
+            if direction_name == 'field':
+                log.info('--> Operation {0} completed'.format(op_name))
+            else:
+                log.info('--> Operation {0} completed (direction: '
+                         '{1})'.format(op_name, direction_name))
             this_op.finalize()
         else:
             self.success = False

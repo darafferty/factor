@@ -12,7 +12,7 @@ import glob
 import subprocess
 
 
-def get_nchunks(msin, nrsectors):
+def get_nchunks(msin, nsectors):
     tot_m, used_m, free_m = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
     msin_m = float(subprocess.check_output(['du','-sh', msin]).split()[0][:-1]) * 1000.0
     tot_required_m = msin_m * nsectors * 2.0
@@ -56,7 +56,6 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
     nr_outliers = int(nr_outliers)
 
     # Find the model data files
-    data_dir = os.path.dirname(msin)
     i = 0
     model_list = []
     while True:
@@ -80,6 +79,8 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
         # Open input and output table
         tin = pt.table(msin, readonly=True, ack=False)
         msout = '{}_peeled'.format(msin)
+        if not os.path.exists(msout):
+            os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout = pt.table(msout, readonly=False, ack=False)
 
         nchunks = get_nchunks(msin, nr_outliers)

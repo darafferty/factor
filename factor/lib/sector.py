@@ -55,8 +55,9 @@ class Sector(object):
         # observation-specific settings
         self.observations = []
         for obs in field.observations:
-            obs.log = None
+            obs.log = None # deepcopy cannot copy the log object
             cobs = copy.deepcopy(obs)
+            obs.log = logging.getLogger('factor:{}'.format(obs.name))
             cobs.log = logging.getLogger('factor:{}'.format(cobs.name))
             self.observations.append(cobs)
 
@@ -112,6 +113,10 @@ class Sector(object):
         if self.use_idg:
             # IDG does not yet support rectangular images
             self.imsize = [max(self.imsize), max(self.imsize)]
+
+            # IDG has problems with small images
+            self.imsize = [max(1500, self.imsize[0]), max(1500, self.imsize[0])]
+
         self.wsclean_imsize = '{0} {1}'.format(self.imsize[0], self.imsize[1])
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
@@ -290,9 +295,12 @@ class Sector(object):
         # Save list of patches (directions) in the format written by DDECal in the h5parm
         self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
 
-        # Find nearest patch to sector center
+        # Find nearest patch to flux-weighted center of the sector sky model
         if not self.is_outlier:
-            patch_dist = skymodel.getDistance(self.ra, self.dec, byPatch=True).tolist()
+            tmp_skymodel = skymodel.copy()
+            tmp_skymodel.group('single')
+            ra, dec = tmp_skymodel.getPatchPositions(method='wmean', asArray=True)
+            patch_dist = skymodel.getDistance(ra[0], dec[0], byPatch=True).tolist()
             patch_names = skymodel.getPatchNames()
             self.central_patch = patch_names[patch_dist.index(min(patch_dist))]
 

@@ -53,16 +53,16 @@ def run(parset_file, logging_level='info'):
             op = Calibrate(field, iter+1)
             scheduler.run(op)
 
-        # Peel outlier sources
-        if step['do_peel']:
-            op = Peel(field, iter+1)
-            scheduler.run(op)
-
         # Predict and subtract sector models
         if step['do_predict']:
             field.peel_outliers = step['peel_outliers']
             op = Predict(field, iter+1)
             scheduler.run(op)
+            if step['peel_outliers']:
+                # Update the observations to use the new peeled datasets
+                for obs in field.observations:
+                    obs.ms_filename += '_peeled'
+                    obs.set_calibration_parameters(parset)
 
         # Image the sectors
         if step['do_image']:
@@ -80,14 +80,14 @@ def run(parset_file, logging_level='info'):
             scheduler.run(ops)
             field.make_mosaic(iter+1)
 
-        # Update the sky models
-        if step['do_update']:
-            field.update_skymodels(iter+1)
-
         # Check for convergence
         if step['do_check']:
             has_converged = field.check_selfcal_convergence()
             if has_converged:
                 break
+
+        # Update the sky models
+        if step['do_update']:
+            field.update_skymodels(iter+1)
 
     log.info("Factor has finished :)")

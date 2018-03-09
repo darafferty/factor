@@ -4,8 +4,6 @@ Module that holds all strategy-related functions
 import os
 import logging
 import sys
-import re
-import numpy as np
 
 log = logging.getLogger('factor:strategy')
 
@@ -54,8 +52,7 @@ def set_strategy(field):
                 strategy_list[i]['do_check'] = False
             else:
                 strategy_list[i]['do_check'] = True
-
-    if field.parset['strategy'] == 'sectorselfcal':
+    elif field.parset['strategy'] == 'sectorselfcal':
         # Selfcal of target(s) only:
         #     - calibration on all sources
         #     - peeling of non-target sources
@@ -66,16 +63,18 @@ def set_strategy(field):
             strategy_list.append({})
             strategy_list[i]['do_calibrate'] = True
             strategy_list[i]['do_slowgain'] = True
-            strategy_list[i]['peel_outliers'] = True
-            strategy_list[i]['do_predict'] = False
+            if i < 1:
+                strategy_list[i]['peel_outliers'] = True
+            else:
+                strategy_list[i]['peel_outliers'] = False
+            strategy_list[i]['do_predict'] = True
             strategy_list[i]['do_image'] = True
             strategy_list[i]['do_update'] = True
             if i < 1:
                 strategy_list[i]['do_check'] = False
             else:
                 strategy_list[i]['do_check'] = True
-
-    if field.parset['strategy'] == 'targetexport':
+    elif field.parset['strategy'] == 'targetexport':
         # Export of target data:
         #     - no calibration
         #     - peeling of non-target sources
@@ -88,6 +87,10 @@ def set_strategy(field):
         strategy_list[0]['do_update'] = False
         strategy_list[0]['do_check'] = False
         strategy_list[0]['do_export'] = True
+    else:
+        log.error('Strategy "{}" not understood. Exiting...'.format(field.parset['strategy']))
+        sys.exit(1)
 
+    log.info('Using "{}" processing strategy'.format(field.parset['strategy']))
     return strategy_list
 
