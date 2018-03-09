@@ -60,6 +60,7 @@ def run(parset_file, logging_level='info'):
 
         # Predict and subtract sector models
         if step['do_predict']:
+            field.peel_outliers = step['peel_outliers']
             op = Predict(field, iter+1)
             scheduler.run(op)
 

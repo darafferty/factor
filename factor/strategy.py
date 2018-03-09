@@ -39,7 +39,7 @@ def set_strategy(field):
                 strategy_list[i]['do_slowgain'] = False
             else:
                 strategy_list[i]['do_slowgain'] = True
-            strategy_list[i]['do_peel'] = False
+            strategy_list[i]['peel_outliers'] = False
             if field.sectors[-1].name == 'outlier':
                 has_outlier = True
                 nr_imaging_sectors = len(field.sectors) - 1
@@ -66,7 +66,7 @@ def set_strategy(field):
             strategy_list.append({})
             strategy_list[i]['do_calibrate'] = True
             strategy_list[i]['do_slowgain'] = True
-            strategy_list[i]['do_peel'] = True
+            strategy_list[i]['peel_outliers'] = True
             strategy_list[i]['do_predict'] = False
             strategy_list[i]['do_image'] = True
             strategy_list[i]['do_update'] = True
@@ -82,7 +82,7 @@ def set_strategy(field):
         #     - export of target(s) only
         strategy_list.append({})
         strategy_list[0]['do_calibrate'] = False
-        strategy_list[0]['do_peel'] = True
+        strategy_list[0]['peel_outliers'] = True
         strategy_list[0]['do_predict'] = False
         strategy_list[0]['do_image'] = False
         strategy_list[0]['do_update'] = False

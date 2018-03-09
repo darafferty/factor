@@ -171,9 +171,17 @@ class Field(object):
         self.log.info('Updating sky model...')
         sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
         skymodel = lsmtool.load(sector_skymodels[0])
+        skymodel.group('single', root='sector_0')
         sector_skymodels.pop(0)
-        for s2 in sector_skymodels:
-            skymodel.concatenate(s2)
+        for i, s2 in enumerate(sector_skymodels):
+            skymodel2 = lsmtool.load(s2[0])
+            skymodel2.group('single', root='sector_{}'.format(i+1))
+            skymodel.concatenate(skymodel2)
+        if self.parset['strategy'] == 'sectorselfcal':
+            # Assume each sector is a single patch, so don't regroup
+            regroup = False
+        else:
+            regroup = True
         self.make_skymodels(skymodel)
 
         # Re-adjust sector boundaries and update their sky models

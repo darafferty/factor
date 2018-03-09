@@ -25,6 +25,7 @@ class Predict(Operation):
         # Determine if we have any outlier sectors
         nr_outliers = sum([1 for sector in field.sectors if sector.is_outlier])
         nr_imaging_sectors = len(field.sectors) - nr_outliers
+        peel_outliers = field.peel_outliers
 
         # If we have a single sector in addition to outliers, we don't need to predict
         # its model data, just that of the outlier sector(s)
