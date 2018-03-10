@@ -370,25 +370,20 @@ class Field(object):
             sector.poly = sector.initial_poly
 
         for sector in self.imaging_sectors:
-            for i in range(10):
-                # Adjust boundaries for intersection with sources
-                prev_poly = Polygon(sector.poly)
-                for p2 in intersecting_source_polys:
-                    if sector.poly.contains(p2.centroid):
-                        # If point is inside, union the sector poly with the source one
-                        sector.poly = sector.poly.union(p2)
-                    else:
-                        # If centroid of point is outside, difference the sector poly with
-                        # the source one
-                        sector.poly = sector.poly.difference(p2)
+            # Adjust boundaries for intersection with sources
+            for p2 in intersecting_source_polys:
+                if sector.poly.contains(p2.centroid):
+                    # If point is inside, union the sector poly with the source one
+                    sector.poly = sector.poly.union(p2)
+                else:
+                    # If centroid of point is outside, difference the sector poly with
+                    # the source one
+                    sector.poly = sector.poly.difference(p2)
 
-                # Check whether the sector has been broken into two or more separate polygons
-                if type(sector.poly) is not Polygon:
-                    # If so, keep largest one only
-                    sector.poly = sector.poly[np.argmax([p.area for p in sector.poly])]
-
-                if sector.poly.equals(prev_poly):
-                    break
+            # Check whether the sector has been broken into two or more separate polygons
+            if type(sector.poly) is not Polygon:
+                # If so, keep largest one only
+                sector.poly = sector.poly[np.argmax([p.area for p in sector.poly])]
 
             # Make sector region and vertices files
             sector.make_vertices_file()
