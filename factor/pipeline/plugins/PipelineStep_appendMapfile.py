@@ -47,10 +47,16 @@ def plugin_main(args, **kwargs):
 
     map_out = DataMap([])
     map_in = DataMap.load(mapfile_in)
+    if append_index:
+        # Find stride for indexing
+        stride = len(map_in) / len(set([f for item.file for item in map_in]))
 
+    j = -1
     for i, item in enumerate(map_in):
         if append_index:
-            newfile = item.file+append_str+'_{}'.format(i)
+            if i % stride == 0:
+                j += 1
+            newfile = item.file+append_str+'_{}'.format(j)
         else:
             newfile = item.file+append_str
         map_out.data.append(DataProduct(item.host, newfile, item.skip))
