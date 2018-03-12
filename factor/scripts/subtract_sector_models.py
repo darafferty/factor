@@ -16,7 +16,7 @@ def get_nchunks(msin, nsectors):
     tot_m, used_m, free_m = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
     msin_m = float(subprocess.check_output(['du','-sh', msin]).split()[0][:-1]) * 1000.0
     tot_required_m = msin_m * nsectors * 2.0
-    nchunks = int(np.ceil(tot_required_m / free_m))
+    nchunks = max(1, int(np.ceil(tot_required_m / free_m)))
     return nchunks
 
 
@@ -125,10 +125,12 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
             tout.flush()
         tout.close()
         tin.close()
+
+        # Now reset things for the imaging sectors
         msin = msout
-        nr_outliers = 0
         model_list = model_list[:-nr_outliers]
         nsectors = len(model_list)
+        nr_outliers = 0
 
     # Open input and output tables
     tin = pt.table(msin, readonly=True, ack=False)

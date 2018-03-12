@@ -39,8 +39,8 @@ class Predict(Operation):
         for sector in field.sectors[start_sector:]:
             for obs in sector.observations:
                 sector_filename.append(obs.ms_filename)
-            sector_skymodel.append(sector.predict_skymodel_file)
-            sector_patches.append(sector.patches)
+                sector_skymodel.append(sector.predict_skymodel_file)
+                sector_patches.append(sector.patches)
         sector_patches = '[{}]'.format(';'.join(sector_patches))
         obs_filename = []
         for obs in field.observations:
