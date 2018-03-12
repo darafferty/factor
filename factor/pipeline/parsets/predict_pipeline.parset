@@ -19,7 +19,7 @@ create_sector_skymodels_map.control.mapfile_dir = input.output.mapfile_dir
 create_sector_skymodels_map.control.filename    = sector_skymodels.mapfile
 
 # convert the skymodels into sourcedbs, length = nsectors
-create_sector_sourcedbs.control.type       = create_sourcedb
+create_sector_sourcedbs.control.type       = make_sourcedb
 create_sector_sourcedbs.control.mapfile_in = create_sector_skymodels_map.output.mapfile
 create_sector_sourcedbs.control.inputkey   = in
 create_sector_sourcedbs.argument.format    = <
