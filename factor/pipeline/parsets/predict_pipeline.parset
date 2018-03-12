@@ -1,4 +1,4 @@
-pipeline.steps = [create_sector_files_map, create_sector_skymodels_map, create_sector_sourcedbs, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, subtract_models]
+pipeline.steps = [create_sector_files_map, create_sector_skymodels_map, create_sector_sourcedbs, expand_sourcedbs_map, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, subtract_models]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
