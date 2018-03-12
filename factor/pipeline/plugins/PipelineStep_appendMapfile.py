@@ -49,7 +49,7 @@ def plugin_main(args, **kwargs):
     map_in = DataMap.load(mapfile_in)
     if append_index:
         # Find stride for indexing
-        stride = len(map_in) / len(set([f for item.file for item in map_in]))
+        stride = len(map_in) / len(set([item.file for item in map_in]))
 
     j = -1
     for i, item in enumerate(map_in):
