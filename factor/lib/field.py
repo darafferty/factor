@@ -305,7 +305,7 @@ class Field(object):
         self.outlier_sectors = []
         outlier_skymodel = self.make_outlier_skymodel()
         nsources = len(outlier_skymodel)
-        nnodes = len(self.parset['cluster_specific']['node_list'])
+        nnodes = 10 # TODO: tune to number of available nodes and/or memory?
         if len(outlier_skymodel) > 0:
             for i in range(nnodes):
                 outlier_sector = Sector('outlier_{0}'.format(i), self.ra, self.dec, 1.0, 1.0, self)
