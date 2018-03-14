@@ -154,6 +154,11 @@ def get_global_options(parset):
     else:
         parset_dict['regroup_initial_skymodel'] = False
 
+    # Filename of initial h5parm file containing solutions for the patches in the
+    # initial sky model
+    if 'initial_h5parm' not in parset_dict:
+        parset_dict['initial_h5parm'] = None
+
     # Define strategy
     if 'strategy' not in parset_dict:
         parset_dict['strategy'] = 'fieldselfcal'
@@ -189,7 +194,8 @@ def get_global_options(parset):
     given_options = parset.options('global')
     allowed_options = ['dir_working', 'dir_ms', 'chunk_size_sec', 'strategy',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
-                       'flag_expr', 'chunk_size_hz', 'initial_skymodel', 'regroup_initial_skymodel']
+                       'flag_expr', 'chunk_size_hz', 'initial_skymodel',
+                       'regroup_initial_skymodel', 'initial_h5parm']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [global] section of the '

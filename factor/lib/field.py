@@ -21,8 +21,10 @@ class Field(object):
     ----------
     parset : dict
         Parset with processing parameters
+    minimal : bool
+        If True, only initialize the minimal required parameters
     """
-    def __init__(self, parset):
+    def __init__(self, parset, mininmal=False):
         # Save basic info
         self.name = 'field'
         self.log = logging.getLogger('factor:{}'.format(self.name))
@@ -37,16 +39,18 @@ class Field(object):
         self.flag_baseline = self.parset['flag_baseline']
         self.flag_freqrange = self.parset['flag_freqrange']
         self.flag_expr = self.parset['flag_expr']
+        self.initial_h5parm = self.parset['initial_h5parm']
 
-        # Scan MS files to get observation info
-        self.scan_observations()
+        if not mininmal:
+            # Scan MS files to get observation info
+            self.scan_observations()
 
-        # Make calibration and source sky models by grouping the initial sky model
-        self.make_skymodels(self.parset['initial_skymodel'], self.parset['regroup_initial_skymodel'])
+            # Make calibration and source sky models by grouping the initial sky model
+            self.make_skymodels(self.parset['initial_skymodel'], self.parset['regroup_initial_skymodel'])
 
-        # Set up imaging sectors
-        self.makeWCS()
-        self.define_sectors()
+            # Set up imaging sectors
+            self.makeWCS()
+            self.define_sectors()
 
     def scan_observations(self):
         """

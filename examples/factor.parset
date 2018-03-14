@@ -17,6 +17,10 @@ initial_skymodel = /data/skymodel.txt
 # patches are used for the initial calibration
 # regroup_initial_skymodel = True
 
+# Filename of initial h5parm file containing solutions for the patches in the
+# initial sky model
+# initial_h5parm = None
+
 # Processing strategy to use (default = fieldselfcal):
 # - fieldselfcal: selfcal of entire field (all source in the input sky model are used in
 #                 in calibration)

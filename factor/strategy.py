@@ -33,6 +33,8 @@ def set_strategy(field):
         for i in range(max_selfcal_loops):
             strategy_list.append({})
             strategy_list[i]['do_calibrate'] = True
+            if field.initial_h5parm is not None and i == 0:
+                strategy_list[i]['do_calibrate'] = False
             if i < 3 and not always_do_slowgain:
                 strategy_list[i]['do_slowgain'] = False
             else:
@@ -52,6 +54,7 @@ def set_strategy(field):
                 strategy_list[i]['do_check'] = False
             else:
                 strategy_list[i]['do_check'] = True
+
     elif field.parset['strategy'] == 'sectorselfcal':
         # Selfcal of target(s) only:
         #     - calibration on all sources
@@ -62,6 +65,8 @@ def set_strategy(field):
         for i in range(max_selfcal_loops):
             strategy_list.append({})
             strategy_list[i]['do_calibrate'] = True
+            if field.initial_h5parm is not None and i == 0:
+                strategy_list[i]['do_calibrate'] = False
             strategy_list[i]['do_slowgain'] = True
             if i < 1:
                 strategy_list[i]['peel_outliers'] = True
@@ -74,6 +79,7 @@ def set_strategy(field):
                 strategy_list[i]['do_check'] = False
             else:
                 strategy_list[i]['do_check'] = True
+
     elif field.parset['strategy'] == 'targetexport':
         # Export of target data:
         #     - no calibration
@@ -87,6 +93,7 @@ def set_strategy(field):
         strategy_list[0]['do_update'] = False
         strategy_list[0]['do_check'] = False
         strategy_list[0]['do_export'] = True
+
     else:
         log.error('Strategy "{}" not understood. Exiting...'.format(field.parset['strategy']))
         sys.exit(1)

@@ -41,7 +41,7 @@ def run(parset_file, logging_level='info'):
     # Initialize field object
     field = Field(parset)
 
-    # Set the processing strategy
+    # Get the processing strategy
     strategy_steps = set_strategy(field)
 
     # Run the strategy

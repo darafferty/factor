@@ -48,13 +48,13 @@ def plugin_main(args, **kwargs):
     map_out = DataMap([])
     map_in = DataMap.load(mapfile_in)
     if append_index:
-        # Find stride for indexing
-        stride = len(map_in) / len(set([item.file for item in map_in]))
+        # Find number of unique files in input mapfile
+        nfiles = len(set([item.file for item in map_in]))
 
     j = -1
     for i, item in enumerate(map_in):
         if append_index:
-            if i % stride == 0:
+            if i % nfiles == 0:
                 j += 1
             newfile = item.file+append_str+'_{}'.format(j)
         else:
