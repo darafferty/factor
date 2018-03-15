@@ -92,7 +92,7 @@ def parset_read(parset_file, use_log_file=True):
         log.error('Initial sky model file "{}" not found. Exiting...'.format(parset_dict['initial_skymodel']))
         sys.exit(1)
 
-    # Check for unused sections
+    # Check for invalid sections
     given_sections = parset._sections.keys()
     allowed_sections = ['global', 'calibration', 'imaging', 'directions',
                         'cluster', 'checkfactor']
@@ -190,7 +190,7 @@ def get_global_options(parset):
                     'appear in flag_expr'.format(f))
                 sys.exit(1)
 
-    # Check for unused options
+    # Check for invalid options
     given_options = parset.options('global')
     allowed_options = ['dir_working', 'dir_ms', 'chunk_size_sec', 'strategy',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
@@ -302,7 +302,7 @@ def get_calibration_options(parset):
     else:
         parset_dict['tolerance'] = 1e-8
 
-    # Check for unused options
+    # Check for invalid options
     allowed_options = ['max_selfcal_loops', 'multires_selfcal', 'solve_min_uv_lambda',
                        'solve_tecandphase', 'fast_timestep_sec', 'fast_freqstep_hz',
                        'slow_timestep_sec', 'slow_freqstep_hz', 'approximatetec',
@@ -413,12 +413,34 @@ def get_imaging_options(parset):
         len_list.append(len(val_list))
     else:
         parset_dict['sector_width_dec_deg_list'] = []
+    if 'sector_do_multiscale_list' in parset_dict:
+        val_list = parset_dict['sector_do_multiscale_list'].strip('[]').split(',')
+        if val_list[0] == '':
+            val_list = []
+        bool_list = []
+        for v in val_list:
+            if v.lower().strip() == 'true':
+                b = True
+            elif v.lower().strip() == 'false':
+                b = False
+            elif v.lower().strip() == 'none':
+                b = None
+            else:
+                log.error('The entry "{}" in sector_do_multiscale_list is invalid. It must '
+                          'be one of True, False, or None'.format(v))
+                sys.exit(1)
+            bool_list.append(b)
+        parset_dict['sector_do_multiscale_list'] = bool_list
+        len_list.append(len(bool_list))
+    else:
+        parset_dict['sector_do_multiscale_list'] = [None] * len_list[0]
 
     # Check that all the above options have the same number of entries
     if len(set(len_list)) > 1:
         log.error('The options sector_center_ra_list, sector_center_dec_list, '
-            'sector_width_ra_deg_list, and sector_width_dec_deg_list must all '
-            'have the same number of entires')
+            'sector_width_ra_deg_list, sector_width_dec_deg_list, and '
+            'sector_do_multiscale_list (if specified) must all have the same number of '
+            'entires')
         sys.exit(1)
 
     # Use IDG (image domain gridder) in WSClean. The mode can be cpu, gpu, or hybrid.
@@ -538,7 +560,7 @@ def get_imaging_options(parset):
     else:
         parset_dict['wsclean_image_padding'] = 1.4
 
-    # Check for unused options
+    # Check for invalid options
     allowed_options = ['max_peak_smearing', 'selfcal_cellsize_arcsec', 'selfcal_robust',
                        'selfcal_multiscale_scales_pixel', 'grid_center_ra', 'grid_center_dec',
                        'grid_width_ra_deg', 'grid_width_dec_deg', 'grid_nsectors_ra',
@@ -547,7 +569,7 @@ def get_imaging_options(parset):
                        'selfcal_robust_wsclean', 'wsclean_bl_averaging',
                        'sector_center_ra_list', 'sector_center_dec_list',
                        'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
-                       'use_idg', 'idg_mode']
+                       'use_idg', 'idg_mode', 'sector_do_multiscale_list']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [imaging] section of the '
@@ -608,7 +630,7 @@ def get_directions_options(parset):
     else:
         parset_dict['target_radius_arcmin'] = None
 
-    # Check for unused options
+    # Check for invalid options
     allowed_options = ['max_radius_deg', 'target_ra', 'target_dec',
                        'target_radius_arcmin', 'patch_target_flux_jy']
     for option in given_options:
@@ -692,7 +714,7 @@ def get_cluster_options(parset):
     else:
         parset_dict['dir_local'] = parset_dict['dir_local'].rstrip('/')
 
-    # Check for unused options
+    # Check for invalid options
     allowed_options = ['ncpu', 'fmem', 'cluster_type', 'dir_local', 'lofarroot',
                        'lofarpythonpath']
     for option in given_options:
@@ -743,7 +765,7 @@ def get_checkfactor_options(parset):
     else:
         parset_dict['ds9_load_regions'] = False
 
-    # Check for unused options
+    # Check for invalid options
     allowed_options = ['facet_viewer', 'ds9_limits', 'ds9_frames', 'image_display',
                        'ds9_load_regions']
     for option in given_options:

@@ -90,8 +90,10 @@ initial_skymodel = /data/skymodel.txt
 # max_peak_smearing = 0.15
 
 # List of scales in pixels to use when multiscale clean is activated (default =
-# auto). Note that multiscale clean is activated only when a source
-# in an image sector is determined to be larger than 4 arcmin
+# auto). Note that multiscale clean is activated automatically when a source
+# in an image sector is determined to be larger than 4 arcmin. Alternatively, if sectors
+# are specified manually below (with sector_center_ra_list, etc.), one can force that
+# multiscale clean be used with the sector_do_multiscale_list parameter below
 # selfcal_multiscale_scales_pixel = [0, 5, 10, 15]
 
 # Selfcal imaging parameters: pixel size in arcsec (default = 1.5), Briggs
@@ -129,12 +131,15 @@ initial_skymodel = /data/skymodel.txt
 # grid_center_dec = +35d30m31.52
 
 # Instead of a grid, imaging sectors can be defined individually by specifying
-# their centers and widths. If sectors are specified in this way, they will be
+# their centers and widths. Multiscale clean can also be set (with None indicating that
+# multiscale clean should be activated automatically if a large source is detected in the
+# sector). If sectors are specified in this way, they will be
 # used instead of the sector grid. Note that the sectors should not overlap
 # sector_center_ra_list = [14h41m01.884, 14h13m23.234]
 # sector_center_dec_list = [+35d30m31.52, +37d21m56.86]
 # sector_width_ra_deg_list = [0.532, 0.127]
 # sector_width_dec_deg_list = [0.532, 0.127]
+# sector_do_multiscale_list = [None, True]
 
 # A target can be specified to ensure that it falls entirely within a single
 # sector. The values should be those of a circular region that encloses the

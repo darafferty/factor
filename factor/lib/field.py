@@ -214,6 +214,7 @@ class Field(object):
         sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
         sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
         sector_width_dec_deg_list = self.parset['imaging_specific']['sector_width_dec_deg_list']
+        sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']
         if len(sector_center_ra_list) > 0:
             # Use user-supplied list
             n = 0
@@ -291,7 +292,11 @@ class Field(object):
                 sector.make_skymodel()
 
         # Set the imaging parameters for selfcal
-        for sector in self.imaging_sectors:
+        for i, sector in enumerate(self.imaging_sectors):
+            if len(sector_do_multiscale_list) > 0:
+                do_multiscale = sector_do_multiscale_list[i]
+            else:
+                do_multiscale = None
             sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
                                           self.parset['imaging_specific']['selfcal_robust'],
                                           0.0,
@@ -301,7 +306,8 @@ class Field(object):
                                           self.parset['imaging_specific']['wsclean_bl_averaging'],
                                           self.parset['imaging_specific']['selfcal_multiscale_scales_pixel'],
                                           self.parset['imaging_specific']['use_idg'],
-                                          self.parset['imaging_specific']['idg_mode'])
+                                          self.parset['imaging_specific']['idg_mode'],
+                                          do_multiscale)
 
             # Transfer flagging parameters so they are also used during imaging
             sector.flag_abstime = self.flag_abstime
@@ -315,8 +321,8 @@ class Field(object):
         self.outlier_sectors = []
         outlier_skymodel = self.make_outlier_skymodel()
         nsources = len(outlier_skymodel)
-        nnodes = 10 # TODO: tune to number of available nodes and/or memory?
-        if len(outlier_skymodel) > 0:
+        if nsources > 0:
+            nnodes = 10 # TODO: tune to number of available nodes and/or memory?
             for i in range(nnodes):
                 outlier_sector = Sector('outlier_{0}'.format(i), self.ra, self.dec, 1.0, 1.0, self)
                 outlier_sector.is_outlier = True

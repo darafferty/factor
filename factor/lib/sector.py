@@ -67,7 +67,7 @@ class Sector(object):
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
                                min_uv_lambda, max_uv_lambda, max_peak_smearing,
                                wsclean_bl_averaging=False, multiscale_scales_pixel=None,
-                               use_idg=True, idg_mode='hybrid'):
+                               use_idg=True, idg_mode='hybrid', do_multiscale=None):
         """
         Sets the imaging parameters for given values
 
@@ -93,6 +93,9 @@ class Sector(object):
             Use image domain gridder in WSClean
         idg_mode : str, optional
             IDG mode to use
+        do_multiscale : bool or None, optional
+            If True, multiscale clean is always done. If False, it is never done. If None,
+            it is done if a large source is present
         """
         self.cellsize_arcsec = cellsize_arcsec
         self.cellsize_deg = cellsize_arcsec / 3600.0
@@ -140,9 +143,9 @@ class Sector(object):
         self.wsclean_niter = int(12000 * scaling_factor)
 
         # Set multiscale: get source sizes and check for large sources
-        self.multiscale = None
-        large_size_arcmin = 4.0
+        self.multiscale = do_multiscale
         if self.multiscale is None:
+            large_size_arcmin = 4.0 # threshold source size for multiscale to be activated
             sizes_arcmin = self.source_sizes * 60.0
             if sizes_arcmin is not None and any([s > large_size_arcmin for s in sizes_arcmin]):
                 self.multiscale = True

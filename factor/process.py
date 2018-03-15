@@ -58,10 +58,12 @@ def run(parset_file, logging_level='info'):
             op = Predict(field, iter+1)
             scheduler.run(op)
             if step['peel_outliers']:
-                # Update the observations to use the new peeled datasets
+                # Update the observations to use the new peeled datasets and remove the
+                # outlier sectors (since, once peeled, they are no longer needed)
                 for obs in field.observations:
                     obs.ms_filename += '_peeled'
                     obs.set_calibration_parameters(parset)
+                field.sectors = [sector for sector in field.sectors if not sector.is_outlier]
 
         # Image the sectors
         if step['do_image']:
