@@ -71,6 +71,13 @@ initial_skymodel = /data/skymodel.txt
 # Target flux per patch for calibration (default = 3.0 for HBA and 6.0 for LBA)
 # patch_target_flux_jy = 6.0
 
+# dTEC solver parameters
+# approximatetec = True
+# maxapproxiter = 50
+# maxiter = 75
+# propagatesolutions = True
+# stepsize = 0.02
+# tolerance = 1e-8
 
 [imaging]
 # Padding factor for WSClean images (default = 1.2)

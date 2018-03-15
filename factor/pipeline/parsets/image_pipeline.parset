@@ -159,7 +159,7 @@ premask.argument.make_blank_image      = True
 
 # do the imaging, length = 1
 image.control.type                   = wsclean
-image.control.mapfiles_in            = [prepare_imaging_data.output.mapfile,premask.output.mapfile]
+image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile]
 image.control.inputkeys              = [msfile,fitsmask]
 {% if use_idg %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]

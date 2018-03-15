@@ -161,12 +161,12 @@ solve_fast_phases.argument.solve.h5parm             = h5parm
 solve_fast_phases.argument.solve.sourcedb           = sourcedb
 solve_fast_phases.argument.solve.solint             = timestep
 solve_fast_phases.argument.solve.nchan              = freqstep
-solve_fast_phases.argument.solve.approximatetec     = True
-solve_fast_phases.argument.solve.maxapproxiter      = 50
-solve_fast_phases.argument.solve.maxiter            = 75
-solve_fast_phases.argument.solve.propagatesolutions = True
-solve_fast_phases.argument.solve.stepsize           = 0.02
-solve_fast_phases.argument.solve.tolerance          = 1e-8
+solve_fast_phases.argument.solve.approximatetec     = {{ approximatetec }}
+solve_fast_phases.argument.solve.maxapproxiter      = {{ maxapproxiter }}
+solve_fast_phases.argument.solve.maxiter            = {{ maxiter }}
+solve_fast_phases.argument.solve.propagatesolutions = {{ propagatesolutions }}
+solve_fast_phases.argument.solve.stepsize           = {{ stepsize }}
+solve_fast_phases.argument.solve.tolerance          = {{ tolerance }}
 
 # compress fast-phase mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_fast.control.kind        = plugin
@@ -228,7 +228,7 @@ solve_slow_gains.argument.solve.h5parm                    = slow_h5parm
 solve_slow_gains.argument.solve.sourcedb                  = sourcedb
 solve_slow_gains.argument.solve.solint                    = timestep
 solve_slow_gains.argument.solve.nchan                     = freqstep
-solve_slow_gains.argument.solve.propagatesolutions        = True
+solve_slow_gains.argument.solve.propagatesolutions        = {{ propagatesolutions }}
 solve_slow_gains.argument.solve.applycal.parmdb           = fast_h5parm
 {% if solve_tecandphase %}
 solve_slow_gains.argument.solve.applycal.steps            = [tec,phase]

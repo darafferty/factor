@@ -276,10 +276,38 @@ def get_calibration_options(parset):
     else:
         parset_dict['slow_freqstep_hz'] = 1e6
 
+    # dTEC solver parameters
+    if 'approximatetec' in parset_dict:
+        parset_dict['approximatetec'] = parset.getboolean('calibration', 'approximatetec')
+    else:
+        parset_dict['approximatetec'] = True
+    if 'propagatesolutions' in parset_dict:
+        parset_dict['propagatesolutions'] = parset.getboolean('calibration', 'propagatesolutions')
+    else:
+        parset_dict['propagatesolutions'] = True
+    if 'maxapproxiter' in parset_dict:
+        parset_dict['maxapproxiter'] = parset.getint('calibration', 'maxapproxiter')
+    else:
+        parset_dict['maxapproxiter'] = 50
+    if 'maxiter' in parset_dict:
+        parset_dict['maxiter'] = parset.getfloat('calibration', 'maxiter')
+    else:
+        parset_dict['maxiter'] = 75
+    if 'stepsize' in parset_dict:
+        parset_dict['stepsize'] = parset.getfloat('calibration', 'stepsize')
+    else:
+        parset_dict['stepsize'] = 0.02
+    if 'tolerance' in parset_dict:
+        parset_dict['tolerance'] = parset.getfloat('calibration', 'tolerance')
+    else:
+        parset_dict['tolerance'] = 1e-8
+
     # Check for unused options
     allowed_options = ['max_selfcal_loops', 'multires_selfcal', 'solve_min_uv_lambda',
                        'solve_tecandphase', 'fast_timestep_sec', 'fast_freqstep_hz',
-                       'slow_timestep_sec', 'slow_freqstep_hz']
+                       'slow_timestep_sec', 'slow_freqstep_hz', 'approximatetec',
+                       'propagatesolutions', 'maxapproxiter', 'maxiter', 'stepsize',
+                       'tolerance']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '

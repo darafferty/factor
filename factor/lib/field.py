@@ -33,13 +33,19 @@ class Field(object):
         self.ms_filenames = self.parset['mss']
         self.numMS = len(self.ms_filenames)
         self.data_colname = 'DATA'
-        self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
-        self.solve_tecandphase = self.parset['calibration_specific']['solve_tecandphase']
         self.flag_abstime = self.parset['flag_abstime']
         self.flag_baseline = self.parset['flag_baseline']
         self.flag_freqrange = self.parset['flag_freqrange']
         self.flag_expr = self.parset['flag_expr']
         self.initial_h5parm = self.parset['initial_h5parm']
+        self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
+        self.solve_tecandphase = self.parset['calibration_specific']['solve_tecandphase']
+        self.approximatetec = self.parset['calibration_specific']['approximatetec']
+        self.propagatesolutions = self.parset['calibration_specific']['propagatesolutions']
+        self.maxapproxiter = self.parset['calibration_specific']['maxapproxiter']
+        self.maxiter = self.parset['calibration_specific']['maxiter']
+        self.stepsize = self.parset['calibration_specific']['stepsize']
+        self.tolerance = self.parset['calibration_specific']['tolerance']
 
         if not mininmal:
             # Scan MS files to get observation info
