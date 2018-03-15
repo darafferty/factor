@@ -52,6 +52,10 @@ initial_skymodel = /data/skymodel.txt
 # 1.25%
 # max_selfcal_loops = 10
 
+# Plot solutions of given type: "tec", "amplitude", or "phase" (default = tec).
+# Set to "none" to disable plotting and to "all" to plot all solutions types
+# plot_solutions = tec
+
 # Use baseline-dependent preaveraging to increase the signal-to-noise of the
 # solve (default = False)
 # use_preaveraging = False
@@ -95,6 +99,7 @@ initial_skymodel = /data/skymodel.txt
 # are specified manually below (with sector_center_ra_list, etc.), one can force that
 # multiscale clean be used with the sector_do_multiscale_list parameter below
 # selfcal_multiscale_scales_pixel = [0, 5, 10, 15]
+# selfcal_do_multiscale = None
 
 # Selfcal imaging parameters: pixel size in arcsec (default = 1.5), Briggs
 # robust parameter (default = -0.5) and minimum uv distance in lambda (default =

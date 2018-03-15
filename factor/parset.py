@@ -307,7 +307,7 @@ def get_calibration_options(parset):
                        'solve_tecandphase', 'fast_timestep_sec', 'fast_freqstep_hz',
                        'slow_timestep_sec', 'slow_freqstep_hz', 'approximatetec',
                        'propagatesolutions', 'maxapproxiter', 'maxiter', 'stepsize',
-                       'tolerance']
+                       'tolerance', 'plot_solutions']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '

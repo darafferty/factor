@@ -48,9 +48,12 @@ def set_strategy(field):
                 nr_imaging_sectors = len(field.sectors)
             if nr_imaging_sectors > 1 or has_outlier:
                 strategy_list[i]['do_predict'] = True
-            strategy_list[i]['do_image'] = True
+            if i == max_selfcal_loops - 1:
+                strategy_list[i]['do_update'] = False
+            else:
+                strategy_list[i]['do_update'] = True
             strategy_list[i]['do_update'] = True
-            if i < 4:
+            if i < 4 or i == max_selfcal_loops - 1:
                 strategy_list[i]['do_check'] = False
             else:
                 strategy_list[i]['do_check'] = True
@@ -74,8 +77,11 @@ def set_strategy(field):
                 strategy_list[i]['peel_outliers'] = False
             strategy_list[i]['do_predict'] = True
             strategy_list[i]['do_image'] = True
-            strategy_list[i]['do_update'] = True
-            if i < 1:
+            if i == max_selfcal_loops - 1:
+                strategy_list[i]['do_update'] = False
+            else:
+                strategy_list[i]['do_update'] = True
+            if i < 1 or i == max_selfcal_loops - 1:
                 strategy_list[i]['do_check'] = False
             else:
                 strategy_list[i]['do_check'] = True

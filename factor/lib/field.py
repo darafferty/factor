@@ -13,6 +13,7 @@ from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon
 import rtree
 
+
 class Field(object):
     """
     The Field object stores parameters needed for processing of the field
