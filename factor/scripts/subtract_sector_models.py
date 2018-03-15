@@ -8,37 +8,37 @@ import casacore.tables as pt
 import numpy as np
 import sys
 import os
-import glob
 import subprocess
+from lofarpipe.support.data_map import DataMap
 
 
 def get_nchunks(msin, nsectors):
     tot_m, used_m, free_m = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
-    msin_m = float(subprocess.check_output(['du','-sh', msin]).split()[0][:-1]) * 1000.0
+    msin_m = float(subprocess.check_output(['du', '-sh', msin]).split()[0][:-1]) * 1000.0
     tot_required_m = msin_m * nsectors * 2.0
     nchunks = max(1, int(np.ceil(tot_required_m / free_m)))
     return nchunks
 
 
-def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
+def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
          out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False):
     """
     Subtract sector model data
 
     Parameters
     ----------
-    ms1 : str
+    msin : str
         Name of MS file from which subtraction will be done
-    ms2 : str or list
-        Name of MS file from which column 2 will be taken.
-    column1 : str
-        Name of column 1
-    column2 : str
-        Name of column 2
-    column_out : str
-        Name of output column (written to ms1)
-    op : str, optional
-        Operation to perform: 'add', 'subtract12', or 'subtract21'
+    mapfile_dir : str
+        Path of current pipeline mapfile directory
+    filename: str
+        Name of mapfile containing model data filenames
+    msin_column : str, optional
+        Name of input column
+    model_column : str, optional
+        Name of model column
+    out_column : str, optional
+        Name of output column
     nr_outliers : int, optional
         Number of outlier sectors. The last nr_outliers files are assumed to be the
         outlier sectors
@@ -46,33 +46,37 @@ def main(msin, model_suffix, msin_column='DATA', model_column='DATA',
         If True, use Dysco compression
     peel_outliers : bool, optional
         If True, outliers are peeled before sector models are subtracted
-
     """
     if type(use_compression) is str:
         if use_compression.lower() == 'true':
             use_compression = True
         else:
             use_compression = False
+    if type(peel_outliers) is str:
+        if peel_outliers.lower() == 'true':
+            peel_outliers = True
+        else:
+            peel_outliers = False
     nr_outliers = int(nr_outliers)
 
-    # Find the model data files
-    i = 0
-    model_list = []
-    while True:
-        matches = glob.glob('{0}{1}_{2}'.format(msin, model_suffix, i))
-        if len(matches) == 0:
-            break
-        model_list.extend(matches)
-        i += 1
+    # Get the model data filenames. We nly use files that contain the root of
+    # msin, so that models for other observations are not picked up
+    if msin.endswith('_peeled'):
+        msin_root = msin.rstrip('_peeled')
+    else:
+        msin_root = msin
+    mapfile = os.path.join(mapfile_dir, filename)
+    model_map = DataMap.load(mapfile)
+    model_list = [item.file for item in model_map if msin_root in item.file]
     nsectors = len(model_list)
     if nsectors == 1 and nr_outliers == 1:
         # This means we have a single imaging sector and outlier sector, so duplicate
         # the outlier model so that it gets subtracted properly later
         model_list *= 2
     elif nsectors == 0:
-        print('No model data found. Exiting...')
+        print('subtract_sector_models: No model data found. Exiting...')
         sys.exit(1)
-    print('subtract_sector_models: found {} model data files'.format(nsectors))
+    print('subtract_sector_models: Found {} model data files'.format(nsectors))
 
     # If outliers are to be peeled, do that first
     if peel_outliers:
