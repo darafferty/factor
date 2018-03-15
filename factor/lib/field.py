@@ -179,7 +179,16 @@ class Field(object):
         """
         # Concat all output sector sky models
         self.log.info('Updating sky model...')
-        sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
+        if self.parset['strategy'] == 'sectorselfcal':
+            # Use new models from the imaged sectors only
+            sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.imaging_sectors]
+
+            # Assume each sector is a single patch, so don't regroup
+            regroup = False
+        else:
+            # Use models from all sectors, whether imaged or not
+            sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
+            regroup = True
         skymodel = lsmtool.load(sector_skymodels[0])
         skymodel.group('single', root='sector_0')
         sector_skymodels.pop(0)
@@ -187,11 +196,6 @@ class Field(object):
             skymodel2 = lsmtool.load(s2)
             skymodel2.group('single', root='sector_{}'.format(i+1))
             skymodel.concatenate(skymodel2)
-        if self.parset['strategy'] == 'sectorselfcal':
-            # Assume each sector is a single patch, so don't regroup
-            regroup = False
-        else:
-            regroup = True
         self.make_skymodels(skymodel, regroup=regroup)
 
         # Re-adjust sector boundaries and update their sky models
