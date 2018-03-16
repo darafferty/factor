@@ -44,5 +44,5 @@ class Image(Operation):
                                            'image-MFS-image.fits.mapfile'))
         self.direction.store_output_image_filename(in_map[0].file)
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-                                           'image-sources.txt.mapfile'))
+                                           'filter.mapfile'))
         self.direction.store_output_skymodel_filename(in_map[0].file)

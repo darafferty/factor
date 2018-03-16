@@ -62,7 +62,7 @@ class Sector(object):
             self.observations.append(cobs)
 
         # Define the initial sector polygon vertices and sky model
-        self.define_vertices()
+        self.intialize_vertices()
 
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
                                min_uv_lambda, max_uv_lambda, max_peak_smearing,
@@ -110,7 +110,10 @@ class Sector(object):
         self.current_image_id = self.get_image_id(cellsize_arcsec, robust, taper_arcsec,
                                                   min_uv_lambda, max_uv_lambda)
 
-        # Set image size
+        # Set image size based on current poly
+        xmin, ymin, xmax, ymax = self.poly.bounds
+        self.width_ra = (xmax - xmin) * self.field.wcs_pixel_scale # deg
+        self.width_dec = (ymax - ymin) * self.field.wcs_pixel_scale # deg
         self.imsize = [int(self.width_ra / self.cellsize_deg * 1.1),
                        int(self.width_dec / self.cellsize_deg * 1.1)]
         if self.use_idg:
@@ -397,7 +400,7 @@ class Sector(object):
         """
         return [obs.imaging_parameters[parameter] for obs in self.observations]
 
-    def define_vertices(self):
+    def intialize_vertices(self):
         """
         Determines the vertices of the sector polygon
         """
