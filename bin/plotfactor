@@ -26,7 +26,7 @@ def main(h5file, solset, soltab, root):
     else:
         color = ''
 
-    plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol)
+    plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, prefix=root)
 
 
 if __name__ == "__main__":
@@ -39,4 +39,3 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(args.h5file, args.solset, args.soltab, args.root)
-

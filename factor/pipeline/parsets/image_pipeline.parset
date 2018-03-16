@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, prepare_imaging_data, create_compressed_mapfile, premask, image]
+pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, prepare_imaging_data, create_compressed_mapfile, premask, image, filter]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -205,3 +205,10 @@ image.argument.local-rms-method      = rms-with-min
 {% if use_idg %}
 image.argument.idg-mode              = {{ idg_mode }}
 {% endif %}
+
+# filter the sky model using PyBDSF, length = 1
+filter.control.type                   = filter_skymodel
+filter.control.mapfiles_in            = [image.output.image-MFS-image.fits.mapfile,image.output.image-sources.txt.mapfile]
+filter.control.inputkeys              = [imagefile,modelfile]
+filter.control.outputkey              = outmodelfile
+filter.argument.flags                 = [imagefile,modelfile,outmodelfile]

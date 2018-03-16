@@ -7,35 +7,8 @@ from argparse import RawTextHelpFormatter
 import losoto.operations as operations
 from losoto.h5parm import h5parm
 import numpy as np
-import matplotlib.pyplot as plt
-from losoto.lib_operations import normalize_phase
-from scipy import optimize
-import pickle
 import itertools
 import multiprocessing
-
-
-def convert_mvt(mvt):
-    """
-    Converts casacore MVTime to MJD
-
-    Parameters
-    ----------
-    mvt : str
-        MVTime
-
-    Returns
-    -------
-    mjd : float
-        MJD in seconds
-    """
-    t = Time(mjd_sec / 3600 / 24, format='mjd', scale='utc')
-    date, hour = t.iso.split(' ')
-    year, month, day = date.split('-')
-    d = t.datetime
-    month = d.ctime().split(' ')[1]
-
-    return '{0}{1}{2}/{3}'.format(day, month, year, hour)
 
 
 def _rolling_window_lastaxis(a, window):
@@ -44,9 +17,9 @@ def _rolling_window_lastaxis(a, window):
     import numpy as np
 
     if window < 1:
-       raise ValueError, "`window` must be at least 1."
+        raise ValueError("`window` must be at least 1.")
     if window > a.shape[-1]:
-       raise ValueError, "`window` is too long."
+        raise ValueError("`window` is too long.")
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
@@ -279,77 +252,6 @@ def approx_equal(x, y, *args, **kwargs):
     return _float_approx_equal(x, y, *args, **kwargs)
 
 
-
-def calculate_total_tec(tec_vals, scphase_vals, freq, ant_axis_ind, ref_id=0,
-    bootstrap=False, station_names=None, baseline_file=None):
-
-    # Calculate total tec
-    if scphase_vals is not None:
-        r = tec_vals + normalize_phase(scphase_vals) / (-8.4479745e9) * freq
-    else:
-        r = tec_vals
-
-    # Adjust all to reference station
-    r_ref = r.copy()
-    nstations = tec_vals.shape[ant_axis_ind]
-    naxes = len(tec_vals.shape)
-    ref_indlist = [ref_id if i == ant_axis_ind else slice(0, None) for i in range(naxes)]
-    for idx in range(nstations):
-        indlist = [idx if i == ant_axis_ind else slice(0, None) for i in range(naxes)]
-        r_ref[indlist] = r[indlist] - r[ref_indlist]
-
-    if bootstrap:
-        # For distant stations, use the nearest as the reference
-        distant_stations, nearest_stations = get_bootstrap_stations()
-        for distant_station, nearest_station in zip(distant_stations, nearest_stations):
-            idx = station_names.tolist().index(distant_station)
-            indlist = [idx if i == ant_axis_ind else slice(0, None) for i in range(naxes)]
-            nearest_ind = station_names.tolist().index(nearest_station)
-            ref_indlist = [nearest_ind if i == ant_axis_ind else slice(0, None) for i in range(naxes)]
-            r_ref[indlist] = r[indlist] - r[ref_indlist]
-
-    return r_ref
-
-
-def get_bootstrap_stations():
-    """
-    Returns lists of distant stations and their nearest neighbor
-    """
-    distant_stations = ['RS509HBA', 'RS508HBA', 'RS409HBA', 'RS407HBA', 'RS310HBA', 'RS210HBA']
-    nearest_stations = ['RS508HBA', 'RS406HBA', 'RS306HBA', 'RS406HBA', 'RS307HBA', 'RS208HBA']
-
-    return (distant_stations, nearest_stations)
-
-
-def bootstrap_phases_to_reference(phase, station_names, ant_axis_ind, ref_id=0):
-    """
-    Fit screens to phase solutions
-
-    Parameters
-    ----------
-    phase : array
-        Array of phases
-    ref_id : int, optional
-        Index of reference station
-
-    """
-    nstations = phase.shape[ant_axis_ind]
-    naxes = len(phase.shape)
-    distant_stations, nearest_stations = get_bootstrap_stations()
-
-    # Reverse the order and adjust
-    distant_stations.reverse()
-    nearest_stations.reverse()
-    for distant_station, nearest_station in zip(distant_stations, nearest_stations):
-        idx = station_names.tolist().index(distant_station)
-        indlist = [idx if i == ant_axis_ind else slice(0, None) for i in range(naxes)]
-        nearest_ind = station_names.tolist().index(nearest_station)
-        ref_indlist = [nearest_ind if i == ant_axis_ind else slice(0, None) for i in range(naxes)]
-        phase[indlist] = phase[indlist] + phase[ref_indlist]
-
-    return phase
-
-
 def remove_soltabs(solset, soltabnames):
     """
     Remove soltab
@@ -363,9 +265,8 @@ def remove_soltabs(solset, soltabnames):
 
 
 def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
-    tecsoltabname='tec000', errsoltabname='error000',
-    scphsoltabname='phase000', outsoltabroot='_screensols', ref_id=0,
-    bootstrap=False):
+    tecsoltabname='tec000', errsoltabname='error000', outsoltabroot='_screensols',
+    ref_id=0, fit_screens=False, calculate_weights=True):
     """
     Fit screens to TEC solutions
 
@@ -373,10 +274,10 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     ----------
     h5parmfile : str
         Filename of h5parm
-    starttime : str
-        Start time in casacore MVTime format
-    ntimes : int
-        Number of times to fit
+    starttime : str, optional
+        Start time in casacore MVTime format (NYI)
+    ntimes : int, optional
+        Number of times to fit (NYI)
     solsetname : str, optional
         Name of solset
     tecsoltabname : str, optional
@@ -389,10 +290,6 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         Root name for output soltabs
     ref_id : int, optional
         Index of reference station
-    bootstrap : bool, optional
-        If True, use bootstraping of the reference station for the most distant
-        stations
-
     """
     ref_id = int(ref_id)
 
@@ -400,26 +297,15 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     H = h5parm(h5parmfile, readonly=False)
     solset = H.getSolset(solsetname)
     tecsoltab = solset.getSoltab(tecsoltabname)
-    tec_vals = np.array(tecsoltab.val)
+    tec = np.array(tecsoltab.val)
     errsoltab = solset.getSoltab(errsoltabname)
     err_vals = np.array(errsoltab.val)
     source_names = tecsoltab.dir[:]
     times = tecsoltab.time[:]
     station_names = tecsoltab.ant[:]
     freq = tecsoltab.freq[0]
-    if scphsoltabname in solset.getSoltabNames():
-        scphsoltab = solset.getSoltab(scphsoltabname)
-        scphase_vals = np.array(scphsoltab.val)
-        print('fit_tec_screens.py: Using TEC and scalar phase values')
-    else:
-        scphase_vals = None
-        print('fit_tec_screens.py: Using TEC values only')
     ant_ind = tecsoltab.getAxesNames().index('ant')
-
-    # Calculate TEC
-    tec = calculate_total_tec(tec_vals, scphase_vals, freq, ant_ind,
-        ref_id=ref_id, bootstrap=bootstrap, station_names=station_names)
-    dtec = np.ones(tec_vals.shape)
+    dtec = np.ones(tec.shape)
 
     # Remove jumps
     nstat = tec.shape[1]
@@ -428,7 +314,8 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     for s in range(nstat):
         pool = multiprocessing.Pool()
         tec_pool = [tec[:, s, d, 0] for d in range(ndir)]
-        results = pool.map(remove_jumps_pool, itertools.izip(tec_pool, itertools.repeat(jump_val), itertools.repeat(31)))
+        results = pool.map(remove_jumps_pool, itertools.izip(tec_pool,
+                           itertools.repeat(jump_val), itertools.repeat(31)))
         pool.close()
         pool.join()
 
@@ -441,3 +328,25 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     solset.makeSoltab('tec', 'screentec000',
             axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
             station_names, source_names, np.array([freq])], vals=tec, weights=dtec)
+
+    if fit_screens:
+        # Rename fixed TEC soltab (otherwise it will be overwritten later)
+        soltab = solset.getSoltab('screentec000')
+        soltab.rename('fixedtec000')
+
+        # Find weights
+        if calculate_weights:
+            operations.reweight.run(soltab, 'window', nmedian=3, nstddev=501)
+
+        # Fit screens
+        remove_soltabs(solset, ['tecscreen000', 'tecscreen000resid'])
+        operations.stationscreen.run(soltab, 'tecscreen000', niter=1, nsigma=5,
+            refAnt=ref_id, order=20, scale_order=False)
+
+        # Calculate values from screens
+        remove_soltabs(solset, ['tec_screensols000'])
+        soltab = solset.getSoltab('tecscreen000')
+        source_dict = solset.getSou()
+        operations.screenvalues.run(soltab, source_dict, outsoltabroot)
+        soltab = solset.getSoltab('tec{}'.format(outsoltabroot))
+        soltab.rename('screentec000')
