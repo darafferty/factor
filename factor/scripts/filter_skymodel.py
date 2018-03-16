@@ -105,7 +105,7 @@ def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=
         img.export_image(outfile=maskfile, clobber=True, img_type='island_mask')
 
         s = lsmtool.load(input_skymodel)
-        s.select(maskfile)
+        s.select('{} == True'.format(maskfile))
         s.write(output_skymodel)
 
 
