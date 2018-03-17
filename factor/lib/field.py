@@ -182,20 +182,25 @@ class Field(object):
         if self.parset['strategy'] == 'sectorselfcal':
             # Use new models from the imaged sectors only
             sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.imaging_sectors]
+            sector_names = [sector.name for sector in self.imaging_sectors]
 
             # Assume each sector is a single patch, so don't regroup
             regroup = False
         else:
             # Use models from all sectors, whether imaged or not
             sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
+            sector_names = [sector.name for sector in self.sectors]
+
+            # Regroup to make patches with the target flux density
             regroup = True
-        skymodel = lsmtool.load(sector_skymodels[0])
-        skymodel.group('single', root='sector_0')
-        sector_skymodels.pop(0)
-        for i, s2 in enumerate(sector_skymodels):
-            skymodel2 = lsmtool.load(s2)
-            skymodel2.group('single', root='sector_{}'.format(i+1))
-            skymodel.concatenate(skymodel2)
+        for i, (sm, sn) in enumerate(sector_skymodels, sector_names):
+            if i == 0:
+                skymodel = lsmtool.load(sm)
+                skymodel.group('single', root=sn)
+            else:
+                skymodel2 = lsmtool.load(sm)
+                skymodel2.group('single', root=sn)
+                skymodel.concatenate(skymodel2)
         self.make_skymodels(skymodel, regroup=regroup)
 
         # Re-adjust sector boundaries and update their sky models
