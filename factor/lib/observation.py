@@ -24,6 +24,7 @@ class Observation(object):
         self.ms_filename = ms_filename
         self.name = os.path.basename(self.ms_filename)
         self.log = logging.getLogger('factor:{}'.format(self.name))
+        self.parameters = {}
         self.scan_ms()
 
     def scan_ms(self):
@@ -124,12 +125,11 @@ class Observation(object):
             nchunks = 1
         self.ntimechunks = nchunks
         self.log.debug('Using {} time chunk(s) for fast-phase calibration'.format(self.ntimechunks))
-        self.calibration_parameters = {}
-        self.calibration_parameters['timechunk_filename'] = [self.ms_filename] * self.ntimechunks
+        self.parameters['timechunk_filename'] = [self.ms_filename] * self.ntimechunks
         starttimes = [mystarttime+(chunksize * i) for i in range(self.ntimechunks)]
-        self.calibration_parameters['starttime'] = [self.convert_mjd(t) for t in starttimes]
-        self.calibration_parameters['ntimes'] = [samplesperchunk] * self.ntimechunks
-        self.calibration_parameters['ntimes'][-1] = 0  # set last entry to extend until end
+        self.parameters['starttime'] = [self.convert_mjd(t) for t in starttimes]
+        self.parameters['ntimes'] = [samplesperchunk] * self.ntimechunks
+        self.parameters['ntimes'][-1] = 0  # set last entry to extend until end
 
         # Find solution intervals for slow-gain solve
         solint_slow_timestep = max(1, int(round(target_slow_timestep / timepersample)))
@@ -161,19 +161,36 @@ class Observation(object):
             nchunks = 1
         self.nfreqchunks = nchunks
         self.log.debug('Using {} frequency chunk(s) for slow-gain calibration'.format(self.nfreqchunks))
-        self.calibration_parameters['freqchunk_filename'] = [self.ms_filename] * self.nfreqchunks
-        self.calibration_parameters['startchan'] = [channelsperchunk * i for i in range(nchunks)]
-        self.calibration_parameters['nchan'] = [channelsperchunk] * nchunks
-        self.calibration_parameters['nchan'][-1] = 0  # set last entry to extend until end
+        self.parameters['freqchunk_filename'] = [self.ms_filename] * self.nfreqchunks
+        self.parameters['startchan'] = [channelsperchunk * i for i in range(nchunks)]
+        self.parameters['nchan'] = [channelsperchunk] * nchunks
+        self.parameters['nchan'][-1] = 0  # set last entry to extend until end
 
         # Set solution intervals (same for every calibration chunk)
-        self.calibration_parameters['solint_fast_timestep'] = [solint_fast_timestep] * self.ntimechunks
-        self.calibration_parameters['solint_fast_freqstep'] = [solint_fast_freqstep] * self.ntimechunks
-        self.calibration_parameters['solint_slow_timestep'] = [solint_slow_timestep] * self.nfreqchunks
-        self.calibration_parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
+        self.parameters['solint_fast_timestep'] = [solint_fast_timestep] * self.ntimechunks
+        self.parameters['solint_fast_freqstep'] = [solint_fast_freqstep] * self.ntimechunks
+        self.parameters['solint_slow_timestep'] = [solint_slow_timestep] * self.nfreqchunks
+        self.parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
+
+    def set_predict_parameters(self, sector_name, patch_names):
+        """
+        Sets the predict parameters for given values
+
+        Parameters
+        ----------
+        sector_name : str
+            Name of sector for which predict is to be done
+        patch_names : list
+            List of patch names to predict
+        """
+        self.parameters['ms_filename'] = self.ms_filename
+        self.ms_subtracted_filename = '{0}.sector_{1}_sub'.format(self.ms_filename,
+                                                                  sector_name.split('_')[1])
+        self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
+        self.parameters['patch_names'] = patch_names
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
-                               width_ra, width_dec, ms_subtracted_filename=None):
+                               width_ra, width_dec):
         """
         Sets the imaging parameters
 
@@ -187,8 +204,6 @@ class Observation(object):
             Width in RA of image in degrees
         width_dec : float
             Width in Dec of image in degrees
-        ms_subtracted_filename : str, optional
-            Filename of model-subtracted data
         """
         mean_freq_mhz = self.referencefreq / 1e6
         peak_smearing_factor = np.sqrt(1.0 - max_peak_smearing)
@@ -207,17 +222,12 @@ class Observation(object):
         self.log.debug('Target bandwidth for imaging is {} MHz'.format(target_bandwidth_mhz))
 
         # Find averaging steps for above target values
-        self.imaging_parameters = {}
         image_freqstep = max(1, min(int(round(target_bandwidth_mhz * 1e6 / chan_width_hz)), nchan))
-        self.imaging_parameters['image_freqstep'] = self.get_nearest_frequstep(image_freqstep)
-        self.imaging_parameters['image_timestep'] = max(1, int(round(target_timewidth_sec / timestep_sec)))
+        self.parameters['image_freqstep'] = self.get_nearest_frequstep(image_freqstep)
+        self.parameters['image_timestep'] = max(1, int(round(target_timewidth_sec / timestep_sec)))
         self.log.debug('Using averaging steps of {0} channels and {1} time slots '
-                       'for imaging'.format(self.imaging_parameters['image_freqstep'],
-                                            self.imaging_parameters['image_timestep']))
-
-        # Set filenames
-        self.imaging_parameters['ms_filename'] = self.ms_filename
-        self.imaging_parameters['ms_subtracted_filename'] = ms_subtracted_filename
+                       'for imaging'.format(self.parameters['image_freqstep'],
+                                            self.parameters['image_timestep']))
 
     def convert_mjd(self, mjd_sec):
         """

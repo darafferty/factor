@@ -64,6 +64,13 @@ class Sector(object):
         # Define the initial sector polygon vertices and sky model
         self.intialize_vertices()
 
+    def set_predict_parameters(self):
+        """
+        Sets the predict parameters
+        """
+        for obs in self.observations:
+            obs.set_predict_parameters(self.name, self.patches)
+
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
                                min_uv_lambda, max_uv_lambda, max_peak_smearing,
                                wsclean_bl_averaging=False, multiscale_scales_pixel=None,
@@ -163,18 +170,14 @@ class Sector(object):
 
         # Set the observation-specific parameters
         for obs in self.observations:
-            # Set filename for model-subtracted data that matches the one made by the
-            # calibrate pipeline
-            ms_subtracted_filename = '{0}.sector_{1}_sub'.format(obs.ms_filename,
-                                                            self.name.split('_')[1])
             # Set imaging parameters
             obs.set_imaging_parameters(cellsize_arcsec, max_peak_smearing,
-                                       self.width_ra, self.width_dec, ms_subtracted_filename)
+                                       self.width_ra, self.width_dec)
 
         # Set BL-dependent averaging
         if wsclean_bl_averaging:
             timestep_sec = (self.observations[0].timepersample *
-                            self.observations[0].imaging_parameters['image_timestep'])
+                            self.observations[0].parameters['image_timestep'])
             self.wsclean_nwavelengths = self.get_nwavelengths(self.cellsize_deg,
                                                               timestep_sec)
         else:
@@ -386,19 +389,19 @@ class Sector(object):
 
     def get_obs_parameters(self, parameter):
         """
-        Returns list of imaging parameters for all observations
+        Returns list of parameters for all observations
 
         Parameters
         ----------
         parameter : str
-            Name of imaging parameter to return
+            Name of parameter to return
 
         Returns
         -------
         parameters : list
             List of parameters, with one entry for each observation
         """
-        return [obs.imaging_parameters[parameter] for obs in self.observations]
+        return [obs.parameters[parameter] for obs in self.observations]
 
     def intialize_vertices(self):
         """

@@ -122,22 +122,21 @@ class Field(object):
         self.ntimechunks = ntimechunks
         self.nfreqchunks = nfreqchunks
 
-    def get_calibration_parameters(self, parameter):
+    def get_obs_parameters(self, parameter):
         """
-        Returns list of calibration parameters for all observations
+        Returns list of parameters for all observations
 
         Parameters
         ----------
         parameter : str
-            Name of calibration parameter to return
+            Name of parameter to return
 
         Returns
         -------
         parameters : list
-            List of parameters, with one entry for each time or frequency chunk
-            of each observation
+            List of parameters of each observation
         """
-        return sum([obs.calibration_parameters[parameter] for obs in self.observations], [])
+        return sum([obs.parameters[parameter] for obs in self.observations], [])
 
     def make_skymodels(self, skymodel, regroup=True):
         """

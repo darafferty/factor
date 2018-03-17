@@ -19,14 +19,10 @@ class Predict(Operation):
         # Set the pipeline parset to use
         self.pipeline_parset_template = 'predict_pipeline.parset'
 
-        # Determine if we have any outlier sectors
-        nr_outliers = sum([1 for sector in field.sectors if sector.is_outlier])
-        nr_imaging_sectors = len(field.sectors) - nr_outliers
-        peel_outliers = field.peel_outliers
-
-        # If we have a single sector in addition to outliers, we don't need to predict
-        # its model data, just that of the outlier sector(s)
-        if nr_imaging_sectors == 1:
+        # Define extra parameters needed for this operation
+        # If we have a single imagine sector, we don't need to predict
+        # its model data, just that of any outlier sector(s)
+        if len(field.imaging_sectors) == 1:
             start_sector = 1
         else:
             start_sector = 0
@@ -35,16 +31,16 @@ class Predict(Operation):
         sector_sub_filename = []
         sector_patches = []
         for sector in field.sectors[start_sector:]:
-            sector_skymodel.append(sector.predict_skymodel_file)
+            sector_skymodel.append(sector.predict_skymodel_file)  # just one per sector
             sector_filename.extend(sector.get_obs_parameters('ms_filename'))
             sector_sub_filename.extend(sector.get_obs_parameters('ms_subtracted_filename'))
-            for obs in sector.observations:
-                # Duplicate patch names for each obs
-                sector_patches.append(sector.patches)
-        sector_patches = '[{}]'.format(';'.join(sector_patches))
+            sector_patches.extend(sector.get_obs_parameters('patch_names'))
+        sector_patches = '[{}]'.format(';'.join(sector_patches))  # convert to ;-separated list
         obs_filename = []
         for obs in field.observations:
             obs_filename.append(obs.ms_filename)
+        nr_outliers = len(field.outlier_sectors)
+        peel_outliers = field.peel_outliers
 
         self.parms_dict.update({'sector_filename': sector_filename,
                                 'sector_sub_filename': sector_sub_filename,
