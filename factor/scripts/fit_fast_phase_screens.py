@@ -160,78 +160,85 @@ def main(h5parmfile, freq1=120e6, freq2=170e6, tstart=None,
     times = tecsoltab.time[:]
     station_names = tecsoltab.ant[:]
 
-    # Find total phases at two frequencies
-    freqs = [freq1, freq2]
-    ant_ind = tecsoltab.getAxesNames().index('ant')
-    for i, freq in enumerate(freqs):
-        remove_soltabs(solset, ['totalphase{}'.format(i+1)])
-        r = calculate_total_phase(tec_vals, scphase_vals, freq, ant_ind,
-            ref_id=ref_id, bootstrap=bootstrap, station_names=station_names)
-        w = np.ones(r.shape)
-        solset.makeSoltab('phase', 'totalphase{}'.format(i+1),
-                axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
-                station_names, source_names, np.array([freq])], vals=r, weights=w)
+    # TODO: remove this temp hack
+    remove_soltabs(solset, ['screentec000'])
+    remove_soltabs(solset, ['screenphase000'])
+    tecsoltab.rename('screentec000')
+    scphsoltab.rename('screenphase000')
+    fit_screens = False
+    if fit_screens:
+        # Find total phases at two frequencies
+        freqs = [freq1, freq2]
+        ant_ind = tecsoltab.getAxesNames().index('ant')
+        for i, freq in enumerate(freqs):
+            remove_soltabs(solset, ['totalphase{}'.format(i+1)])
+            r = calculate_total_phase(tec_vals, scphase_vals, freq, ant_ind,
+                ref_id=ref_id, bootstrap=bootstrap, station_names=station_names)
+            w = np.ones(r.shape)
+            solset.makeSoltab('phase', 'totalphase{}'.format(i+1),
+                    axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
+                    station_names, source_names, np.array([freq])], vals=r, weights=w)
 
-        # Find weights
-        if calculate_weights:
+            # Find weights
+            if calculate_weights:
+                soltab = solset.getSoltab('totalphase{}'.format(i+1))
+                operations.reweight.run(soltab, 'window', nmedian=3, nstddev=501)
+
+            # Fit screens
+            remove_soltabs(solset, ['phasescreen{}'.format(i+1), 'phasescreen{}resid'.format(i+1)])
             soltab = solset.getSoltab('totalphase{}'.format(i+1))
-            operations.reweight.run(soltab, 'window', nmedian=3, nstddev=501)
+            allbut1 = [d for d in soltab.dir[:] if d != '[Patch_1]']
+            soltab.setSelection(dir=allbut1, time={'min': 0.0, 'max': 4987956330.1176252})
 
-        # Fit screens
-        remove_soltabs(solset, ['phasescreen{}'.format(i+1), 'phasescreen{}resid'.format(i+1)])
-        soltab = solset.getSoltab('totalphase{}'.format(i+1))
-        allbut1 = [d for d in soltab.dir[:] if d != '[Patch_1]']
-        soltab.setSelection(dir=allbut1, time={'min': 0.0, 'max': 4987956330.1176252})
+            operations.stationscreen.run(soltab, 'phasescreen{}'.format(i+1), niter=1, nsigma=5,
+                refAnt=ref_id, order=20, scale_order=False)
 
-        operations.stationscreen.run(soltab, 'phasescreen{}'.format(i+1), niter=1, nsigma=5,
-            refAnt=ref_id, order=20, scale_order=False)
-
-    # Plot
-	distant_stations, nearest_stations = get_bootstrap_stations()
-	soltab = solset.getSoltab('phasescreen1')
-	soltab.setSelection(ant=distant_stations[5])
-	ressoltab = solset.getSoltab('phasescreen1resid')
-	ressoltab.setSelection(ant=distant_stations[5])
-	if bootstrap:
-		prefix = 'bootstrap'
-	else:
-		prefix = 'rs210_120'
-	operations.plotscreen.run(soltab, ressoltab=ressoltab, prefix=prefix)
-	soltab = solset.getSoltab('phasescreen2')
-	soltab.setSelection(ant=distant_stations[5])
-	ressoltab = solset.getSoltab('phasescreen2resid')
-	ressoltab.setSelection(ant=distant_stations[5])
-	if bootstrap:
-		prefix = 'bootstrap'
-	else:
-		prefix = 'rs210_170'
-	operations.plotscreen.run(soltab, ressoltab=ressoltab, prefix=prefix)
-
-    # Bootstrap the screens back to the global reference
-    if bootstrap:
+        # Plot
+        distant_stations, nearest_stations = get_bootstrap_stations()
         soltab = solset.getSoltab('phasescreen1')
-        ant_ind = soltab.getAxesNames().index('ant')
-        phase = bootstrap_phases_to_reference(soltab.val[:], station_names,
-            ant_ind, ref_id)
-        soltab.setValues(phase)
-        res_soltab = solset.getSoltab('phasescreen1resid')
-        resid = bootstrap_phases_to_reference(res_soltab.val[:], station_names,
-            ant_ind, ref_id)
-        res_soltab.setValues(resid)
+        soltab.setSelection(ant=distant_stations[5])
+        ressoltab = solset.getSoltab('phasescreen1resid')
+        ressoltab.setSelection(ant=distant_stations[5])
+        if bootstrap:
+            prefix = 'bootstrap'
+        else:
+            prefix = 'rs210_120'
+        operations.plotscreen.run(soltab, ressoltab=ressoltab, prefix=prefix)
         soltab = solset.getSoltab('phasescreen2')
-        phase = bootstrap_phases_to_reference(soltab.val[:], station_names,
-            ant_ind, ref_id)
-        soltab.setValues(phase)
-        res_soltab = solset.getSoltab('phasescreen2resid')
-        resid = bootstrap_phases_to_reference(res_soltab.val[:], station_names,
-            ant_ind, ref_id)
-        res_soltab.setValues(resid)
+        soltab.setSelection(ant=distant_stations[5])
+        ressoltab = solset.getSoltab('phasescreen2resid')
+        ressoltab.setSelection(ant=distant_stations[5])
+        if bootstrap:
+            prefix = 'bootstrap'
+        else:
+            prefix = 'rs210_170'
+        operations.plotscreen.run(soltab, ressoltab=ressoltab, prefix=prefix)
 
-    # Calculate values from screens
-    remove_soltabs(solset, ['tec_screensols000', 'scalarphase_screensols000'])
-    soltab_names = ['phasescreen{}'.format(i+1) for i in range(len(freqs))]
-    soltabs = [solset.getSoltab(n) for n in soltab_names]
-    tecsoltab.setSelection(dir=allbut1, time={'min': 0.0, 'max': 4987956330.1176252})
-    soltabs.append(tecsoltab)
-    source_dict = solset.getSou()
-    operations.screenvalues.run(soltabs, source_dict, '_screensols000')
+        # Bootstrap the screens back to the global reference
+        if bootstrap:
+            soltab = solset.getSoltab('phasescreen1')
+            ant_ind = soltab.getAxesNames().index('ant')
+            phase = bootstrap_phases_to_reference(soltab.val[:], station_names,
+                ant_ind, ref_id)
+            soltab.setValues(phase)
+            res_soltab = solset.getSoltab('phasescreen1resid')
+            resid = bootstrap_phases_to_reference(res_soltab.val[:], station_names,
+                ant_ind, ref_id)
+            res_soltab.setValues(resid)
+            soltab = solset.getSoltab('phasescreen2')
+            phase = bootstrap_phases_to_reference(soltab.val[:], station_names,
+                ant_ind, ref_id)
+            soltab.setValues(phase)
+            res_soltab = solset.getSoltab('phasescreen2resid')
+            resid = bootstrap_phases_to_reference(res_soltab.val[:], station_names,
+                ant_ind, ref_id)
+            res_soltab.setValues(resid)
+
+        # Calculate values from screens
+        remove_soltabs(solset, ['tec_screensols000', 'scalarphase_screensols000'])
+        soltab_names = ['phasescreen{}'.format(i+1) for i in range(len(freqs))]
+        soltabs = [solset.getSoltab(n) for n in soltab_names]
+        tecsoltab.setSelection(dir=allbut1, time={'min': 0.0, 'max': 4987956330.1176252})
+        soltabs.append(tecsoltab)
+        source_dict = solset.getSou()
+        operations.screenvalues.run(soltabs, source_dict, '_screensols000')

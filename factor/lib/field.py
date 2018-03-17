@@ -218,12 +218,12 @@ class Field(object):
         sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']
         if len(sector_center_ra_list) > 0:
             # Use user-supplied list
-            n = 0
+            n = 1
             for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list,
                                                     sector_width_ra_deg_list, sector_width_dec_deg_list):
                 name = 'sector_{0}'.format(n)
-                n += 1
                 self.imaging_sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
+                n += 1
             self.log.info('Using {0} user-defined imaging sectors'.format(len(self.imaging_sectors)))
         else:
             # Use a grid
@@ -277,13 +277,13 @@ class Field(object):
                               nsectors_ra*nsectors_dec, nsectors_ra, nsectors_dec))
 
             # Initialize the sectors
-            n = 0
+            n = 1
             for i in range(nsectors_ra):
                 for j in range(nsectors_dec):
                     name = 'sector_{0}'.format(n)
-                    n += 1
                     ra, dec = self.xy2radec([x[j, i]], [y[j, i]])
                     self.imaging_sectors.append(Sector(name, ra[0], dec[0], width_ra, width_dec, self))
+                    n += 1
 
         # Adjust sector boundaries to avoid known sources and update their sky models
         self.adjust_sector_boundaries()

@@ -103,6 +103,12 @@ class Observation(object):
         # Calculate time ranges of calibration chunks for fast-phase solve. Try
         # to ensure that the number of samples per chunk is an even multiple of
         # the solution interval
+
+        # TODO: The optimal number of chunks depends on the number of directions (predict is
+        # parallelized over direction and memory scales with this number), the number of
+        # available cores:
+        #
+        # tot_mem = size of MS / # timeslots * ?
         if parset['chunk_size_sec'] is None:
             target_time_chunksize = get_time_chunksize(parset['cluster_specific'], self.timepersample,
                                                        self.numsamples, solint_fast_timestep)
@@ -132,6 +138,12 @@ class Observation(object):
         # Calculate frequency ranges of calibration chunks for slow-gain solve. Try
         # to ensure that the number of samples per chunk is an even multiple of
         # the solution interval
+
+        # TODO: The optimal number of chunks depends on the number of directions (predict is
+        # parallelized over direction and memory scales with this number), the number of
+        # available cores:
+        #
+        # tot_mem = size of MS / # timeslots * ?
         numchannels = self.numchannels
         if parset['chunk_size_hz'] is None:
             target_freq_chunksize = get_frequency_chunksize(parset['cluster_specific'], channelwidth,
