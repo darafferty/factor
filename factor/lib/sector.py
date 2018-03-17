@@ -321,6 +321,9 @@ class Sector(object):
             source_skymodel.select(in_sector)
             self.source_sizes = source_skymodel.getPatchSizes(units='degree')
 
+        # Set the parameters for predict
+        self.set_predict_parameters()
+
     def filter_skymodel(self, skymodel):
         """
         Filters input skymodel to select only sources that lie inside the sector
