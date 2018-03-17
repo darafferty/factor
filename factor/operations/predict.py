@@ -1,11 +1,8 @@
 """
 Module that holds the Predict class
 """
-import os
 import logging
 from factor.lib.operation import Operation
-from lofarpipe.support.data_map import DataMap
-from lofarpipe.support.utilities import create_directory
 
 log = logging.getLogger('factor:calibrate')
 
@@ -33,21 +30,24 @@ class Predict(Operation):
             start_sector = 1
         else:
             start_sector = 0
-        sector_filename = []
         sector_skymodel = []
+        sector_filename = []
+        sector_sub_filename = []
         sector_patches = []
         for sector in field.sectors[start_sector:]:
-            for obs in sector.observations:
-                # Duplicate MS filename and patches for each obs
-                sector_filename.append(obs.ms_filename)
-                sector_patches.append(sector.patches)
             sector_skymodel.append(sector.predict_skymodel_file)
+            sector_filename.extend(sector.get_obs_parameters('ms_filename'))
+            sector_sub_filename.extend(sector.get_obs_parameters('ms_subtracted_filename'))
+            for obs in sector.observations:
+                # Duplicate patch names for each obs
+                sector_patches.append(sector.patches)
         sector_patches = '[{}]'.format(';'.join(sector_patches))
         obs_filename = []
         for obs in field.observations:
             obs_filename.append(obs.ms_filename)
 
         self.parms_dict.update({'sector_filename': sector_filename,
+                                'sector_sub_filename': sector_sub_filename,
                                 'sector_skymodel': sector_skymodel,
                                 'sector_patches': sector_patches,
                                 'obs_filename': obs_filename,

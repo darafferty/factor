@@ -34,14 +34,13 @@ expand_sourcedbs_map.control.mapfile_to_match = create_sector_files_map.output.m
 expand_sourcedbs_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_sourcedbs_map.control.filename         = expand_sourcedbs.mapfile
 
-# append a unique index to the MS filenames to create the output filenames, length = nsectors*nobs
-create_predict_output_map.control.kind          = plugin
-create_predict_output_map.control.type          = appendMapfile
-create_predict_output_map.control.mapfile_in    = create_sector_files_map.output.mapfile
-create_predict_output_map.control.mapfile_dir   = input.output.mapfile_dir
-create_predict_output_map.control.filename      = sector_files_output_map.mapfile
-create_predict_output_map.control.append_index  = True
-create_predict_output_map.control.append        = .sector
+# create a mapfile with the predict output filenames, length = nsectors*nobs
+create_predict_output_map.control.kind        = plugin
+create_predict_output_map.control.type        = addListMapfile
+create_predict_output_map.control.hosts       = {{ hosts }}
+create_predict_output_map.control.files       = {{ sector_sub_filename }}
+create_predict_output_map.control.mapfile_dir = input.output.mapfile_dir
+create_predict_output_map.control.filename    = sector_files_output_map.mapfile
 
 # expand the combined h5parms mapfile, length = 1 -> nsectors*nobs
 expand_combined_h5parms_map.control.kind             = plugin
