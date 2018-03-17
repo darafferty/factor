@@ -111,7 +111,7 @@ def remove_soltabs(solset, soltabnames):
 
 def main(h5parmfile, freq1=120e6, freq2=170e6, tstart=None,
     solsetname='sol000', tecsoltabname='tec000',
-    scphsoltabname='scalarphase000', outsoltabroot='_screensols', ref_id=0,
+    scphsoltabname='phase000', outsoltabroot='_screensols', ref_id=0,
     bootstrap=False, calculate_weights=False):
     """
     Fit screens to phase solutions
