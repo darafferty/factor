@@ -193,7 +193,7 @@ class Field(object):
 
             # Regroup to make patches with the target flux density
             regroup = True
-        for i, (sm, sn) in enumerate(sector_skymodels, sector_names):
+        for i, (sm, sn) in enumerate(zip(sector_skymodels, sector_names)):
             if i == 0:
                 skymodel = lsmtool.load(sm)
                 skymodel.group('single', root=sn)
