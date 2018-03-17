@@ -8,7 +8,7 @@ create_sector_files_map.control.type        = addListMapfile
 create_sector_files_map.control.hosts       = {{ hosts }}
 create_sector_files_map.control.files       = {{ sector_filename }}
 create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
-create_sector_files_map.control.filename    = sectorfiles.mapfile
+create_sector_files_map.control.filename    = sector_files.mapfile
 
 # create a mapfile with the sector sky models, length = nsectors
 create_sector_skymodels_map.control.kind        = plugin
@@ -112,7 +112,7 @@ create_obs_files_map.control.type        = addListMapfile
 create_obs_files_map.control.hosts       = {{ hosts }}
 create_obs_files_map.control.files       = {{ obs_filename }}
 create_obs_files_map.control.mapfile_dir = input.output.mapfile_dir
-create_obs_files_map.control.filename    = obsfiles.mapfile
+create_obs_files_map.control.filename    = obs_files.mapfile
 
 # for each obs, loop over sectors and subtract the model visibilities of all other sectors, length = nobs
 subtract_models.control.type           = subtract_sector_models

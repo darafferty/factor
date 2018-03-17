@@ -14,7 +14,7 @@ create_sector_files_map.control.type        = addListMapfile
 create_sector_files_map.control.hosts       = {{ hosts }}
 create_sector_files_map.control.files       = {{ obs_filename }}
 create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
-create_sector_files_map.control.filename    = sectorfiles.mapfile
+create_sector_files_map.control.filename    = sector_files.mapfile
 
 # create a mapfile with each observation's timestep value, length = nobs
 create_timestep_map.control.kind        = plugin
