@@ -69,7 +69,6 @@ class Sector(object):
         Sets the predict parameters
         """
         for obs in self.observations:
-            self.log.info('{}'.format(self.patches))
             obs.set_predict_parameters(self.name, self.patches)
 
     def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,

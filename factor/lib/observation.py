@@ -184,8 +184,10 @@ class Observation(object):
             List of patch names to predict
         """
         self.parameters['ms_filename'] = self.ms_filename
-        ms_subtracted_filename = '{0}.sector_{1}_sub'.format(self.ms_filename,
-                                                             sector_name.split('_')[1])
+        ms_model_filename = '{0}.sector_{1}'.format(self.ms_filename,
+                                                    sector_name.split('_')[1])
+        ms_subtracted_filename = '{0}_sub'.format(ms_model_filename)
+        self.parameters['ms_model_filename'] = ms_model_filename
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
         self.parameters['patch_names'] = patch_names
 

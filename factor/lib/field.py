@@ -26,7 +26,7 @@ class Field(object):
         If True, only initialize the minimal required parameters
     """
     def __init__(self, parset, mininmal=False):
-        # Save basic info
+        # Initialize basic attributes
         self.name = 'field'
         self.log = logging.getLogger('factor:{}'.format(self.name))
         self.parset = parset.copy()
@@ -61,7 +61,7 @@ class Field(object):
 
     def scan_observations(self):
         """
-        Checks input MS and stores the associated Observation objects
+        Checks input MS files and inits the associated Observation objects
         """
         self.log.debug('Scanning observations...')
         self.observations = []
@@ -215,13 +215,13 @@ class Field(object):
         self.imaging_sectors = []
 
         # Determine whether we use a user-supplied list of sectors or a grid
-        sector_center_ra_list = self.parset['imaging_specific']['sector_center_ra_list']
-        sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
-        sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
-        sector_width_dec_deg_list = self.parset['imaging_specific']['sector_width_dec_deg_list']
-        sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']
-        if len(sector_center_ra_list) > 0:
+        if len(self.parset['imaging_specific']['sector_center_ra_list']) > 0:
             # Use user-supplied list
+            sector_center_ra_list = self.parset['imaging_specific']['sector_center_ra_list']
+            sector_center_dec_list = self.parset['imaging_specific']['sector_center_dec_list']
+            sector_width_ra_deg_list = self.parset['imaging_specific']['sector_width_ra_deg_list']
+            sector_width_dec_deg_list = self.parset['imaging_specific']['sector_width_dec_deg_list']
+            sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']
             n = 1
             for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list,
                                                     sector_width_ra_deg_list, sector_width_dec_deg_list):
@@ -230,7 +230,7 @@ class Field(object):
                 n += 1
             self.log.info('Using {0} user-defined imaging sectors'.format(len(self.imaging_sectors)))
         else:
-            # Use a grid
+            # Make a regular grid of sectors
             if self.parset['imaging_specific']['grid_center_ra'] is None:
                 image_ra = self.ra
             else:
@@ -280,7 +280,7 @@ class Field(object):
                 self.log.info('Using {0} imaging sectors ({1} in RA, {2} in Dec)'.format(
                               nsectors_ra*nsectors_dec, nsectors_ra, nsectors_dec))
 
-            # Initialize the sectors
+            # Initialize the sectors in the grid
             n = 1
             for i in range(nsectors_ra):
                 for j in range(nsectors_dec):
@@ -296,7 +296,7 @@ class Field(object):
             for sector in self.imaging_sectors:
                 sector.make_skymodel()
 
-        # Set the imaging parameters for selfcal
+        # Set the imaging parameters for each imaging sector
         for i, sector in enumerate(self.imaging_sectors):
             if len(sector_do_multiscale_list) > 0:
                 do_multiscale = sector_do_multiscale_list[i]
@@ -314,15 +314,15 @@ class Field(object):
                                           self.parset['imaging_specific']['idg_mode'],
                                           do_multiscale)
 
-            # Transfer flagging parameters so they are also used during imaging
+            # Transfer any flagging parameters so they are also used during imaging
             sector.flag_abstime = self.flag_abstime
             sector.flag_baseline = self.flag_baseline
             sector.flag_freqrange = self.flag_freqrange
             sector.flag_expr = self.flag_expr
 
         # Make outlier sectors containing any remaining calibration sources (not
-        # included in any sector sky model). These sectors are not imaged; they are only used
-        # in prediction and subtraction
+        # included in any sector sky model). These sectors are not imaged; they are only
+        # used in prediction and subtraction
         self.outlier_sectors = []
         outlier_skymodel = self.make_outlier_skymodel()
         nsources = len(outlier_skymodel)

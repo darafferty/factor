@@ -38,7 +38,7 @@ expand_sourcedbs_map.control.filename         = expand_sourcedbs.mapfile
 create_predict_output_map.control.kind        = plugin
 create_predict_output_map.control.type        = addListMapfile
 create_predict_output_map.control.hosts       = {{ hosts }}
-create_predict_output_map.control.files       = {{ sector_sub_filename }}
+create_predict_output_map.control.files       = {{ sector_model_filename }}
 create_predict_output_map.control.mapfile_dir = input.output.mapfile_dir
 create_predict_output_map.control.filename    = sector_files_output_map.mapfile
 

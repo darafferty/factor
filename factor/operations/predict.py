@@ -28,12 +28,12 @@ class Predict(Operation):
             start_sector = 0
         sector_skymodel = []
         sector_filename = []
-        sector_sub_filename = []
+        sector_model_filename = []
         sector_patches = []
         for sector in field.sectors[start_sector:]:
             sector_skymodel.append(sector.predict_skymodel_file)  # just one per sector
             sector_filename.extend(sector.get_obs_parameters('ms_filename'))
-            sector_sub_filename.extend(sector.get_obs_parameters('ms_subtracted_filename'))
+            sector_model_filename.extend(sector.get_obs_parameters('ms_model_filename'))
             sector_patches.extend(sector.get_obs_parameters('patch_names'))
         sector_patches = '[{}]'.format(';'.join(sector_patches))  # convert to ;-separated list
         obs_filename = []
@@ -43,7 +43,7 @@ class Predict(Operation):
         peel_outliers = field.peel_outliers
 
         self.parms_dict.update({'sector_filename': sector_filename,
-                                'sector_sub_filename': sector_sub_filename,
+                                'sector_model_filename': sector_model_filename,
                                 'sector_skymodel': sector_skymodel,
                                 'sector_patches': sector_patches,
                                 'obs_filename': obs_filename,
