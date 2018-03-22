@@ -12,6 +12,7 @@ from factor.scripts import blank_image, mosaic_images
 from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon
 import rtree
+import glob
 
 
 class Field(object):
@@ -53,7 +54,7 @@ class Field(object):
             self.scan_observations()
 
             # Make calibration and source sky models by grouping the initial sky model
-            self.make_skymodels(self.parset['initial_skymodel'], self.parset['regroup_initial_skymodel'])
+            self.make_skymodels(self.parset['input_skymodel'], self.parset['regroup_input_skymodel'])
 
             # Set up imaging sectors
             self.makeWCS()
@@ -154,6 +155,27 @@ class Field(object):
         if type(skymodel) is str:
             skymodel = lsmtool.load(skymodel)
 
+        # Check if any sky models included in Factor are within the region of the
+        # input sky model. If so, concatenate them with the input sky model
+        if self.parset['calibration_specific']['use_included_skymodels']:
+            max_separation_deg = self.fwhm_deg * 2.0
+            factor_lib_dir = os.path.dirname(os.path.abspath(__file__))
+            skymodel_dir = os.path.join(os.path.split(factor_lib_dir)[0], 'skymodels')
+            skymodels = glob.glob(os.path.join(skymodel_dir, '*.skymodel'))
+            concat_skymodels = []
+            for skymodel in skymodels:
+                try:
+                    s = lsmtool.load(skymodel)
+                    dist_deg = s.getDistance(self.ra, self.dec)
+                    if any(dist_deg < max_separation_deg):
+                        concat_skymodels.append(skymodel)
+                except IOError:
+                    pass
+            matching_radius_deg = 30.0 / 3600.0  # => 30 arcsec
+            for s in concat_skymodels:
+                skymodel.concatenate(s, matchBy='position', radius=matching_radius_deg,
+                                     keep='from2', inheritPatches=True)
+
         # Group by thresholding
         self.log.info('Identifying sources...')
         source_skymodel = skymodel.copy()
@@ -162,7 +184,7 @@ class Field(object):
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
-            flux = self.parset['direction_specific']['patch_target_flux_jy']
+            flux = self.parset['calibration_specific']['patch_target_flux_jy']
             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(flux))
             source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
             calibration_skymodel = source_skymodel
@@ -179,16 +201,21 @@ class Field(object):
         """
         # Concat all output sector sky models
         self.log.info('Updating sky model...')
-        if self.parset['strategy'] == 'sectorselfcal':
+        if self.parset['strategy'] == 'selfcal':
             # Use new models from the imaged sectors only
-            sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.imaging_sectors]
+            sector_skymodels = [sector.image_skymodel_file for sector in self.imaging_sectors]
             sector_names = [sector.name for sector in self.imaging_sectors]
 
             # Assume each sector is a single patch, so don't regroup
             regroup = False
         else:
             # Use models from all sectors, whether imaged or not
-            sector_skymodels = [sector.get_output_skymodel_filename() for sector in self.sectors]
+            sector_skymodels = []
+            for sector in self.sector:
+                if sector.is_outlier:
+                    sector_skymodels.append(sector.predict_skymodel_file)
+                else:
+                    sector_skymodels.append(sector.image_skymodel_file)
             sector_names = [sector.name for sector in self.sectors]
 
             # Regroup to make patches with the target flux density
@@ -298,27 +325,21 @@ class Field(object):
 
         # Set the imaging parameters for each imaging sector
         for i, sector in enumerate(self.imaging_sectors):
+            # TODO: let scales be specified sector-by-sector?
+            multiscale_scales_pixel = self.parset['imaging_specific']['multiscale_scales_pixel']
             if len(sector_do_multiscale_list) > 0:
                 do_multiscale = sector_do_multiscale_list[i]
             else:
                 do_multiscale = None
-            sector.set_imaging_parameters(self.parset['imaging_specific']['selfcal_cellsize_arcsec'],
-                                          self.parset['imaging_specific']['selfcal_robust'],
-                                          0.0,
-                                          self.parset['imaging_specific']['selfcal_min_uv_lambda'],
-                                          None,
-                                          0.15,
-                                          self.parset['imaging_specific']['wsclean_bl_averaging'],
-                                          self.parset['imaging_specific']['selfcal_multiscale_scales_pixel'],
-                                          self.parset['imaging_specific']['use_idg'],
-                                          self.parset['imaging_specific']['idg_mode'],
-                                          do_multiscale)
+            sector.set_imaging_parameters()
 
-            # Transfer any flagging parameters so they are also used during imaging
+            # Transfer any field flagging/calibration parameters so they are also used
+            # during imaging
             sector.flag_abstime = self.flag_abstime
             sector.flag_baseline = self.flag_baseline
             sector.flag_freqrange = self.flag_freqrange
             sector.flag_expr = self.flag_expr
+            sector.solve_tecandphase = self.solve_tecandphase
 
         # Make outlier sectors containing any remaining calibration sources (not
         # included in any sector sky model). These sectors are not imaged; they are only
@@ -534,7 +555,7 @@ class Field(object):
                 self.log.info('Making mosiac of sector images...')
                 blanked_images = []
                 for sector in self.imaging_sectors:
-                    input_image_file = sector.get_output_image_filename(image_id)
+                    input_image_file = sector.image_file
                     vertices_file = sector.vertices_file
                     output_image_file = input_image_file + '_blanked'
                     blanked_images.append(output_image_file)
@@ -544,5 +565,5 @@ class Field(object):
                 mosaic_images.main(blanked_images, field_image_filename)
             else:
                 # No need to mosaic a single image; just copy it
-                output_image_filename = self.imaging_sectors[0].get_output_image_filename(image_id)
-                os.system('cp {} {}'.format(output_image_filename, field_image_filename))
+                output_image_filename = self.imaging_sectors[0].image_file
+                os.system('cp {0} {1}'.format(output_image_filename, field_image_filename))

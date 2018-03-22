@@ -1,38 +1,43 @@
-# This is an example parset for Factor
+# This is an example parset for Factor listing all available options
 
 
 [global]
 # Full path to working dir where Factor will run (required). All output will be
 # placed in this directory
-dir_working = /data/wdir
+dir_working = /data/factor
 
-# Full path to directory containing input bands (required). It will be scanned for all
-# .MS and .ms files
-dir_ms = /data/bands
+# Full path to input MS files (required). Wildcards can be used (e.g., /path/to/data/*.ms)
+# or a list can be given
+input_ms = /data/ms/*.ms
 
-# Full path to the initial sky model file (required)
-initial_skymodel = /data/skymodel.txt
+# Full path to the input sky model file (required)
+input_skymodel = /data/skymodel.txt
 
-# Regroup initial skymodel to meet target flux (default = True). If False, the exisiting
-# patches are used for the initial calibration
-# regroup_initial_skymodel = True
+# Filename of h5parm file containing solutions for the patches in the initial sky mode
+# (default = None). This parameter is required for the "image" and "export_data"
+# processing strategies. If given for the "selfcal" strategy, the first calibration step
+# is skipped and these solutions are used instead
+# input_h5parm = None
+# solset = sol000
+# tec_soltab = None
+# scalarphase_soltab = None
+# slow_phase_soltab = None
+# slow_amplitude_soltab = None
 
-# Filename of initial h5parm file containing solutions for the patches in the
-# initial sky model
-# initial_h5parm = None
+# Regroup input skymodel as needed to meet target flux (default = True). If False, the exisiting
+# patches are used for the calibration
+# regroup_input_skymodel = True
 
 # Processing strategy to use (default = fieldselfcal):
-# - fieldselfcal: selfcal of entire field (all source in the input sky model are used in
-#                 in calibration)
-# - sectorselfcal: selfcal of one or more sectors only (other sources are peeled, so input
-#                  model must of sufficient quality to allow this)
-# - sectorexport: export the calibrated data for one or more sectors (one of the other
-#                 strategies must have been run successfully first)
+# - fieldselfcal: self calibrate on the whole field
+# - sectorselfcal: self calibrate but peel sources in regions that are not imaged. Note:
+#       the input sky model must be of sufficient quality to allow for peeling
+# - image: image using the input solutions (no calibration is done)
 # strategy = fieldselfcal
 
-# Use Dysco compression for chunked files (default = False). Enabling this
+# Use Dysco compression for chunked files (default = True). Enabling this
 # option will result in less storage usage
-# use_compression = False
+# use_compression = True
 
 # Flagging ranges (default = no flagging). A range of times, baselines, and
 # frequencies to flag can be specified (see the DPPP documentation for details
@@ -46,10 +51,14 @@ initial_skymodel = /data/skymodel.txt
 
 
 [calibration]
-# Maximum number of cycles of the last step of selfcal to perform (default =
-# 10). The last step is looped until the number of cycles reaches this value or
-# until the improvement in dynamic range over the previous image is less than
-# 1.25%
+# If one of the included sky models (see factor/skymodels) is within 2 * PB_FWHM of the
+# field center, include it in the calibration (default = False)
+# use_included_skymodels = False
+
+# For selfcal processing strategies, this parameter sets the maximum number of
+# cycles of selfcal to perform (default = 10). The last step is looped until the
+# total number of cycles reaches this value or until the improvement in dynamic
+# range over the previous image is less than 1.25%
 # max_selfcal_loops = 10
 
 # Plot solutions of given type: "tec", "amplitude", or "phase" (default = tec).
@@ -60,22 +69,13 @@ initial_skymodel = /data/skymodel.txt
 # solve (default = False)
 # use_preaveraging = False
 
-# Use multi-resolution selfcal that starts at 20 arcsec resolution and increases
-# the resolution in stages to the full resolution (default = False). This method
-# may improve convergence, especially when the starting model is poor
-# multires_selfcal = False
-
 # Minimum uv distance in lambda for calibration (default = 80.0)
 # solve_min_uv_lambda = 80.0
 
-# Radius from phase center within which to consider sources as potential
-# calibrators (default = 2 * FWHM of primary beam of highest-frequency band)
-# max_radius_deg = 5.0
+# Target flux per patch when grouping the sky model for calibration (default = 3.0 for HBA and 6.0 for LBA)
+# patch_target_flux_jy = 3.0
 
-# Target flux per patch for calibration (default = 3.0 for HBA and 6.0 for LBA)
-# patch_target_flux_jy = 6.0
-
-# dTEC solver parameters
+# TEC solver parameters:
 # approximatetec = True
 # maxapproxiter = 50
 # maxiter = 75
@@ -84,56 +84,32 @@ initial_skymodel = /data/skymodel.txt
 # tolerance = 1e-8
 
 [imaging]
-# Padding factor for WSClean images (default = 1.2)
-# wsclean_image_padding = 1.2
-
-# Max desired peak flux density reduction at center of the image edges due to
-# bandwidth smearing (at the mean frequency) and time smearing (default = 0.15 =
-# 15% reduction in peak flux). Higher values result in shorter run times but
-# more smearing away from the facet centers
-# max_peak_smearing = 0.15
-
-# List of scales in pixels to use when multiscale clean is activated (default =
-# auto). Note that multiscale clean is activated automatically when a source
-# in an image sector is determined to be larger than 4 arcmin. Alternatively, if sectors
-# are specified manually below (with sector_center_ra_list, etc.), one can force that
-# multiscale clean be used with the sector_do_multiscale_list parameter below
-# selfcal_multiscale_scales_pixel = [0, 5, 10, 15]
-# selfcal_do_multiscale = None
-
-# Selfcal imaging parameters: pixel size in arcsec (default = 1.5), Briggs
+# Imaging parameters: pixel size in arcsec (default = 1.5 for HBA, 3.0 for LBA), Briggs
 # robust parameter (default = -0.5) and minimum uv distance in lambda (default =
 # 80)
-# selfcal_cellsize_arcsec = 1.5
-# selfcal_robust = -0.5
-# selfcal_min_uv_lambda = 80.0
-
-# Post-selfcal imaging parameters: pixel size in arcsec, Briggs robust parameter, uv
-# taper in arcsec, and minimum uv distance in lambda. One
-# set of images and one mosaic image will be made for each set of parameters
-# cellsize_arcsec = [1.5, 15.0]
-# robust = [-0.5, 0.0]
-# taper_arcsec = [0.0, 45.0]
-# min_uv_lambda = [80.0, 160.0]
+# cellsize_arcsec = 1.5
+# robust = -0.5
+# min_uv_lambda = 80.0
+# max_uv_lambda = 0.0
+# taper_arcsec = 0.0
+# multiscale_scales_pixel = [0, 5, 10, 15]
+# do_multiscale = auto
 
 # IDG (image domain gridder) mode to use in WSClean (default = hybrid). The mode can be
 # cpu or hybrid.
 # idg_mode = hybrid
 
 # Size of area to image when using a grid (default = mean FWHM of the primary beam)
-# grid_width_ra_deg = 5.0
-# grid_width_dec_deg = 7.0
-
 # Number of sectors along RA to use in imaging grid (default = 0). The number of sectors in
 # Dec will be determined automatically to ensure the whole area specified with grid_center_ra,
 # grid_center_dec, grid_width_ra_deg, and grid_width_dec_deg is imaged. Set grid_nsectors_ra = 0 to force a
 # single sector for the full area. Multiple sectors are useful for parallelizing the imaging
 # over multiple nodes of a cluster or for computers with limited memory
-# grid_nsectors_ra = 3
-
-# Center of grid to image (default = phase center of data)
+# grid_width_ra_deg = 5.0
+# grid_width_dec_deg = 7.0
 # grid_center_ra = 14h41m01.884
 # grid_center_dec = +35d30m31.52
+# grid_nsectors_ra = 3
 
 # Instead of a grid, imaging sectors can be defined individually by specifying
 # their centers and widths. Multiscale clean can also be set (with None indicating that
@@ -146,12 +122,20 @@ initial_skymodel = /data/skymodel.txt
 # sector_width_dec_deg_list = [0.532, 0.127]
 # sector_do_multiscale_list = [None, True]
 
-# A target can be specified to ensure that it falls entirely within a single
-# sector. The values should be those of a circular region that encloses the
-# source and not those of the target itself
+# A target region can be specified to ensure that it is not broken between two imaging
+# sectors
 # target_ra = 14h41m01.884
 # target_dec = +35d30m31.52
-# target_radius_arcmin = 10.2
+# target_radius_arcmin = 10
+
+# Padding factor for WSClean images (default = 1.2)
+# wsclean_image_padding = 1.2
+
+# Max desired peak flux density reduction at center of the image edges due to
+# bandwidth smearing (at the mean frequency) and time smearing (default = 0.15 =
+# 15% reduction in peak flux). Higher values result in shorter run times but
+# more smearing away from the sector centers
+# max_peak_smearing = 0.15
 
 
 [cluster]
@@ -169,20 +153,3 @@ initial_skymodel = /data/skymodel.txt
 # Maximum fraction of the total memory per node that WSClean may use (default =
 # 0.9)
 # wsclean_fmem = 0.9
-
-
-[checkfactor]
-# Use casa or ds9 for FITS images (default = ds9)
-# fits_viewer = ds9
-
-# Scale limits (min max) in Jy/beam (ds9 only; default = full range)
-# ds9_limits = 0 0.1
-
-# When opening images, set ds9_frames = new to load each image in a new frame or
-# ds9_frames = current to open in the current frame (ds9 only; default =
-# current)
-# ds9_frames = current
-
-# Use display or eog to display PNG images (default = display)
-# image_display = eog
-

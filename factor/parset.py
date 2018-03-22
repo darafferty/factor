@@ -46,14 +46,8 @@ def parset_read(parset_file, use_log_file=True):
     # Handle imaging parameters
     parset_dict['imaging_specific'].update(get_imaging_options(parset))
 
-    # Handle directions-related parameters
-    parset_dict['direction_specific'].update(get_directions_options(parset))
-
     # Handle cluster-specific parameters
     parset_dict['cluster_specific'].update(get_cluster_options(parset))
-
-    # Handle checkfactor parameters
-    parset_dict['checkfactor'].update(get_checkfactor_options(parset))
 
     # Set up working directory. All output will be placed in this directory
     if not os.path.isdir(parset_dict['dir_working']):
@@ -72,36 +66,36 @@ def parset_read(parset_file, use_log_file=True):
     log.info("=========================================================\n")
     log.info("Working directory is {}".format(parset_dict['dir_working']))
 
-    # Get all the MS files in the input directory. These are identified by the
-    # extensions 'ms' or 'MS'
+    # Get the input MS files
+    ms_search_list = parset_dict['input_ms'].strip('[]').split(',')
+    ms_search_list = [ms.strip() for ms in ms_search_list]
     ms_files = []
-    for exten in ['MS', 'ms']:
-        ms_files += glob.glob(os.path.join(parset_dict['dir_ms'], '*.{}'.format(exten)))
+    for search_str in ms_search_list:
+        ms_files += glob.glob(os.path.join(search_str))
     parset_dict['mss'] = sorted(ms_files)
     if len(parset_dict['mss']) == 0:
-        log.error('No MS files found in {}!'.format(parset_dict['dir_ms']))
+        log.error('No input MS files were not found!')
         sys.exit(1)
-    log.info("Input MS directory is {}".format(parset_dict['dir_ms']))
     log.info("Working on {} input MS file(s)".format(len(parset_dict['mss'])))
 
     # Make sure the initial skymodel is present
-    if 'initial_skymodel' not in parset_dict:
-        log.error('No initial sky model file given. Exiting...')
+    if 'input_skymodel' not in parset_dict:
+        log.error('No input sky model file given. Exiting...')
         sys.exit(1)
-    elif not os.path.exists(parset_dict['initial_skymodel']):
-        log.error('Initial sky model file "{}" not found. Exiting...'.format(parset_dict['initial_skymodel']))
+    elif not os.path.exists(parset_dict['input_skymodel']):
+        log.error('Input sky model file "{}" not found. Exiting...'.format(parset_dict['input_skymodel']))
         sys.exit(1)
 
     # Check for invalid sections
     given_sections = parset._sections.keys()
-    allowed_sections = ['global', 'calibration', 'imaging', 'directions',
-                        'cluster', 'checkfactor']
+    allowed_sections = ['global', 'calibration', 'imaging', 'cluster']
     for section in given_sections:
         if section not in allowed_sections:
             log.warning('Section "{}" was given in the parset but is not a valid '
                         'section name'.format(section))
 
     return parset_dict
+
 
 def get_global_options(parset):
     """
@@ -119,9 +113,7 @@ def get_global_options(parset):
 
     """
     parset_dict = parset._sections['global'].copy()
-    parset_dict.update({'direction_specific': {}, 'calibration_specific': {},
-                        'imaging_specific': {}, 'cluster_specific': {},
-                        'checkfactor': {}})
+    parset_dict.update({'calibration_specific': {}, 'imaging_specific': {}, 'cluster_specific': {}})
 
     # Size of time chunks in seconds (default = calculate). Generally, the number of
     # chunks should be at least the number of available nodes.
@@ -149,21 +141,31 @@ def get_global_options(parset):
         parset_dict['use_compression'] = False
 
     # Regroup initial skymodel (default = True)
-    if 'regroup_initial_skymodel' in parset_dict:
-        parset_dict['regroup_initial_skymodel'] = parset.getboolean('global', 'regroup_initial_skymodel')
+    if 'regroup_input_skymodel' in parset_dict:
+        parset_dict['regroup_input_skymodel'] = parset.getboolean('global', 'regroup_input_skymodel')
     else:
-        parset_dict['regroup_initial_skymodel'] = False
+        parset_dict['regroup_input_skymodel'] = False
 
-    # Filename of initial h5parm file containing solutions for the patches in the
-    # initial sky model
-    if 'initial_h5parm' not in parset_dict:
-        parset_dict['initial_h5parm'] = None
+    # Filename of h5parm file containing solutions for the patches in the
+    # input sky model
+    if 'input_h5parm' not in parset_dict:
+        parset_dict['input_h5parm'] = None
+    if 'solset' not in parset_dict:
+        parset_dict['solset'] = None
+    if 'tec_soltab' not in parset_dict:
+        parset_dict['tec_soltab'] = None
+    if 'scalarphase_soltab' not in parset_dict:
+        parset_dict['scalarphase_soltab'] = None
+    if 'slow_phase_soltab' not in parset_dict:
+        parset_dict['slow_phase_soltab'] = None
+    if 'slow_amplitude_soltab' not in parset_dict:
+        parset_dict['slow_amplitude_soltab'] = None
 
     # Define strategy
     if 'strategy' not in parset_dict:
         parset_dict['strategy'] = 'fieldselfcal'
 
-    # Flagging ranges (default = no flagging). A range of times baselines, and
+    # Flagging ranges (default = no flagging). A range of times, baselines, and
     # frequencies to flag can be specified (see the DPPP documentation for
     # details of syntax) By default, the ranges are AND-ed to produce the final flags,
     # but a set expression can be specified that controls how the selections are
@@ -192,16 +194,17 @@ def get_global_options(parset):
 
     # Check for invalid options
     given_options = parset.options('global')
-    allowed_options = ['dir_working', 'dir_ms', 'chunk_size_sec', 'strategy',
+    allowed_options = ['dir_working', 'input_ms', 'chunk_size_sec', 'strategy',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
-                       'flag_expr', 'chunk_size_hz', 'initial_skymodel',
-                       'regroup_initial_skymodel', 'initial_h5parm']
+                       'flag_expr', 'chunk_size_hz', 'input_skymodel',
+                       'regroup_input_skymodel', 'input_h5parm']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [global] section of the '
                         'parset but is not a valid global option'.format(option))
 
     return parset_dict
+
 
 def get_calibration_options(parset):
     """
@@ -224,6 +227,20 @@ def get_calibration_options(parset):
     else:
         parset_dict = {}
         given_options = []
+
+    # If one of the included sky models (see factor/skymodels) is within 2 * PB_FWHM of the
+    # field center, include it in the calibration (default = False)
+    if 'use_included_skymodels' in parset_dict:
+        parset_dict['use_included_skymodels'] = parset.getboolean('calibration', 'use_included_skymodels')
+    else:
+        parset_dict['use_included_skymodels'] = False
+
+    # Target flux density in Jy for grouping
+    if 'patch_target_flux_jy' in parset_dict:
+        parset_dict['patch_target_flux_jy'] = parset.getfloat('directions',
+            'patch_target_flux_jy')
+    else:
+        parset_dict['patch_target_flux_jy'] = 2.5
 
     # Solve for TEC + scalarphase instead of TEC only
     if 'solve_tecandphase' in parset_dict:
@@ -307,13 +324,14 @@ def get_calibration_options(parset):
                        'solve_tecandphase', 'fast_timestep_sec', 'fast_freqstep_hz',
                        'slow_timestep_sec', 'slow_freqstep_hz', 'approximatetec',
                        'propagatesolutions', 'maxapproxiter', 'maxiter', 'stepsize',
-                       'tolerance', 'plot_solutions']
+                       'tolerance', 'plot_solutions', 'patch_target_flux_jy']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '
                         'parset but is not a valid calibration option'.format(option))
 
     return parset_dict
+
 
 def get_imaging_options(parset):
     """
@@ -451,13 +469,6 @@ def get_imaging_options(parset):
     if 'idg_mode' not in parset_dict:
         parset_dict['idg_mode'] = 'hybrid'
 
-    # Use baseline-dependent averaging in WSClean (default = True). If enabled,
-    # this option can dramatically speed up imaging with WSClean.
-    if 'wsclean_bl_averaging' in parset_dict:
-        parset_dict['wsclean_bl_averaging'] = parset.getboolean('imaging', 'wsclean_bl_averaging')
-    else:
-        parset_dict['wsclean_bl_averaging'] = True
-
     # Max desired peak flux density reduction at center of the facet edges due to
     # bandwidth smearing (at the mean frequency) and time smearing (default = 0.15 =
     # 15% reduction in peak flux). Higher values result in shorter run times but
@@ -474,145 +485,38 @@ def get_imaging_options(parset):
     # the facet contains the target (specified below with target_ra and target_dec),
     # or mscale_selfcal_do / mscale_facet_do is set for the direction in the
     # directions file
-    if 'selfcal_multiscale_scales_pixel' in parset_dict:
-        val_list = parset_dict['selfcal_multiscale_scales_pixel'].strip('[]').split(',')
+    if 'multiscale_scales_pixel' in parset_dict:
+        val_list = parset_dict['multiscale_scales_pixel'].strip('[]').split(',')
         str_list = ','.join([v.strip() for v in val_list])
-        parset_dict['selfcal_multiscale_scales_pixel'] = str_list
+        parset_dict['multiscale_scales_pixel'] = str_list
     else:
-        parset_dict['selfcal_multiscale_scales_pixel'] = None
+        parset_dict['multiscale_scales_pixel'] = None
 
     # Selfcal imaging parameters: pixel size in arcsec (default = 1.5), Briggs
     # robust parameter (default = -0.5) and minimum uv distance in lambda
     # (default = 80). These settings apply both to selfcal images and to the
     # full facet image used to make the improved facet model that is subtracted
     # from the data
-    if 'selfcal_cellsize_arcsec' in parset_dict:
-        parset_dict['selfcal_cellsize_arcsec'] = parset.getfloat('imaging', 'selfcal_cellsize_arcsec')
+    if 'cellsize_arcsec' in parset_dict:
+        parset_dict['cellsize_arcsec'] = parset.getfloat('imaging', 'cellsize_arcsec')
     else:
-        parset_dict['selfcal_cellsize_arcsec'] = 1.5
-    if 'selfcal_robust' in parset_dict:
-        parset_dict['selfcal_robust'] = parset.getfloat('imaging', 'selfcal_robust')
+        parset_dict['cellsize_arcsec'] = 1.5
+    if 'robust' in parset_dict:
+        parset_dict['robust'] = parset.getfloat('imaging', 'robust')
     else:
-        parset_dict['selfcal_robust'] = -0.5
-    if 'selfcal_min_uv_lambda' in parset_dict:
-        parset_dict['selfcal_min_uv_lambda'] = parset.getfloat('imaging', 'selfcal_min_uv_lambda')
+        parset_dict['robust'] = -0.5
+    if 'min_uv_lambda' in parset_dict:
+        parset_dict['min_uv_lambda'] = parset.getfloat('imaging', 'min_uv_lambda')
     else:
-        parset_dict['selfcal_min_uv_lambda'] = 80.0
-
-    # Facet imaging parameters: pixel size in arcsec, Briggs robust parameter, uv
-    # taper in arcsec, and minimum uv distance in lambda. These parameters are used
-    # only for making full facet images (and not for making improved models). One
-    # set of images and one mosaic image will be made for each set of parameters. By
-    # default, facets will be imaged using the selfcal imaging parameters above
-    len_list = []
-    if 'facet_cellsize_arcsec' in parset_dict:
-        val_list = parset_dict['facet_cellsize_arcsec'].strip('[]').split(',')
-        if val_list[0] == '':
-            val_list = []
-        val_list = [float(v) for v in val_list]
-        parset_dict['facet_cellsize_arcsec'] = val_list
-        len_list.append(len(val_list))
-    if 'facet_taper_arcsec' in parset_dict:
-        val_list = parset_dict['facet_taper_arcsec'].strip('[]').split(',')
-        if val_list[0] == '':
-            val_list = []
-        val_list = [float(v) for v in val_list]
-        parset_dict['facet_taper_arcsec'] = val_list
-        len_list.append(len(val_list))
-    if 'facet_robust' in parset_dict:
-        val_list = parset_dict['facet_robust'].strip('[]').split(',')
-        if val_list[0] == '':
-            val_list = []
-        val_list = [float(v) for v in val_list]
-        parset_dict['facet_robust'] = val_list
-        len_list.append(len(val_list))
-    if 'facet_min_uv_lambda' in parset_dict:
-        val_list = parset_dict['facet_min_uv_lambda'].strip('[]').split(',')
-        if val_list[0] == '':
-            val_list = []
-        val_list = [float(v) for v in val_list]
-        parset_dict['facet_min_uv_lambda'] = val_list
-        len_list.append(len(val_list))
-
-    # Check that all the above options have the same number of entries
-    if len(set(len_list)) == 0:
-        nvals = 1
-    elif len(set(len_list)) == 1:
-        nvals = len_list[0]
+        parset_dict['min_uv_lambda'] = 80.0
+    if 'max_uv_lambda' in parset_dict:
+        parset_dict['max_uv_lambda'] = parset.getfloat('imaging', 'max_uv_lambda')
     else:
-        log.error('The options facet_cellsize_arcsec, facet_taper_arcsec, facet_robust, and '
-            'facet_min_uv_lambda must all have the same number of entires')
-        sys.exit(1)
-
-    # Set defaults for any that did not have entries
-    if 'facet_cellsize_arcsec' not in parset_dict:
-        parset_dict['facet_cellsize_arcsec'] = [parset_dict['selfcal_cellsize_arcsec']] * nvals
-    if 'facet_taper_arcsec' not in parset_dict:
-        parset_dict['facet_taper_arcsec'] = [0.0] * nvals
-    if 'facet_robust' not in parset_dict:
-        parset_dict['facet_robust'] = [parset_dict['selfcal_robust']] * nvals
-    if 'facet_min_uv_lambda' not in parset_dict:
-        parset_dict['facet_min_uv_lambda'] = [80.0] * nvals
-
-    # Padding factor for WSClean images (default = 1.4)
-    if 'wsclean_image_padding' in parset_dict:
-        parset_dict['wsclean_image_padding'] = parset.getfloat('imaging', 'wsclean_image_padding')
+        parset_dict['max_uv_lambda'] = 80.0
+    if 'taper_arcsec' in parset_dict:
+        parset_dict['taper_arcsec'] = parset.getfloat('imaging', 'taper_arcsec')
     else:
-        parset_dict['wsclean_image_padding'] = 1.4
-
-    # Check for invalid options
-    allowed_options = ['max_peak_smearing', 'selfcal_cellsize_arcsec', 'selfcal_robust',
-                       'selfcal_multiscale_scales_pixel', 'grid_center_ra', 'grid_center_dec',
-                       'grid_width_ra_deg', 'grid_width_dec_deg', 'grid_nsectors_ra',
-                       'facet_cellsize_arcsec', 'facet_taper_arcsec', 'facet_robust',
-                       'wsclean_image_padding', 'selfcal_min_uv_lambda', 'facet_min_uv_lambda',
-                       'selfcal_robust_wsclean', 'wsclean_bl_averaging',
-                       'sector_center_ra_list', 'sector_center_dec_list',
-                       'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
-                       'use_idg', 'idg_mode', 'sector_do_multiscale_list']
-    for option in given_options:
-        if option not in allowed_options:
-            log.warning('Option "{}" was given in the [imaging] section of the '
-                        'parset but is not a valid imaging option'.format(option))
-
-    return parset_dict
-
-def get_directions_options(parset):
-    """
-    Handle the directions options
-
-    Parameters
-    ----------
-    parset : RawConfigParser object
-        Input parset
-
-    Returns
-    -------
-    parset_dict : dict
-        Dictionary with all directions options
-
-    """
-    if 'directions' in parset._sections.keys():
-        parset_dict = parset._sections['directions']
-        given_options = parset.options('directions')
-    else:
-        parset_dict = {}
-        given_options = []
-
-    # Radius from phase center within which to consider sources during calibration
-    # (default = 2 * FWHM of primary beam of highest-frequency band)
-    if 'max_radius_deg' in parset_dict:
-        parset_dict['max_radius_deg'] = parset.getfloat('directions',
-            'max_radius_deg')
-    else:
-        parset_dict['max_radius_deg'] = None
-
-    # Target flux density in Jy for grouping
-    if 'patch_target_flux_jy' in parset_dict:
-        parset_dict['patch_target_flux_jy'] = parset.getfloat('directions',
-            'patch_target_flux_jy')
-    else:
-        parset_dict['patch_target_flux_jy'] = 2.5
+        parset_dict['taper_arcsec'] = 80.0
 
     # A target can be specified to ensure that it falls entirely within a single
     # facet. The values should be those of a circular region that encloses the
@@ -630,15 +534,28 @@ def get_directions_options(parset):
     else:
         parset_dict['target_radius_arcmin'] = None
 
+    # Padding factor for WSClean images (default = 1.4)
+    if 'wsclean_image_padding' in parset_dict:
+        parset_dict['wsclean_image_padding'] = parset.getfloat('imaging', 'wsclean_image_padding')
+    else:
+        parset_dict['wsclean_image_padding'] = 1.4
+
     # Check for invalid options
-    allowed_options = ['max_radius_deg', 'target_ra', 'target_dec',
-                       'target_radius_arcmin', 'patch_target_flux_jy']
+    allowed_options = ['max_peak_smearing', 'cellsize_arcsec', 'robust',
+                       'multiscale_scales_pixel', 'grid_center_ra', 'grid_center_dec',
+                       'grid_width_ra_deg', 'grid_width_dec_deg', 'grid_nsectors_ra',
+                       'wsclean_image_padding', 'min_uv_lambda', 'max_uv_lambda',
+                       'robust', 'sector_center_ra_list', 'sector_center_dec_list',
+                       'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
+                       'use_idg', 'idg_mode', 'sector_do_multiscale_list', 'target_ra',
+                       'target_dec', 'target_radius_arcmin']
     for option in given_options:
         if option not in allowed_options:
-            log.warning('Option "{}" was given in the [directions] section of the '
-                        'parset but is not a valid directions option'.format(option))
+            log.warning('Option "{}" was given in the [imaging] section of the '
+                        'parset but is not a valid imaging option'.format(option))
 
     return parset_dict
+
 
 def get_cluster_options(parset):
     """
@@ -721,56 +638,5 @@ def get_cluster_options(parset):
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [cluster] section of the '
                         'parset but is not a valid cluster option'.format(option))
-
-    return parset_dict
-
-def get_checkfactor_options(parset):
-    """
-    Handle the options for checkfactor
-
-    Parameters
-    ----------
-    parset : RawConfigParser object
-        Input parset
-
-    Returns
-    -------
-    parset_dict : dict
-        Dictionary with all cluster options
-
-    """
-    if 'checkfactor' in parset._sections.keys():
-        parset_dict = parset._sections['checkfactor']
-        given_options = parset.options('checkfactor')
-    else:
-        parset_dict = {}
-        given_options = []
-
-    if 'facet_viewer' not in parset_dict:
-        parset_dict['facet_viewer'] = 'casa'
-
-    if 'ds9_limits' not in parset_dict:
-        parset_dict['ds9_limits'] = None
-
-    if 'ds9_frames' not in parset_dict:
-        parset_dict['ds9_frames'] = 'current'
-
-    if 'image_display' not in parset_dict:
-        parset_dict['image_display'] = 'display -geometry 800x600'
-    elif parset_dict['image_display'] == 'display':
-        parset_dict['image_display'] = 'display -geometry 800x600'
-
-    if 'ds9_load_regions' in parset_dict:
-        parset_dict['ds9_load_regions'] = parset.getboolean('checkfactor', 'ds9_load_regions')
-    else:
-        parset_dict['ds9_load_regions'] = False
-
-    # Check for invalid options
-    allowed_options = ['facet_viewer', 'ds9_limits', 'ds9_frames', 'image_display',
-                       'ds9_load_regions']
-    for option in given_options:
-        if option not in allowed_options:
-            log.warning('Option "{}" was given in the [checkfactor] section of the '
-                        'parset but is not a valid checkfactor option'.format(option))
 
     return parset_dict

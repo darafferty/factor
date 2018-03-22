@@ -71,53 +71,20 @@ class Sector(object):
         for obs in self.observations:
             obs.set_predict_parameters(self.name, self.patches)
 
-    def set_imaging_parameters(self, cellsize_arcsec, robust, taper_arcsec,
-                               min_uv_lambda, max_uv_lambda, max_peak_smearing,
-                               wsclean_bl_averaging=False, multiscale_scales_pixel=None,
-                               use_idg=True, idg_mode='hybrid', do_multiscale=None):
+    def set_imaging_parameters(self):
         """
-        Sets the imaging parameters for given values
-
-        Parameters
-        ----------
-        cellsize_arcsec : float
-            Pixel size in arcsec for imaging
-        robust : float
-            Briggs robust parameter for imaging
-        taper_arcsec : float
-            Taper in arcsec for imaging
-        min_uv_lambda : float
-            Minimum uv cut in lamdba
-        max_uv_lambda : float
-            Maximum uv cut in lamdba
-        max_peak_smearing : float
-            Maximum allowed peak flux density reduction
-        wsclean_bl_averaging : bool, optional
-            Use baseline-dependent averaging in WSClean
-        multiscale_scales_pixel : list of float, optional
-            List of scales for WSClean when multi-scale is used
-        use_idg : bool, optional
-            Use image domain gridder in WSClean
-        idg_mode : str, optional
-            IDG mode to use
-        do_multiscale : bool or None, optional
-            If True, multiscale clean is always done. If False, it is never done. If None,
-            it is done if a large source is present
+        Sets the imaging parameters
         """
-        self.cellsize_arcsec = cellsize_arcsec
-        self.cellsize_deg = cellsize_arcsec / 3600.0
-        self.robust = robust
-        self.taper_arcsec = taper_arcsec
-        self.min_uv_lambda = min_uv_lambda
-        self.max_uv_lambda = max_uv_lambda
-        self.use_idg = use_idg
-        self.idg_mode = idg_mode
+        self.cellsize_arcsec = self.field.parset['imaging_specific']['cellsize_arcsec']
+        self.cellsize_deg = self.cellsize_arcsec / 3600.0
+        self.robust = self.field.parset['imaging_specific']['robust']
+        self.taper_arcsec = self.field.parset['imaging_specific']['taper_arcsec']
+        self.min_uv_lambda = self.field.parset['imaging_specific']['min_uv_lambda']
+        self.max_uv_lambda = self.field.parset['imaging_specific']['max_uv_lambda']
+        self.use_idg = self.field.parset['imaging_specific']['use_idg']
+        self.idg_mode = self.field.parset['imaging_specific']['idg_mode']
 
-        # Set ID for current imaging parameters
-        self.current_image_id = self.get_image_id(cellsize_arcsec, robust, taper_arcsec,
-                                                  min_uv_lambda, max_uv_lambda)
-
-        # Set image size based on current poly
+        # Set image size based on current sector polygon
         xmin, ymin, xmax, ymax = self.poly.bounds
         self.width_ra = (xmax - xmin) * self.field.wcs_pixel_scale # deg
         self.width_dec = (ymax - ymin) * self.field.wcs_pixel_scale # deg
@@ -153,7 +120,7 @@ class Sector(object):
         self.wsclean_niter = int(12000 * scaling_factor)
 
         # Set multiscale: get source sizes and check for large sources
-        self.multiscale = do_multiscale
+        self.multiscale = self.field.parset['imaging_specific']['do_multiscale']
         if self.multiscale is None:
             large_size_arcmin = 4.0 # threshold source size for multiscale to be activated
             sizes_arcmin = self.source_sizes * 60.0
@@ -162,103 +129,28 @@ class Sector(object):
             else:
                 self.multiscale = False
         if self.multiscale:
-            self.multiscale_scales_pixel = multiscale_scales_pixel
+            self.multiscale_scales_pixel = self.field.parset['imaging_specific']['multiscale_scales_pixel']
             self.wsclean_niter /= 2 # fewer iterations are needed
             self.log.debug("Will do multiscale cleaning.")
         else:
             self.multiscale_scales_pixel = 0
 
         # Set the observation-specific parameters
+        max_peak_smearing = self.field.parset['imaging_specific']['max_peak_smearing']
         for obs in self.observations:
             # Set imaging parameters
-            obs.set_imaging_parameters(cellsize_arcsec, max_peak_smearing,
+            obs.set_imaging_parameters(self.cellsize_arcsec, max_peak_smearing,
                                        self.width_ra, self.width_dec)
 
         # Set BL-dependent averaging
-        if wsclean_bl_averaging:
+        do_bl_averaging = False # does not yet work with IDG
+        if do_bl_averaging:
             timestep_sec = (self.observations[0].timepersample *
                             self.observations[0].parameters['image_timestep'])
             self.wsclean_nwavelengths = self.get_nwavelengths(self.cellsize_deg,
                                                               timestep_sec)
         else:
             self.wsclean_nwavelengths = 0
-
-    def get_image_id(self, cellsize_arcsec, robust, taper_arcsec, min_uv_lambda, max_uv_lambda):
-        """
-        Returns the imaging ID for given values
-
-        Parameters
-        ----------
-        cellsize_arcsec : float
-            Pixel size in arcsec for imaging
-        robust : float
-            Briggs robust parameter for imaging
-        taper_arcsec : float
-            Taper in arcsec for imaging
-        min_uv_lambda : float
-            Minimum uv cut in lamdba
-        max_uv_lambda : float
-            Maximum uv cut in lamdba
-        """
-        return '{0}_{1}_{2}_{3}_{4}'.format(cellsize_arcsec, robust, taper_arcsec,
-                                            min_uv_lambda, max_uv_lambda)
-
-    def store_output_image_filename(self, filename):
-        """
-        Stores path to output image filename
-
-        Parameters
-        ----------
-        filename : str
-            Path to file
-        """
-        self.output_image_filename[self.current_image_id] = filename
-
-    def store_output_skymodel_filename(self, filename):
-        """
-        Stores path to output skymodel filename
-
-        Parameters
-        ----------
-        filename : str
-            Path to file
-        """
-        self.output_skymodel_filename[self.current_image_id] = filename
-
-    def get_output_image_filename(self, image_id=None):
-        """
-        Returns path to output image for given ID
-
-        Parameters
-        ----------
-        image_id : str, optional
-            Imaging ID
-        """
-        if image_id is None:
-            image_id = self.current_image_id
-        try:
-            return self.output_image_filename[image_id]
-        except KeyError:
-            return None
-
-    def get_output_skymodel_filename(self, image_id=None):
-        """
-        Returns path to output sky model for given ID
-
-        Parameters
-        ----------
-        image_id : str, optional
-            Imaging ID
-        """
-        if self.is_outlier:
-            return self.predict_skymodel_file
-
-        if image_id is None:
-            image_id = self.current_image_id
-        try:
-            return self.output_skymodel_filename[image_id]
-        except KeyError:
-            return None
 
     def get_nwavelengths(self, cellsize_deg, timestep_sec):
         """

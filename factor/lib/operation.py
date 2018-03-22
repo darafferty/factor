@@ -314,8 +314,3 @@ class Operation(object):
                 else:
                     cmd = ['ssh', node, 'rm', '-rf', self.local_scratch_dir]
                 tmp = subprocess.call(cmd)
-
-            # Check whether we need to reset the pipeline state to before the sync step
-            steptypes = self.get_steptypes()
-            if 'sync_files' in steptypes and 'remove_synced_data' not in steptypes:
-                self.reset_state_to_steptype('sync_files')

@@ -26,9 +26,9 @@ def set_strategy(field):
     always_do_slowgain = True
 
     if field.parset['strategy'] == 'fieldselfcal':
-        # Selfcal of entire field:
+        # Selfcal without peeling of non-imaged sources:
         #     - calibration on all sources
-        #     - imaging of all sources (excluding outliers)
+        #     - imaging of sectors
         max_selfcal_loops = field.parset['calibration_specific']['max_selfcal_loops']
         for i in range(max_selfcal_loops):
             strategy_list.append({})
@@ -40,30 +40,29 @@ def set_strategy(field):
             else:
                 strategy_list[i]['do_slowgain'] = True
             strategy_list[i]['peel_outliers'] = False
-            if field.sectors[-1].name == 'outlier':
-                has_outlier = True
-                nr_imaging_sectors = len(field.sectors) - 1
-            else:
-                has_outlier = False
-                nr_imaging_sectors = len(field.sectors)
-            if nr_imaging_sectors > 1 or has_outlier:
+            nr_outlier_sectors = len(field.outlier_sectors)
+            nr_imaging_sectors = len(field.imaging_sectors)
+            if nr_imaging_sectors > 1 or nr_outlier_sectors > 1:
                 strategy_list[i]['do_predict'] = True
+            else:
+                strategy_list[i]['do_predict'] = False
+            strategy_list[i]['do_image'] = True
             if i == max_selfcal_loops - 1:
                 strategy_list[i]['do_update'] = False
             else:
                 strategy_list[i]['do_update'] = True
             strategy_list[i]['do_update'] = True
-            if i < 4 or i == max_selfcal_loops - 1:
+            if i < 1 or i == max_selfcal_loops - 1:
                 strategy_list[i]['do_check'] = False
             else:
                 strategy_list[i]['do_check'] = True
 
     elif field.parset['strategy'] == 'sectorselfcal':
-        # Selfcal of target(s) only:
+        # Selfcal with peeling of non-imaged sources:
         #     - calibration on all sources
-        #     - peeling of non-target sources
-        #     - calibration on target(s) only
-        #     - imaging of target(s) only
+        #     - peeling of non-sector sources
+        #     - imaging of sectors
+        #     - calibration on sector sources only
         max_selfcal_loops = field.parset['calibration_specific']['max_selfcal_loops']
         for i in range(max_selfcal_loops):
             strategy_list.append({})
@@ -75,7 +74,12 @@ def set_strategy(field):
                 strategy_list[i]['peel_outliers'] = True
             else:
                 strategy_list[i]['peel_outliers'] = False
-            strategy_list[i]['do_predict'] = True
+            nr_outlier_sectors = len(field.outlier_sectors)
+            nr_imaging_sectors = len(field.imaging_sectors)
+            if nr_imaging_sectors > 1 or nr_outlier_sectors > 1:
+                strategy_list[i]['do_predict'] = True
+            else:
+                strategy_list[i]['do_predict'] = False
             strategy_list[i]['do_image'] = True
             if i == max_selfcal_loops - 1:
                 strategy_list[i]['do_update'] = False
@@ -86,19 +90,16 @@ def set_strategy(field):
             else:
                 strategy_list[i]['do_check'] = True
 
-    elif field.parset['strategy'] == 'targetexport':
-        # Export of target data:
+    elif field.parset['strategy'] == 'image':
+        # Image one or more sectors:
         #     - no calibration
-        #     - peeling of non-target sources
-        #     - export of target(s) only
         strategy_list.append({})
         strategy_list[0]['do_calibrate'] = False
-        strategy_list[0]['peel_outliers'] = True
-        strategy_list[0]['do_predict'] = False
-        strategy_list[0]['do_image'] = False
+        strategy_list[0]['peel_outliers'] = False
+        strategy_list[0]['do_predict'] = True
+        strategy_list[0]['do_image'] = True
         strategy_list[0]['do_update'] = False
         strategy_list[0]['do_check'] = False
-        strategy_list[0]['do_export'] = True
 
     else:
         log.error('Strategy "{}" not understood. Exiting...'.format(field.parset['strategy']))

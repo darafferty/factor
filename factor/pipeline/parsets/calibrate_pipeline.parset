@@ -167,6 +167,7 @@ solve_fast_phases.argument.solve.maxiter            = {{ maxiter }}
 solve_fast_phases.argument.solve.propagatesolutions = {{ propagatesolutions }}
 solve_fast_phases.argument.solve.stepsize           = {{ stepsize }}
 solve_fast_phases.argument.solve.tolerance          = {{ tolerance }}
+solve_fast_phases.argument.solve.uvlambdamin        = {{ solve_min_uv_lambda }}
 
 # compress fast-phase mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_fast.control.kind        = plugin
@@ -238,6 +239,7 @@ solve_slow_gains.argument.solve.applycal.phase.correction = screenphase000
 solve_slow_gains.argument.solve.applycal.steps            = [tec]
 solve_slow_gains.argument.solve.applycal.tec.correction   = screentec000
 {% endif %}
+solve_slow_gains.argument.solve.uvlambdamin               = {{ solve_min_uv_lambda }}
 
 # compress slow-gain mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_slow.control.kind        = plugin

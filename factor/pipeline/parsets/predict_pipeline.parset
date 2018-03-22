@@ -121,3 +121,5 @@ subtract_models.control.inputkey       = infile
 subtract_models.argument.flags         = [infile,{{ mapfile_dir }},sector_files_output_map.mapfile]
 subtract_models.argument.nr_outliers   = {{ nr_outliers }}
 subtract_models.argument.peel_outliers = {{ peel_outliers }}
+
+# TODO: phase shift resulting datasets to sector centers and delete originals?

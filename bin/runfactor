@@ -25,18 +25,11 @@ import sys
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage='%prog parset',
             version='%%prog %s' % (version))
-    parser.add_option('-d', help='enable dry-run mode', action='store_true', default=False)
     parser.add_option('-q', help='enable quiet mode', action='store_true', default=False)
-    parser.add_option('-r', '--reset', help='comma-separated list of directions to reset '
-        '(e.g., "-r facet1,facet3")', type=str, default=None)
-    parser.add_option('-o', '--ops', help='comma-separated list of operations '
-        'to reset for the directions specified with "-r" or "--reset" (e.g., '
-        '"-o facetselfcal,facetsub"). By default, all operations are reset. Available '
-        'operations are: outlierpeel, facetpeel, facetpeelimage, facetselfcal, facetsub, '
-        'facetimage, fieldmosaic', type=str, default=None)
-    parser.add_option('-s', '--stop_after', help='Stop after processing so many facetselfcal groups. '
-	'(Please note the difference between directions and groups!)', type=int, default=0)
-    parser.add_option('-t', help='enable test mode', action='store_true', default=False)
+    parser.add_option('-e', '--export', help='comma-separated list of sectors for which '
+        'to export visibilities (e.g., "-r sector_1,sector_3")', type=str, default=None)
+    parser.add_option('-c', help='correct exported visibilities for center of sector?',
+        action='store_true', default=False)
     parser.add_option('-v', help='enable verbose mode', action='store_true', default=False)
     (options, args) = parser.parse_args()
 
@@ -55,16 +48,12 @@ if __name__ == '__main__':
         logging_level = 'info'
 
     # Construct list of directions and operations to reset
-    if options.reset is not None:
-        parts = options.reset.split(',')
-        reset_directions = [p.strip() for p in parts]
+    if options.export is not None:
+        parts = options.export.split(',')
+        sectors_to_export = [p.strip() for p in parts]
     else:
-        reset_directions = []
-    if options.ops is not None:
-        parts = options.ops.split(',')
-        reset_operations = [p.strip() for p in parts]
-    else:
-        reset_operations = []
+        sectors_to_export = []
 
     # Process the field
-    process.run(parset_file, logging_level=logging_level)
+    process.run(parset_file, logging_level=logging_level, sectors_to_export=sectors_to_export,
+                export_corrected_data=options.c)

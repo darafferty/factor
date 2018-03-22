@@ -22,6 +22,7 @@ class Observation(object):
     """
     def __init__(self, ms_filename):
         self.ms_filename = ms_filename
+        self.ms_field = self.ms_filename += '_field'
         self.name = os.path.basename(self.ms_filename)
         self.log = logging.getLogger('factor:{}'.format(self.name))
         self.parameters = {}
@@ -184,11 +185,19 @@ class Observation(object):
             List of patch names to predict
         """
         self.parameters['ms_filename'] = self.ms_filename
-        ms_model_filename = '{0}.sector_{1}'.format(self.ms_filename,
-                                                    sector_name.split('_')[1])
-        ms_subtracted_filename = '{0}_sub'.format(ms_model_filename)
+
+        # The filename of the sector's model data (from predict)
+        ms_model_filename = '{0}.sector_{1}_modeldata'.format(self.ms_filename,
+                                                              sector_name.split('_')[1])
         self.parameters['ms_model_filename'] = ms_model_filename
+
+        # The filename of the sector's data with all non-sector sources peeled off (i.e.,
+        # the data used for imaging)
+        ms_subtracted_filename = '{0}.sector_{1}'.format(self.ms_filename,
+                                                         sector_name.split('_')[1])
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
+
+        # The sky model patch names
         self.parameters['patch_names'] = patch_names
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,

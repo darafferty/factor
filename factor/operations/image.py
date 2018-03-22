@@ -42,7 +42,13 @@ class Image(Operation):
         # Save output mapfiles for later use
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'image-MFS-image.fits.mapfile'))
-        self.direction.store_output_image_filename(in_map[0].file)
+        self.direction.image_file = in_map[0].file
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'filter.mapfile'))
-        self.direction.store_output_skymodel_filename(in_map[0].file)
+        self.direction.image_skymodel_file = in_map[0].file
+
+        # Delete temp data
+        self.direction.cleanup_mapfiles = [os.path.join(self.pipeline_mapfile_dir,
+                                                        'prepare_imaging_data.mapfile')]
+        self.direction.cleanup()
+        self.cleanup()

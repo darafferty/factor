@@ -1,0 +1,136 @@
+pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, prepare_imaging_data]
+
+pipeline.pluginpath = {{ pipeline_dir }}/plugins
+
+# update host entries in all mapfiles
+update_mapfile_hosts.control.kind        = plugin
+update_mapfile_hosts.control.type        = updateHosts
+update_mapfile_hosts.control.mapfile_dir = input.output.mapfile_dir
+update_mapfile_hosts.control.hosts       = {{ hosts }}
+
+# create a mapfile with input data from supplied list, length = nobs
+create_sector_files_map.control.kind        = plugin
+create_sector_files_map.control.type        = addListMapfile
+create_sector_files_map.control.hosts       = {{ hosts }}
+create_sector_files_map.control.files       = {{ obs_filename }}
+create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
+create_sector_files_map.control.filename    = sector_files.mapfile
+
+# create a mapfile with each observation's timestep value, length = nobs
+create_timestep_map.control.kind        = plugin
+create_timestep_map.control.type        = addListMapfile
+create_timestep_map.control.hosts       = {{ hosts }}
+create_timestep_map.control.files       = {{ image_timestep }}
+create_timestep_map.control.mapfile_dir = input.output.mapfile_dir
+create_timestep_map.control.filename    = timestep.mapfile
+
+# create a mapfile with each observation's freqstep value, length = nobs
+create_freqstep_map.control.kind        = plugin
+create_freqstep_map.control.type        = addListMapfile
+create_freqstep_map.control.hosts       = {{ hosts }}
+create_freqstep_map.control.files       = {{ image_freqstep }}
+create_freqstep_map.control.mapfile_dir = input.output.mapfile_dir
+create_freqstep_map.control.filename    = freqstep.mapfile
+
+# expand mapfile of the dir-dependent parmDB to all obs, length = nobs
+expand_h5parm_map.control.kind             = plugin
+expand_h5parm_map.control.type             = expandMapfile
+expand_h5parm_map.control.mapfile_in       = {{ h5parm_mapfile }}
+expand_h5parm_map.control.mapfile_to_match = create_sector_files_map.output.mapfile
+expand_h5parm_map.control.mapfile_dir      = input.output.mapfile_dir
+expand_h5parm_map.control.filename         = expand_h5parms.mapfile
+
+# phase shift, apply the direction-dependent solutions, and average, length = nobs
+prepare_imaging_data.control.type                                 = dppp
+prepare_imaging_data.control.mapfiles_in                          = [create_sector_files_map.output.mapfile,expand_h5parm_map.output.mapfile,create_timestep_map.output.mapfile,create_freqstep_map.output.mapfile]
+prepare_imaging_data.control.inputkeys                            = [msin,h5parm,timestep,freqstep]
+prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_proc_single }}
+prepare_imaging_data.argument.msin.datacolumn                     = DATA
+prepare_imaging_data.argument.msout.overwrite                     = True
+prepare_imaging_data.argument.msout.writefullresflag              = False
+{% if local_dir is not none %}
+prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir }}
+{% endif %}
+
+{% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
+
+{% if solve_tecandphase %}
+{% if apply_slowgains %}
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,amp,phase,flagzero,avg]
+{% else %}
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,flagzero,avg]
+{% endif %}
+{% else %}
+{% if apply_slowgains %}
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,avg]
+{% else %}
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,avg]
+{% endif %}
+{% endif %}
+
+{% else %}
+
+{% if solve_tecandphase %}
+{% if apply_slowgains %}
+prepare_imaging_data.argument.steps                               = [shift,tec,scphase,amp,phase,flagzero,avg]
+{% else %}
+prepare_imaging_data.argument.steps                               = [shift,tec,scphase,flagzero,avg]
+{% endif %}
+{% else %}
+{% if apply_slowgains %}
+prepare_imaging_data.argument.steps                               = [shift,tec,amp,phase,flagzero,avg]
+{% else %}
+prepare_imaging_data.argument.steps                               = [shift,tec,flagzero,avg]
+{% endif %}
+{% endif %}
+
+{% endif %}
+
+{% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
+prepare_imaging_data.argument.flag.type                           = preflagger
+prepare_imaging_data.argument.flag.expr                           = {{ flag_expr }}
+{% endif %}
+{% if flag_abstime is not none %}
+prepare_imaging_data.argument.flag.flag_abstime.abstime           = {{ flag_abstime }}
+{% endif %}
+{% if flag_baseline is not none %}
+prepare_imaging_data.argument.flag.flag_baseline.baseline         = {{ flag_baseline }}
+{% endif %}
+{% if flag_freqrange is not none %}
+prepare_imaging_data.argument.flag.flag_freqrange.freqrange       = {{ flag_freqrange }}
+{% endif %}
+prepare_imaging_data.argument.shift.type                          = phaseshifter
+prepare_imaging_data.argument.shift.phasecenter                   = [{{ ra }}deg, {{ dec }}deg]
+prepare_imaging_data.argument.tec.type                            = applycal
+prepare_imaging_data.argument.tec.parmdb                          = h5parm
+prepare_imaging_data.argument.tec.correction                      = screentec000
+prepare_imaging_data.argument.tec.direction                       = [{{ central_patch }}]
+{% if solve_tecandphase %}
+prepare_imaging_data.argument.scphase.type                        = applycal
+prepare_imaging_data.argument.scphase.parmdb                      = h5parm
+prepare_imaging_data.argument.scphase.correction                  = screenphase000
+prepare_imaging_data.argument.scphase.direction                   = [{{ central_patch }}]
+{% endif %}
+{% if apply_slowgains %}
+prepare_imaging_data.argument.amp.type                            = applycal
+prepare_imaging_data.argument.amp.parmdb                          = h5parm
+prepare_imaging_data.argument.amp.correction                      = amplitude000
+prepare_imaging_data.argument.amp.direction                       = [{{ central_patch }}]
+prepare_imaging_data.argument.phase.type                          = applycal
+prepare_imaging_data.argument.phase.parmdb                        = h5parm
+prepare_imaging_data.argument.phase.correction                    = phase000
+prepare_imaging_data.argument.phase.direction                     = [{{ central_patch }}]
+{% endif %}
+prepare_imaging_data.argument.flagzero.type                       = preflagger
+prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20
+prepare_imaging_data.argument.avg.type                            = squash
+prepare_imaging_data.argument.avg.freqstep                        = freqstep
+prepare_imaging_data.argument.avg.timestep                        = timestep
+{% if use_compression %}
+prepare_imaging_data.argument.msout.storagemanager                = "Dysco"
+prepare_imaging_data.argument.msout.storagemanager.databitrate    = 10
+prepare_imaging_data.argument.msout.storagemanager.weightbitrate  = 12
+prepare_imaging_data.argument.msout.storagemanager.distribution   = "TruncatedGaussian"
+prepare_imaging_data.argument.msout.storagemanager.disttruncation = 1.5
+prepare_imaging_data.argument.msout.storagemanager.normalization  = "AF"
+{% endif %}

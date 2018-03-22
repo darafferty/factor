@@ -59,10 +59,10 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             peel_outliers = False
     nr_outliers = int(nr_outliers)
 
-    # Get the model data filenames. We nly use files that contain the root of
+    # Get the model data filenames. We only use files that contain the root of
     # msin, so that models for other observations are not picked up
-    if msin.endswith('_peeled'):
-        msin_root = msin.rstrip('_peeled')
+    if msin.endswith('_field'):
+        msin_root = msin.rstrip('_field')
     else:
         msin_root = msin
     mapfile = os.path.join(mapfile_dir, filename)
@@ -82,7 +82,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     if peel_outliers:
         # Open input and output table
         tin = pt.table(msin, readonly=True, ack=False)
-        msout = '{}_peeled'.format(msin)
+        msout = '{}_field'.format(msin)
         if not os.path.exists(msout):
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout = pt.table(msout, readonly=False, ack=False)
@@ -143,7 +143,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         if nr_outliers > 0 and i == len(model_list)-nr_outliers:
             # Break so we don't open output tables for the outliers
             break
-        msout = '{}_sub'.format(msmod)
+            _modeldata
+        msout = msmod.rstrip('_modeldata')
         if not os.path.exists(msout):
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout_list.append(pt.table(msout, readonly=False, ack=False))
@@ -194,6 +195,11 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     for tout in tout_list:
         tout.close()
     tin.close()
+
+    # Delete model data
+    for msmod in model_list:
+        if os.path.exists(msmod):
+            os.system('/bin/rm -rf {0}'.format(msmod))
 
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ from factor.lib.field import Field
 log = logging.getLogger('factor')
 
 
-def run(parset_file, logging_level='info'):
+def run(parset_file, logging_level='info', sectors_to_export=[], export_corrected_data=False):
     """
     Processes a dataset using facet calibration
 
@@ -61,7 +61,7 @@ def run(parset_file, logging_level='info'):
                 # Update the observations to use the new peeled datasets and remove the
                 # outlier sectors (since, once peeled, they are no longer needed)
                 for obs in field.observations:
-                    obs.ms_filename += '_peeled'
+                    obs.ms_filename = obs.ms_field
                     obs.set_calibration_parameters(parset)
                 field.sectors = [sector for sector in field.sectors if not sector.is_outlier]
 
