@@ -48,7 +48,6 @@ class Image(Operation):
         self.direction.image_skymodel_file = in_map[0].file
 
         # Delete temp data
-        self.direction.cleanup_mapfiles = [os.path.join(self.pipeline_mapfile_dir,
-                                                        'prepare_imaging_data.mapfile')]
-        self.direction.cleanup()
+        self.cleanup_mapfiles = [os.path.join(self.pipeline_mapfile_dir,
+                                 'prepare_imaging_data.mapfile')]
         self.cleanup()

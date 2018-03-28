@@ -10,6 +10,8 @@ import uuid
 from factor import _logging
 from jinja2 import Environment, FileSystemLoader
 from lofarpipe.support.utilities import create_directory
+from lofarpipe.support.data_map import DataMap
+import glob
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 env_parset = Environment(loader=FileSystemLoader(os.path.join(DIR, '..', 'pipeline', 'parsets')))
@@ -47,6 +49,7 @@ class Operation(object):
         self.log = logging.getLogger('factor:{0}'.format(self.name))
         self.hostname = socket.gethostname()
         self.node_list = self.parset['cluster_specific']['node_list']
+        self.cleanup_mapfiles = []
 
         # Working directory
         self.factor_working_dir = self.parset['dir_working']
@@ -305,7 +308,7 @@ class Operation(object):
 
     def cleanup(self):
         """
-        Cleans up temp files in the scratch directories of each node
+        Cleans up files
         """
         if self.local_scratch_dir is not None:
             for node in self.node_list:
@@ -314,3 +317,18 @@ class Operation(object):
                 else:
                     cmd = ['ssh', node, 'rm', '-rf', self.local_scratch_dir]
                 tmp = subprocess.call(cmd)
+
+        for mapfile in self.cleanup_mapfiles:
+            try:
+                datamap = DataMap.load(mapfile)
+                for item in datamap:
+                    if item.file[0] == '[' and item.file[-1] == ']':
+                        # Handle case in which item.file is a list
+                        files = item.file.strip('[]').split(',')
+                    else:
+                        files = [item.file]
+                    for f in files:
+                        if os.path.exists(f):
+                            os.system('rm -rf {0} &'.format(f))
+            except IOError:
+                pass

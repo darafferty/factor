@@ -451,7 +451,7 @@ def get_imaging_options(parset):
         parset_dict['sector_do_multiscale_list'] = bool_list
         len_list.append(len(bool_list))
     else:
-        parset_dict['sector_do_multiscale_list'] = [None] * len_list[0]
+        parset_dict['sector_do_multiscale_list'] = []
 
     # Check that all the above options have the same number of entries
     if len(set(len_list)) > 1:

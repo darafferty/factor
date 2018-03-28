@@ -65,11 +65,11 @@ class Calibrate(Operation):
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
                                                      'combine_fast_h5parms_output.mapfile')
 
-        # Create sym link to solutions file
+        # Save the solutions
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))
         create_directory(dst_dir)
         dst = os.path.join(dst_dir, 'field-solutions.h5')
         if os.path.exists(dst):
-            os.unlink(dst)
+            os.remove(dst)
         sol_map = DataMap.load(self.field.h5parm_mapfile)
-        os.symlink(sol_map[0].file, dst)
+        os.system('cp {0} {1}'.format(sol_map[0].file, dst))

@@ -83,6 +83,7 @@ input_skymodel = /data/skymodel.txt
 # stepsize = 0.02
 # tolerance = 1e-8
 
+
 [imaging]
 # Imaging parameters: pixel size in arcsec (default = 1.5 for HBA, 3.0 for LBA), Briggs
 # robust parameter (default = -0.5) and minimum uv distance in lambda (default =

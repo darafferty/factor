@@ -33,7 +33,7 @@ def set_strategy(field):
         for i in range(max_selfcal_loops):
             strategy_list.append({})
             strategy_list[i]['do_calibrate'] = True
-            if field.initial_h5parm is not None and i == 0:
+            if field.input_h5parm is not None and i == 0:
                 strategy_list[i]['do_calibrate'] = False
             if i < 3 and not always_do_slowgain:
                 strategy_list[i]['do_slowgain'] = False
@@ -67,7 +67,7 @@ def set_strategy(field):
         for i in range(max_selfcal_loops):
             strategy_list.append({})
             strategy_list[i]['do_calibrate'] = True
-            if field.initial_h5parm is not None and i == 0:
+            if field.input_h5parm is not None and i == 0:
                 strategy_list[i]['do_calibrate'] = False
             strategy_list[i]['do_slowgain'] = True
             if i < 1:

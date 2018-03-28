@@ -22,7 +22,7 @@ class Observation(object):
     """
     def __init__(self, ms_filename):
         self.ms_filename = ms_filename
-        self.ms_field = self.ms_filename += '_field'
+        self.ms_field = self.ms_filename + '_field'
         self.name = os.path.basename(self.ms_filename)
         self.log = logging.getLogger('factor:{}'.format(self.name))
         self.parameters = {}

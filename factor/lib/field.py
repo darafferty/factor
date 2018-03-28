@@ -39,7 +39,7 @@ class Field(object):
         self.flag_baseline = self.parset['flag_baseline']
         self.flag_freqrange = self.parset['flag_freqrange']
         self.flag_expr = self.parset['flag_expr']
-        self.initial_h5parm = self.parset['initial_h5parm']
+        self.input_h5parm = self.parset['input_h5parm']
         self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
         self.solve_tecandphase = self.parset['calibration_specific']['solve_tecandphase']
         self.approximatetec = self.parset['calibration_specific']['approximatetec']
@@ -324,14 +324,13 @@ class Field(object):
                 sector.make_skymodel()
 
         # Set the imaging parameters for each imaging sector
+        sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']
         for i, sector in enumerate(self.imaging_sectors):
-            # TODO: let scales be specified sector-by-sector?
-            multiscale_scales_pixel = self.parset['imaging_specific']['multiscale_scales_pixel']
             if len(sector_do_multiscale_list) > 0:
                 do_multiscale = sector_do_multiscale_list[i]
             else:
                 do_multiscale = None
-            sector.set_imaging_parameters()
+            sector.set_imaging_parameters(do_multiscale)
 
             # Transfer any field flagging/calibration parameters so they are also used
             # during imaging
@@ -566,4 +565,6 @@ class Field(object):
             else:
                 # No need to mosaic a single image; just copy it
                 output_image_filename = self.imaging_sectors[0].image_file
+                if os.path.exists(output_image_filename):
+                    os.remove(output_image_filename)
                 os.system('cp {0} {1}'.format(output_image_filename, field_image_filename))

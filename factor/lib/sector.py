@@ -71,9 +71,15 @@ class Sector(object):
         for obs in self.observations:
             obs.set_predict_parameters(self.name, self.patches)
 
-    def set_imaging_parameters(self):
+    def set_imaging_parameters(self, do_multiscale=None):
         """
         Sets the imaging parameters
+
+        Parameters
+        ----------
+        do_multiscale : str
+            If True, multiscale clean is done. If None, multiscale clean is done when a
+            large source is detected
         """
         self.cellsize_arcsec = self.field.parset['imaging_specific']['cellsize_arcsec']
         self.cellsize_deg = self.cellsize_arcsec / 3600.0
@@ -120,7 +126,7 @@ class Sector(object):
         self.wsclean_niter = int(12000 * scaling_factor)
 
         # Set multiscale: get source sizes and check for large sources
-        self.multiscale = self.field.parset['imaging_specific']['do_multiscale']
+        self.multiscale = do_multiscale
         if self.multiscale is None:
             large_size_arcmin = 4.0 # threshold source size for multiscale to be activated
             sizes_arcmin = self.source_sizes * 60.0
