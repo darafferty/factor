@@ -548,23 +548,24 @@ class Field(object):
         dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
         create_directory(dst_dir)
         field_image_filename = os.path.join(dst_dir, 'field-MFS-image.fits')
-        if not os.path.exists(field_image_filename):
-            if len(self.imaging_sectors) > 1:
-                # Blank the sector images before making mosaic
-                self.log.info('Making mosiac of sector images...')
-                blanked_images = []
-                for sector in self.imaging_sectors:
-                    input_image_file = sector.image_file
-                    vertices_file = sector.vertices_file
-                    output_image_file = input_image_file + '_blanked'
-                    blanked_images.append(output_image_file)
-                    blank_image.main(input_image_file, output_image_file, vertices_file=vertices_file)
+        if os.path.exists(field_image_filename):
+            os.remove(field_image_filename)
+        if len(self.imaging_sectors) > 1:
+            # Blank the sector images before making mosaic
+            self.log.info('Making mosiac of sector images...')
+            blanked_images = []
+            for sector in self.imaging_sectors:
+                input_image_file = sector.image_file
+                vertices_file = sector.vertices_file
+                output_image_file = input_image_file + '_blanked'
+                blanked_images.append(output_image_file)
+                blank_image.main(input_image_file, output_image_file, vertices_file=vertices_file)
 
-                # Make the mosaic
-                mosaic_images.main(blanked_images, field_image_filename)
-            else:
-                # No need to mosaic a single image; just copy it
-                output_image_filename = self.imaging_sectors[0].image_file
-                if os.path.exists(output_image_filename):
-                    os.remove(output_image_filename)
-                os.system('cp {0} {1}'.format(output_image_filename, field_image_filename))
+            # Make the mosaic
+            mosaic_images.main(blanked_images, field_image_filename)
+        else:
+            # No need to mosaic a single image; just copy it
+            output_image_filename = self.imaging_sectors[0].image_file
+            if os.path.exists(output_image_filename):
+                os.remove(output_image_filename)
+            os.system('cp {0} {1}'.format(output_image_filename, field_image_filename))
