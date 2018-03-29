@@ -237,8 +237,7 @@ def get_calibration_options(parset):
 
     # Target flux density in Jy for grouping
     if 'patch_target_flux_jy' in parset_dict:
-        parset_dict['patch_target_flux_jy'] = parset.getfloat('directions',
-            'patch_target_flux_jy')
+        parset_dict['patch_target_flux_jy'] = parset.getfloat('calibration', 'patch_target_flux_jy')
     else:
         parset_dict['patch_target_flux_jy'] = 2.5
 
