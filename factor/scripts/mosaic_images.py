@@ -12,6 +12,7 @@ from astropy.io import fits as pyfits
 import os
 import itertools
 import multiprocessing
+from factor.cluster import get_total_memory
 
 
 def regrid_star(inputs):
@@ -147,13 +148,16 @@ def main(images, outfits, maxwidth=0):
     ma['direction'].set_increment([decinc[np.argmin(np.abs(decinc))], rainc[np.argmin(np.abs(rainc))]])
     ma['direction'].set_referencevalue([master_dec[len(master_dec)/2], master_ra[len(master_ra)/2]])
 
-    # Initialize the arrays for the output image, sensitivity, and weights
+    # Initialize the output image
     master_im = np.zeros((len(master_dec), len(master_ra)))
+    mem_req_gb = master_im.nbytes / 1024**3 * 2
+    mem_avil_gb = get_total_memory()
+    nimg_simul = int(mem_avil_gb / mem_req_gb) - 3
 
-    # Reproject the images onto the master grid, weight and normalize
+    # Reproject the images onto the master grid
     ind = [2,3]
     outshape = (int(nc), int(ns), len(master_dec), len(master_ra))
-    pool = multiprocessing.Pool()
+    pool = multiprocessing.Pool(nimg_simul)
     results = pool.map(regrid_star, itertools.izip(images, itertools.repeat(ind),
                                                    itertools.repeat(ma),
                                                    itertools.repeat(outshape)))
