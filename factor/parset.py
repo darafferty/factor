@@ -512,11 +512,11 @@ def get_imaging_options(parset):
     if 'max_uv_lambda' in parset_dict:
         parset_dict['max_uv_lambda'] = parset.getfloat('imaging', 'max_uv_lambda')
     else:
-        parset_dict['max_uv_lambda'] = 80.0
+        parset_dict['max_uv_lambda'] = 1e6
     if 'taper_arcsec' in parset_dict:
         parset_dict['taper_arcsec'] = parset.getfloat('imaging', 'taper_arcsec')
     else:
-        parset_dict['taper_arcsec'] = 80.0
+        parset_dict['taper_arcsec'] = 0.0
 
     # A target can be specified to ensure that it falls entirely within a single
     # facet. The values should be those of a circular region that encloses the

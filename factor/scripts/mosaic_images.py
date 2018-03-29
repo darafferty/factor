@@ -150,9 +150,9 @@ def main(images, outfits, maxwidth=0):
 
     # Initialize the output image
     master_im = np.zeros((len(master_dec), len(master_ra)))
-    mem_req_gb = master_im.nbytes / 1024**3 * 2
+    mem_req_gb = master_im.nbytes / 1024**3 * 6  # each regrid takes ~ 6 x master_im size
     mem_avil_gb = get_total_memory()
-    nimg_simul = int(mem_avil_gb / mem_req_gb) - 3
+    nimg_simul = int(mem_avil_gb / mem_req_gb) - 6
 
     # Reproject the images onto the master grid
     ind = [2,3]
