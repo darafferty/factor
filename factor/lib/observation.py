@@ -187,14 +187,12 @@ class Observation(object):
         self.parameters['ms_filename'] = self.ms_filename
 
         # The filename of the sector's model data (from predict)
-        ms_model_filename = '{0}.sector_{1}_modeldata'.format(self.ms_filename,
-                                                              sector_name.split('_')[1])
+        ms_model_filename = '{0}.{1}_modeldata'.format(self.ms_filename, sector_name)
         self.parameters['ms_model_filename'] = ms_model_filename
 
         # The filename of the sector's data with all non-sector sources peeled off (i.e.,
         # the data used for imaging)
-        ms_subtracted_filename = '{0}.sector_{1}'.format(self.ms_filename,
-                                                         sector_name.split('_')[1])
+        ms_subtracted_filename = '{0}.{1}'.format(self.ms_filename, sector_name)
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
 
         # The sky model patch names
