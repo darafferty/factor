@@ -186,7 +186,7 @@ def main(images, outfits, maxwidth=0):
     header['RESTFRQ'] = mean_frequency
     header['RESTFREQ'] = mean_frequency
     newhdu = pyfits.PrimaryHDU(data=hdu[0].data, header=header)
-    newhdu.writeto(outfits, clobber=True)
+    newhdu.writeto(outfits, overwrite=True)
 
 
 if __name__ == '__main__':
