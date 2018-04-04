@@ -31,21 +31,25 @@ def main(h5file, soltype, root=None, refstat=None):
         ref = st.ant[0]
         ncol = 1
         color = ''
+        minmax = [0, 0]
     elif soltype == 'sclaraphase':
         st = ss.getSoltab('screenphase000')
         ref = st.ant[0]
         ncol = 0
         color = ''
+        minmax = [-3.2, 3.2]
     elif soltype == 'amplitude':
         st = ss.getSoltab('amplitude000')
         ref = ''
         ncol = 0
         color = 'pol'
+        minmax = [0, 0]
     elif soltype == 'phase':
         st = ss.getSoltab('phase000')
         ref = st.ant[0]
         ncol = 0
         color = 'pol'
+        minmax = [-3.2, 3.2]
     else:
         print('ERROR: solution type "{}" not understood. Must be one of tec, scalarphase, '
               'phase, or amplitude'.format(soltype))
