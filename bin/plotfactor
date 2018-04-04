@@ -39,7 +39,7 @@ def main(h5file, soltype, root=None):
     elif soltype == 'phase':
         st = ss.getSoltab('phase000')
         ncol = 0
-        color = ''
+        color = 'pol'
     else:
         print('ERROR: solution type "{}" not understood. Must be one of tec, scalarphase, '
               'phase, or amplitude'.format(soltype))
