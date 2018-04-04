@@ -33,7 +33,7 @@ def main(h5file, soltype, root=None):
         ncol = 0
         color = ''
     elif soltype == 'amplitude':
-        st = ss.getSoltab('amplitdue000')
+        st = ss.getSoltab('amplitude000')
         ncol = 0
         color = 'pol'
     elif soltype == 'phase':
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
     parser.add_argument('h5file', help="Name of solution h5parm file")
     parser.add_argument('soltype', help="Type of solution to plot: tec, scalarphase, phase, or amplitude")
-    parser.add_argument('root', help="Root name for output plots (default = soltype)", default=None)
+    parser.add_argument('--root', help="Root name for output plots (default: 'soltype_')", default=None)
 
     args = parser.parse_args()
     main(args.h5file, args.soltype, args.root)
