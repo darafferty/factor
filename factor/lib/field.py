@@ -201,7 +201,7 @@ class Field(object):
         """
         # Concat all output sector sky models
         self.log.info('Updating sky model...')
-        if self.parset['strategy'] == 'selfcal':
+        if self.parset['strategy'] == 'sectorselfcal':
             # Use new models from the imaged sectors only
             sector_skymodels = [sector.image_skymodel_file for sector in self.imaging_sectors]
             sector_names = [sector.name for sector in self.imaging_sectors]
@@ -211,7 +211,7 @@ class Field(object):
         else:
             # Use models from all sectors, whether imaged or not
             sector_skymodels = []
-            for sector in self.sector:
+            for sector in self.sectors:
                 if sector.is_outlier:
                     sector_skymodels.append(sector.predict_skymodel_file)
                 else:
