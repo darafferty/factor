@@ -243,25 +243,25 @@ class Sector(object):
         x = np.array(x)
         y = np.array(y)
 
-        # Keep only those inside the sector bounding box
+        # Keep only those sources inside the sector bounding box
         inside = np.zeros(len(skymodel), dtype=bool)
         xmin, ymin, xmax, ymax = self.poly.bounds
         inside_ind = np.where( (x >= xmin) & (x <= xmax) & (y >= ymin ) & (y <= ymax ))
         inside[inside_ind] = True
         skymodel.select(inside)
-
-        # Now check the actual sector boundary against filtered sky model
         RA = skymodel.getColValues('Ra')
         Dec = skymodel.getColValues('Dec')
         x, y = self.field.radec2xy(RA, Dec)
         x = np.array(x)
         y = np.array(y)
+
+        # Now check the actual sector boundary against filtered sky model
         xpadding = int(0.1 * (max(x) - min(x)))
         ypadding = int(0.1 * (max(y) - min(y)))
         xshift = int(min(x)) - xpadding
         yshift = int(min(y)) - ypadding
-        xsize = int((max(x) - min(x))) + 2*xpadding
-        ysize = int((max(y) - min(y))) + 2*ypadding
+        xsize = int(np.ceil(max(x) - min(x))) + 2*xpadding
+        ysize = int(np.ceil(max(y) - min(y))) + 2*ypadding
         x -= xshift
         y -= yshift
         prepared_polygon = prep(self.poly)
