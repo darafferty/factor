@@ -60,7 +60,7 @@ def main(h5file, soltype, root=None, refstat=None):
         ref = refstat
     print('Plotting {} solutions...'.format(soltype))
     plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, refAnt=ref,
-             prefix=root)
+             prefix=root, minmax=minmax)
     h.close()
 
 
