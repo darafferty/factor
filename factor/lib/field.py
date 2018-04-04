@@ -62,7 +62,7 @@ class Field(object):
 
     def scan_observations(self):
         """
-        Checks input MS files and inits the associated Observation objects
+        Checks input MS files and initializes the associated Observation objects
         """
         self.log.debug('Scanning observations...')
         self.observations = []
@@ -198,6 +198,11 @@ class Field(object):
     def update_skymodels(self, iter):
         """
         Updates the source and calibration sky models from the output sector sky model(s)
+
+        Parameters
+        ----------
+        iter : int
+            Iteration index
         """
         # Concat all output sector sky models
         self.log.info('Updating sky model...')
@@ -206,7 +211,7 @@ class Field(object):
             sector_skymodels = [sector.image_skymodel_file for sector in self.imaging_sectors]
             sector_names = [sector.name for sector in self.imaging_sectors]
 
-            # Assume each sector is a single patch, so don't regroup
+            # Each sector is a single patch, so don't regroup
             regroup = False
         else:
             # Use models from all sectors, whether imaged or not
@@ -231,7 +236,8 @@ class Field(object):
         self.make_skymodels(skymodel, regroup=regroup)
 
         # Re-adjust sector boundaries and update their sky models
-        self.adjust_sector_boundaries()
+        if not self.parset['strategy'] == 'sectorselfcal':
+            self.adjust_sector_boundaries()
         for sector in self.sectors:
             sector.make_skymodel()
 
@@ -256,6 +262,7 @@ class Field(object):
                 self.imaging_sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
                 n += 1
             self.log.info('Using {0} user-defined imaging sectors'.format(len(self.imaging_sectors)))
+            # TODO: check whether flux density in each sector meets minimum and warn if not?
         else:
             # Make a regular grid of sectors
             if self.parset['imaging_specific']['grid_center_ra'] is None:
@@ -347,7 +354,7 @@ class Field(object):
         outlier_skymodel = self.make_outlier_skymodel()
         nsources = len(outlier_skymodel)
         if nsources > 0:
-            nnodes = 10 # TODO: tune to number of available nodes and/or memory?
+            nnodes = 10  # TODO: tune to number of available nodes and/or memory?
             for i in range(nnodes):
                 outlier_sector = Sector('outlier_{0}'.format(i), self.ra, self.dec, 1.0, 1.0, self)
                 outlier_sector.is_outlier = True
@@ -367,14 +374,19 @@ class Field(object):
     def find_intersecting_sources(self):
         """
         Finds sources that intersect with the intial sector boundaries
+
+        Returns
+        -------
+        intersecting_source_polys: list of Polygons
+            List of source polygons that intersect one or more sector boundaries
         """
         idx = rtree.index.Index()
         skymodel = self.source_skymodel
         RA, Dec = skymodel.getPatchPositions(asArray=True)
         x, y = self.radec2xy(RA, Dec)
         sizes = skymodel.getPatchSizes(units='degree')
-        minsize = 1 #  minimum allowed source size in pixels
-        sizes = [max(minsize, s/2.0/self.wcs_pixel_scale) for s in sizes] #  radii in pixels
+        minsize = 1  #  minimum allowed source size in pixels
+        sizes = [max(minsize, s/2.0/self.wcs_pixel_scale) for s in sizes]  # radii in pixels
 
         for i, (xs, ys, ss) in enumerate(zip(x, y, sizes)):
             xmin = xs - ss
@@ -385,7 +397,7 @@ class Field(object):
 
         # For each sector side, query the index to find any intersections
         intersecting_ind = []
-        buffer = 2 #  how many pixels away from each side to check
+        buffer = 2  # how many pixels away from each side to check
         for sector in self.imaging_sectors:
             xmin, ymin, xmax, ymax = sector.initial_poly.bounds
             side1 = (xmin-buffer, ymin, xmin+buffer, ymax)
@@ -398,11 +410,15 @@ class Field(object):
             intersecting_ind.extend(list(idx.intersection(side4)))
 
         # Make polygons for intersecting sources, with a size = 1.5 * radius of source
-        xfilt = np.array(x)[(np.array(intersecting_ind),)]
-        yfilt = np.array(y)[(np.array(intersecting_ind),)]
-        sfilt = np.array(sizes)[(np.array(intersecting_ind),)]
-        points = [Point(xp, yp).buffer(sp*1.5) for xp, yp, sp in zip(xfilt, yfilt, sfilt)]
-        return points
+        if len(intersecting_ind) > 0:
+            xfilt = np.array(x)[(np.array(intersecting_ind),)]
+            yfilt = np.array(y)[(np.array(intersecting_ind),)]
+            sfilt = np.array(sizes)[(np.array(intersecting_ind),)]
+            intersecting_source_polys = [Point(xp, yp).buffer(sp*1.5) for
+                                         xp, yp, sp in zip(xfilt, yfilt, sfilt)]
+        else:
+            intersecting_source_polys = []
+        return intersecting_source_polys
 
     def adjust_sector_boundaries(self):
         """
@@ -514,7 +530,7 @@ class Field(object):
         """
         from astropy.wcs import WCS
 
-        self.wcs_pixel_scale = 10.0 / 3600.0 # degrees/pixel (= 10"/pixel)
+        self.wcs_pixel_scale = 10.0 / 3600.0  # degrees/pixel (= 10"/pixel)
         w = WCS(naxis=2)
         w.wcs.crpix = [1000, 1000]
         w.wcs.cdelt = np.array([-self.wcs_pixel_scale, self.wcs_pixel_scale])
@@ -534,7 +550,7 @@ class Field(object):
         """
         return False
 
-    def make_mosaic(self, iter, image_id=None):
+    def make_mosaic(self, iter):
         """
         Make mosaic of the sector images
 
@@ -542,8 +558,6 @@ class Field(object):
         ----------
         iter : int
             Iteration index
-        image_id : str, optional
-            Imaging ID
         """
         dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
         create_directory(dst_dir)
