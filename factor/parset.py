@@ -13,7 +13,7 @@ from astropy.coordinates import Angle
 log = logging.getLogger('factor:parset')
 
 
-def parset_read(parset_file, use_log_file=True):
+def parset_read(parset_file, use_log_file=True, skip_cluster=False):
     """
     Read a Factor-formatted parset file and return dict of parameters
 
@@ -47,7 +47,8 @@ def parset_read(parset_file, use_log_file=True):
     parset_dict['imaging_specific'].update(get_imaging_options(parset))
 
     # Handle cluster-specific parameters
-    parset_dict['cluster_specific'].update(get_cluster_options(parset))
+    if not skip_cluster:
+        parset_dict['cluster_specific'].update(get_cluster_options(parset))
 
     # Set up working directory. All output will be placed in this directory
     if not os.path.isdir(parset_dict['dir_working']):

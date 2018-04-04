@@ -106,7 +106,7 @@ def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=
 
         s = lsmtool.load(input_skymodel)
         s.select('{} == True'.format(maskfile))
-        s.write(output_skymodel)
+        s.write(output_skymodel, clobber=True)
 
 
 if __name__ == '__main__':

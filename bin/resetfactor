@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 from factor._version import __version__ as version
-from factor import modifystate.py
+from factor import modifystate
 import optparse
 import sys
 
@@ -32,5 +32,5 @@ if __name__ == '__main__':
     parset_file = args[0]
 
     # Run state modification tool
-     modifystate.run(parset_file)
+    modifystate.run(parset_file)
 

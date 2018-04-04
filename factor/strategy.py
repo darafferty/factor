@@ -42,7 +42,7 @@ def set_strategy(field):
             strategy_list[i]['peel_outliers'] = False
             nr_outlier_sectors = len(field.outlier_sectors)
             nr_imaging_sectors = len(field.imaging_sectors)
-            if nr_imaging_sectors > 1 or nr_outlier_sectors > 1:
+            if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
                 strategy_list[i]['do_predict'] = True
             else:
                 strategy_list[i]['do_predict'] = False
@@ -76,7 +76,7 @@ def set_strategy(field):
                 strategy_list[i]['peel_outliers'] = False
             nr_outlier_sectors = len(field.outlier_sectors)
             nr_imaging_sectors = len(field.imaging_sectors)
-            if nr_imaging_sectors > 1 or nr_outlier_sectors > 1:
+            if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
                 strategy_list[i]['do_predict'] = True
             else:
                 strategy_list[i]['do_predict'] = False

@@ -24,11 +24,12 @@ def check_operation(operation):
         Path of operation output
     """
     pipelines = []
-    directions = glob.glob(os.path.join(operation, '/*'))
+    directions = glob.glob(os.path.join(operation, '*'))
     for d in directions:
         statefile = os.path.join(d, 'statefile')
         if os.path.exists(statefile):
             pipelines.append('{0}/{1}'.format(os.path.basename(operation), os.path.basename(d)))
+
     return pipelines
 
 
@@ -42,10 +43,13 @@ def run(parset_file):
         Filename of parset containing processing parameters
     """
     # Read parset
-    parset = parset_read(parset_file)
+    parset = parset_read(parset_file, use_log_file=False, skip_cluster=True)
 
     # Initialize field object
     field = Field(parset, mininmal=True)
+    field.outlier_sectors = [None]
+    field.imaging_sectors = [None]
+
 
     # Get the processing strategy
     strategy_steps = set_strategy(field)
@@ -85,7 +89,7 @@ def run(parset_file):
                     print("Please enter a number between 1 and {}".format(i))
         except KeyboardInterrupt:
             sys.exit(0)
-        pipeline = pipelines[p_number_raw-1]
+        pipeline = pipelines[int(p_number_raw)-1]
 
         # Ask for confirmation
         try:
@@ -102,7 +106,7 @@ def run(parset_file):
         # Reset pipeline states as requested
         if answer.lower() == "y" or answer.lower() == "yes":
             print('Reseting state...')
-            for pipeline in pipelines[p_number_raw-1:]:
+            for pipeline in pipelines[int(p_number_raw)-1:]:
                 statefile = os.path.join(parset['dir_working'], 'pipelines', pipeline, 'statefile')
                 os.system('rm -f {}'.format(statefile))
             print('Reset complete.')
