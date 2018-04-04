@@ -4,12 +4,10 @@ Script to create a mosaic from facet images
 """
 import argparse
 from argparse import RawTextHelpFormatter
-import casacore.tables
 import casacore.images as pim
 from casacore import quanta
 import numpy as np
 from astropy.io import fits as pyfits
-import os
 import itertools
 import multiprocessing
 from factor.cluster import get_total_memory
@@ -73,8 +71,8 @@ def main(images, outfits, maxwidth=0):
         images = images.strip('[]').split(',')
         images = [im.strip() for im in images]
 
-    psf_fwhm = [] # resolution
-    frequency = [] # frequency of images (should be equal?)
+    psf_fwhm = []  # resolution
+    frequency = []  # frequency of images (should be equal?)
     for i in range(len(images)):
         this_pim = pim.image(images[i])
         info_dict = this_pim.info()['imageinfo']['restoringbeam']
@@ -90,12 +88,12 @@ def main(images, outfits, maxwidth=0):
     mean_frequency = np.mean(frequency)
 
     # Initialize some vectors
-    declims = [] # store the limits of the declination axes
+    declims = []  # store the limits of the declination axes
     raleft = []
     raright = []
-    rainc = [] # store the r.a. increments in case they differ
-    decinc = [] # store the dec increments in case they differ
-    pims = [] # stores the casacore images of the data
+    rainc = []  # store the r.a. increments in case they differ
+    decinc = []  # store the dec increments in case they differ
+    pims = []  # stores the casacore images of the data
 
     # Get image frames for input images
     for im in images:
@@ -118,7 +116,6 @@ def main(images, outfits, maxwidth=0):
         inc = dircoords.get_increment()
         ref = dircoords.get_referencepixel()
         val = dircoords.get_referencevalue()
-        # wsclean image header is weird
         if val[1]<0:
             val[1]+=2*np.pi
         ra_axis = (range(nx)-ref[1])*inc[1]+val[1]
@@ -134,7 +131,7 @@ def main(images, outfits, maxwidth=0):
 
     # Generate the mosaic coordinate frame
     master_dec = np.arange(min(declims), max(declims), min(decinc))
-    if max(raleft)-min(raright) > 5.*np.pi/3.: # crossed RA=0
+    if max(raleft)-min(raright) > 5.*np.pi/3.:  # crossed RA=0
         for i in range(len(raright)):
             raright[i] = raright[i]-2.*np.pi
     master_ra = np.arange(max(raleft), min(raright), max(rainc))
@@ -150,12 +147,12 @@ def main(images, outfits, maxwidth=0):
 
     # Initialize the output image
     master_im = np.zeros((len(master_dec), len(master_ra)))
-    mem_req_gb = master_im.nbytes / 1024**3 * 6  # each regrid takes ~ 6 x master_im size
+    mem_req_gb = max(2, master_im.nbytes / 1024**3 * 6)  # each regrid takes ~ 6 x master_im size
     mem_avil_gb = get_total_memory()
-    nimg_simul = int(mem_avil_gb / mem_req_gb) - 6
+    nimg_simul = min(len(images), int(mem_avil_gb / mem_req_gb) - 6)
 
     # Reproject the images onto the master grid
-    ind = [2,3]
+    ind = [2, 3]
     outshape = (int(nc), int(ns), len(master_dec), len(master_ra))
     pool = multiprocessing.Pool(nimg_simul)
     results = pool.map(regrid_star, itertools.izip(images, itertools.repeat(ind),
@@ -170,8 +167,8 @@ def main(images, outfits, maxwidth=0):
     master_im = np.where(master_im, master_im, blank)
 
     # Write output
-    arrax = np.zeros( (1,1, len(master_im[:,0]), len(master_im[0,:])) )
-    arrax[0,0,:,:] = master_im
+    arrax = np.zeros((1, 1, len(master_im[:, 0]), len(master_im[0, :])))
+    arrax[0, 0, :, :] = master_im
     new_pim = pim.image('', shape=(1, 1, len(master_dec), len(master_ra)), coordsys=ma)
     new_pim.putdata(arrax)
     new_pim.tofits(outfits, overwrite=True)
@@ -194,7 +191,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
     parser.add_argument('images', help='List of filenames of facet images')
     parser.add_argument('outfits', help='Output name of mosaic fits file')
-    parser.add_argument('-m','--maxwidth', help='Maximum number of pixels to '
+    parser.add_argument('-m', '--maxwidth', help='Maximum number of pixels to '
         'consider for the width of the mosaic [default 0 = unlimited] This can '
         'be helpful at high declination.', default=0, type=int)
 
