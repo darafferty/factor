@@ -8,7 +8,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 
-def main(h5file, soltype, root):
+def main(h5file, soltype, root=None):
     """
     Plot solutions vs. time
 
@@ -18,8 +18,8 @@ def main(h5file, soltype, root):
         Name of solution h5parm file
     soltype : str
         Type of solution to plot: tec, scalarphase, phase, or amplitude
-    root : str
-        Root name for output plots
+    root : str, optional
+        Root name for output plots. If None, the soltype is used
     """
     h = h5parm(h5file)
     ss = h.getSolset('sol000')
@@ -44,6 +44,9 @@ def main(h5file, soltype, root):
         print('ERROR: solution type "{}" not understood. Must be one of tec, scalarphase, '
               'phase, or amplitude'.format(soltype))
 
+    if root is None:
+        root = soltype + '_'
+    print('Plotting {} solutions...'.format(soltype))
     plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, prefix=root)
     h.close()
 
@@ -53,7 +56,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
     parser.add_argument('h5file', help="Name of solution h5parm file")
     parser.add_argument('soltype', help="Type of solution to plot: tec, scalarphase, phase, or amplitude")
-    parser.add_argument('root', help="Root name for output plots")
+    parser.add_argument('root', help="Root name for output plots (default = soltype)", default=None)
 
     args = parser.parse_args()
     main(args.h5file, args.soltype, args.root)
