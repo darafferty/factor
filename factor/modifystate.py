@@ -15,6 +15,14 @@ logging.getLogger('factor:strategy').setLevel(logging.CRITICAL)
 
 
 def check_operation(operation):
+    """
+    Returns list of started/completed pipeline names for given operation path
+
+    Parameters
+    ----------
+    operation : str
+        Path of operation output
+    """
     pipelines = []
     directions = glob.glob(os.path.join(operation, '/*'))
     for d in directions:

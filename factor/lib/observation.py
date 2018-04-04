@@ -173,9 +173,9 @@ class Observation(object):
         self.parameters['solint_slow_timestep'] = [solint_slow_timestep] * self.nfreqchunks
         self.parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
 
-    def set_predict_parameters(self, sector_name, patch_names):
+    def set_prediction_parameters(self, sector_name, patch_names):
         """
-        Sets the predict parameters for given values
+        Sets the prediction parameters
 
         Parameters
         ----------

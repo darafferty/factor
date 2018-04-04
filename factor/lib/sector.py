@@ -64,12 +64,12 @@ class Sector(object):
         # Define the initial sector polygon vertices and sky model
         self.intialize_vertices()
 
-    def set_predict_parameters(self):
+    def set_prediction_parameters(self):
         """
         Sets the predict parameters
         """
         for obs in self.observations:
-            obs.set_predict_parameters(self.name, self.patches)
+            obs.set_prediction_parameters(self.name, self.patches)
 
     def set_imaging_parameters(self, do_multiscale=None):
         """
@@ -220,7 +220,7 @@ class Sector(object):
             self.source_sizes = source_skymodel.getPatchSizes(units='degree')
 
         # Set the parameters for predict
-        self.set_predict_parameters()
+        self.set_prediction_parameters()
 
     def filter_skymodel(self, skymodel):
         """
