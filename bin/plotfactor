@@ -8,7 +8,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 
-def main(h5file, soltype, root=None):
+def main(h5file, soltype, root=None, refstat=None):
     """
     Plot solutions vs. time
 
@@ -20,24 +20,30 @@ def main(h5file, soltype, root=None):
         Type of solution to plot: tec, scalarphase, phase, or amplitude
     root : str, optional
         Root name for output plots. If None, the soltype is used
+    refstat : str, optional
+        Name of referance station. If None, the first stations is used
     """
     h = h5parm(h5file)
     ss = h.getSolset('sol000')
 
     if soltype == 'tec':
         st = ss.getSoltab('screentec000')
+        ref = st.ant[0]
         ncol = 1
         color = ''
     elif soltype == 'sclaraphase':
         st = ss.getSoltab('screenphase000')
+        ref = st.ant[0]
         ncol = 0
         color = ''
     elif soltype == 'amplitude':
         st = ss.getSoltab('amplitude000')
+        ref = ''
         ncol = 0
         color = 'pol'
     elif soltype == 'phase':
         st = ss.getSoltab('phase000')
+        ref = st.ant[0]
         ncol = 0
         color = 'pol'
     else:
@@ -46,8 +52,11 @@ def main(h5file, soltype, root=None):
 
     if root is None:
         root = soltype + '_'
+    if refstat is not None:
+        ref = refstat
     print('Plotting {} solutions...'.format(soltype))
-    plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, prefix=root)
+    plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, refAnt=ref,
+             prefix=root)
     h.close()
 
 
@@ -57,6 +66,7 @@ if __name__ == "__main__":
     parser.add_argument('h5file', help="Name of solution h5parm file")
     parser.add_argument('soltype', help="Type of solution to plot: tec, scalarphase, phase, or amplitude")
     parser.add_argument('--root', help="Root name for output plots (default: 'soltype_')", default=None)
+    parser.add_argument('--refstat', help="Name of referance station (default: first)", default=None)
 
     args = parser.parse_args()
     main(args.h5file, args.soltype, args.root)
