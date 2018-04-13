@@ -24,6 +24,8 @@ def set_strategy(field):
     """
     strategy_list = []
     always_do_slowgain = True
+    nr_outlier_sectors = len(field.outlier_sectors)
+    nr_imaging_sectors = len(field.imaging_sectors)
 
     if field.parset['strategy'] == 'fieldselfcal':
         # Selfcal without peeling of non-imaged sources:
@@ -40,8 +42,6 @@ def set_strategy(field):
             else:
                 strategy_list[i]['do_slowgain'] = True
             strategy_list[i]['peel_outliers'] = False
-            nr_outlier_sectors = len(field.outlier_sectors)
-            nr_imaging_sectors = len(field.imaging_sectors)
             if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
                 strategy_list[i]['do_predict'] = True
             else:
@@ -74,8 +74,6 @@ def set_strategy(field):
                 strategy_list[i]['peel_outliers'] = True
             else:
                 strategy_list[i]['peel_outliers'] = False
-            nr_outlier_sectors = len(field.outlier_sectors)
-            nr_imaging_sectors = len(field.imaging_sectors)
             if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
                 strategy_list[i]['do_predict'] = True
             else:
@@ -96,7 +94,10 @@ def set_strategy(field):
         strategy_list.append({})
         strategy_list[0]['do_calibrate'] = False
         strategy_list[0]['peel_outliers'] = False
-        strategy_list[0]['do_predict'] = True
+        if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
+            strategy_list[0]['do_predict'] = True
+        else:
+            strategy_list[0]['do_predict'] = False
         strategy_list[0]['do_image'] = True
         strategy_list[0]['do_update'] = False
         strategy_list[0]['do_check'] = False
