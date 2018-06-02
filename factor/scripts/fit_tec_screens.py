@@ -110,86 +110,88 @@ def remove_jumps(tec_vals, jump_val, nsamples):
 #     for i in range(len(tec)):
 #         tec[i] = tec_samples[tecind[i], i]
 #         tec[i] = most_common(tec_samples[:, i].tolist())
-    nmed = 5
-    pad_width = [(0, 0)] * len(tec_vals.shape)
-    pad_width[-1] = ((nmed-1)/2, (nmed-1)/2)
-    pad_vals = np.pad(tec, pad_width, 'constant', constant_values=(np.nan,))
-    medtec = np.nanmedian(_rolling_window_lastaxis(pad_vals, nmed), axis=-1)
+    limit_extrap = False
+    if limit_extrap:
+        nmed = 5
+        pad_width = [(0, 0)] * len(tec_vals.shape)
+        pad_width[-1] = ((nmed-1)/2, (nmed-1)/2)
+        pad_vals = np.pad(tec, pad_width, 'constant', constant_values=(np.nan,))
+        medtec = np.nanmedian(_rolling_window_lastaxis(pad_vals, nmed), axis=-1)
 
-    nstddev = 15
-    pad_width = [(0, 0)] * len(tec_vals.shape)
-    pad_width[-1] = ((nstddev-1)/2, (nstddev-1)/2)
-    pad_vals = np.pad(tec-medtec, pad_width, 'constant', constant_values=(np.nan,))
-    stddev = np.nanstd(_rolling_window_lastaxis(pad_vals, nstddev), axis=-1) * 3.0
-    tec_samples = []
-#     tec_vals = np.array(tec).copy()
-    stop_err = 0.025
-    for s, startindx in enumerate(startpoints):
-        tec = tec_vals.copy()
-        if startindx > 0:
-            # Search backwards
-            skip = False
-            for i in range(startindx, 0, -1):
-                # Remove jumps
-                if not skip:
-                    diff = np.fmod(tec[i]-tec[i-1], jump_val)
-                    tec[i-1] = tec[i] - diff
-                    err = min(max_err, max(0.025, stddev[i-1]))
-                    if err > stop_err:
-                        tec[0:i-1] = np.nan
-                        break
-                    if approx_equal(abs(diff), jump_val, tol=err):
-                        tec[i-1] += np.sign(diff) * jump_val
-                    if i > 1:
-                        # Check diff to next solution as well
-                        old_val = tec[i-2]
-                        diff = np.fmod(tec[i]-tec[i-2], jump_val)
-                        tec[i-2] = tec[i] - diff
+        nstddev = 15
+        pad_width = [(0, 0)] * len(tec_vals.shape)
+        pad_width[-1] = ((nstddev-1)/2, (nstddev-1)/2)
+        pad_vals = np.pad(tec-medtec, pad_width, 'constant', constant_values=(np.nan,))
+        stddev = np.nanstd(_rolling_window_lastaxis(pad_vals, nstddev), axis=-1) * 3.0
+        tec_samples = []
+    #     tec_vals = np.array(tec).copy()
+        stop_err = 0.025
+        for s, startindx in enumerate(startpoints):
+            tec = tec_vals.copy()
+            if startindx > 0:
+                # Search backwards
+                skip = False
+                for i in range(startindx, 0, -1):
+                    # Remove jumps
+                    if not skip:
+                        diff = np.fmod(tec[i]-tec[i-1], jump_val)
+                        tec[i-1] = tec[i] - diff
+                        err = min(max_err, max(0.025, stddev[i-1]))
+                        if err > stop_err:
+                            tec[0:i-1] = np.nan
+                            break
                         if approx_equal(abs(diff), jump_val, tol=err):
-                            tec[i-2] += np.sign(diff) * jump_val
-                        if abs(old_val - tec[i-2]) > jump_val*0.9:
-                            # If we removed a jump, set middle value to average
-                            tec[i-1] = (tec[i] + tec[i-2]) / 2.0
-                            skip = True
-                else:
-                    skip = False
-        if startindx < len(tec_vals)-1:
-            # Search forwards
-            skip = False
-            for i in range(startindx, len(tec_vals)-1, 1):
-                # Remove jumps
-                if not skip:
-                    diff = np.fmod(tec[i]-tec[i+1], jump_val)
-                    tec[i+1] = tec[i] - diff
-                    err = min(max_err, max(0.015, stddev[i+1]))
-                    if err > stop_err:
-                        tec[i+1:] = np.nan
-                        break
-                    if approx_equal(abs(diff), jump_val, tol=err):
-                        tec[i+1] += np.sign(diff) * jump_val
-                    if i < len(tec_vals)-2:
-                        # Check diff to next solution as well
-                        old_val = tec[i+2]
-                        diff = np.fmod(tec[i]-tec[i+2], jump_val)
-                        tec[i+2] = tec[i] - diff
+                            tec[i-1] += np.sign(diff) * jump_val
+                        if i > 1:
+                            # Check diff to next solution as well
+                            old_val = tec[i-2]
+                            diff = np.fmod(tec[i]-tec[i-2], jump_val)
+                            tec[i-2] = tec[i] - diff
+                            if approx_equal(abs(diff), jump_val, tol=err):
+                                tec[i-2] += np.sign(diff) * jump_val
+                            if abs(old_val - tec[i-2]) > jump_val*0.9:
+                                # If we removed a jump, set middle value to average
+                                tec[i-1] = (tec[i] + tec[i-2]) / 2.0
+                                skip = True
+                    else:
+                        skip = False
+            if startindx < len(tec_vals)-1:
+                # Search forwards
+                skip = False
+                for i in range(startindx, len(tec_vals)-1, 1):
+                    # Remove jumps
+                    if not skip:
+                        diff = np.fmod(tec[i]-tec[i+1], jump_val)
+                        tec[i+1] = tec[i] - diff
+                        err = min(max_err, max(0.015, stddev[i+1]))
+                        if err > stop_err:
+                            tec[i+1:] = np.nan
+                            break
                         if approx_equal(abs(diff), jump_val, tol=err):
-                            tec[i+2] += np.sign(diff) * jump_val
-                            skip = False
-                        if abs(old_val - tec[i+2]) > jump_val*0.9:
-                            # If we removed a jump, set middle value to average
-                            tec[i+1] = (tec[i] + tec[i+2]) / 2.0
-                            skip = True
-                else:
-                    skip = False
-        tec_samples.append(tec)
+                            tec[i+1] += np.sign(diff) * jump_val
+                        if i < len(tec_vals)-2:
+                            # Check diff to next solution as well
+                            old_val = tec[i+2]
+                            diff = np.fmod(tec[i]-tec[i+2], jump_val)
+                            tec[i+2] = tec[i] - diff
+                            if approx_equal(abs(diff), jump_val, tol=err):
+                                tec[i+2] += np.sign(diff) * jump_val
+                                skip = False
+                            if abs(old_val - tec[i+2]) > jump_val*0.9:
+                                # If we removed a jump, set middle value to average
+                                tec[i+1] = (tec[i] + tec[i+2]) / 2.0
+                                skip = True
+                    else:
+                        skip = False
+            tec_samples.append(tec)
 
-    # Take the median as the best guess
-#     tec_samples = np.array(tec_samples)
-#     0/0
-    tec = np.nanmedian(np.array(tec_samples), axis=0)
-#     tecind = np.argmin(np.abs(np.array(tec_samples)), axis=0)
-#     for i in range(len(tec)):
-#         tec[i] = tec_samples[tecind[i], i]
+        # Take the median as the best guess
+    #     tec_samples = np.array(tec_samples)
+    #     0/0
+        tec = np.nanmedian(np.array(tec_samples), axis=0)
+    #     tecind = np.argmin(np.abs(np.array(tec_samples)), axis=0)
+    #     for i in range(len(tec)):
+    #         tec[i] = tec_samples[tecind[i], i]
 
     return tec, stddev
 
@@ -266,7 +268,8 @@ def remove_soltabs(solset, soltabnames):
 
 def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     tecsoltabname='tec000', errsoltabname='error000', outsoltabroot='_screensols',
-    ref_id=0, fit_screens=False, calculate_weights=True):
+    ref_id=0, fit_screens=False, calculate_weights=True, remove_jumps=False,
+    flag_on_err=False):
     """
     Fit screens to TEC solutions
 
@@ -290,6 +293,14 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         Root name for output soltabs
     ref_id : int, optional
         Index of reference station
+    fit_screens : bool, optional
+        If True, fit station screens
+    calculate_weights : bool, optional
+        If True, calculated new solutions weights
+    remove_jumps : bool, optional
+        If True, attempt to remove 2pi jumps
+    flag_on_err : bool, optional
+        If True, flag solutions with high errors
     """
     ref_id = int(ref_id)
 
@@ -305,33 +316,52 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     station_names = tecsoltab.ant[:]
     dtec = np.ones(tec.shape)
 
-    # Remove jumps
-    nstat = tec.shape[1]
-    ndir = tec.shape[2]
-    nfreq = tec.shape[3]
-    for ch in range(nfreq):
-        freq = tecsoltab.freq[ch]
-        jump_val = 2*np.pi/8.4479745e9*freq
-        for s in range(nstat):
-            pool = multiprocessing.Pool()
-            tec_pool = [tec[:, s, d, ch] for d in range(ndir)]
-            results = pool.map(remove_jumps_pool, itertools.izip(tec_pool,
-                               itertools.repeat(jump_val), itertools.repeat(31)))
-            pool.close()
-            pool.join()
+    if remove_jumps:
+        # Attempt to remove jumps
+        nstat = tec.shape[1]
+        ndir = tec.shape[2]
+        nfreq = tec.shape[3]
+        for ch in range(nfreq):
+            freq = tecsoltab.freq[ch]
+            jump_val = 2*np.pi/8.4479745e9*freq
+            for s in range(nstat):
+                pool = multiprocessing.Pool()
+                tec_pool = [tec[:, s, d, ch] for d in range(ndir)]
+                results = pool.map(remove_jumps_pool, itertools.izip(tec_pool,
+                                   itertools.repeat(jump_val), itertools.repeat(31)))
+                pool.close()
+                pool.join()
 
-            for d, (tec_clean, dtec_clean) in enumerate(results):
-                # put back the results
-                tec[:, s, d, ch] = tec_clean
-                dtec[:, s, d, ch] = dtec_clean
+                for d, (tec_clean, dtec_clean) in enumerate(results):
+                    # put back the results
+                    tec[:, s, d, ch] = tec_clean
+                    dtec[:, s, d, ch] = dtec_clean
 
+    if flag_on_err:
+        # Flag solutions with high errors
+        maxiter = 5
+        nsigma = 3.0
+        outliers = []
+        for i in range(maxiter):
+            ind = np.where(np.abs(err_vals-np.mean(err_vals, axis=0)) >
+                           nsigma*np.std(err_vals, axis=0))
+            if ind[0].size == 0:
+                break
+            else:
+                outliers.append(ind)
+                err_vals[ind] = np.mean(err_vals)
+        for ind in outliers:
+            tec[ind] = np.NaN
+            dtec[ind] = 0.0
+
+    # Make soltab with adjusted solutions
     remove_soltabs(solset, ['screentec000'])
     solset.makeSoltab('tec', 'screentec000',
             axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
             station_names, source_names, tecsoltab.freq[:]], vals=tec, weights=dtec)
 
     if fit_screens:
-        # Rename fixed TEC soltab (otherwise it will be overwritten later)
+        # Rename adjusted soltab
         soltab = solset.getSoltab('screentec000')
         soltab.rename('fixedtec000')
 
@@ -351,3 +381,10 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         operations.screenvalues.run(soltab, source_dict, outsoltabroot)
         soltab = solset.getSoltab('tec{}'.format(outsoltabroot))
         soltab.rename('screentec000')
+    else:
+        # Use losoto's flagextend to remove slow-gain periods with low (<50%?) unflagged
+        # fraction. This step is not needed if we fit screens, as interpolated values
+        # are used
+        soltab = solset.getSoltab('screentec000')
+        slowgain_solint = 75
+        operations.flagextend(soltab, ['time'], [slowgain_solint], percent=50.0)

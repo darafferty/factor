@@ -261,7 +261,7 @@ class Field(object):
                 name = 'sector_{0}'.format(n)
                 self.imaging_sectors.append(Sector(name, ra, dec, width_ra, width_dec, self))
                 n += 1
-            self.log.info('Using {0} user-defined imaging sectors'.format(len(self.imaging_sectors)))
+            self.log.info('Using {0} user-defined imaging sector(s)'.format(len(self.imaging_sectors)))
             # TODO: check whether flux density in each sector meets minimum and warn if not?
         else:
             # Make a regular grid of sectors
@@ -325,10 +325,9 @@ class Field(object):
 
         # Adjust sector boundaries to avoid known sources and update their sky models
         self.adjust_sector_boundaries()
-        if len(self.imaging_sectors) > 1:
-            self.log.info('Making sector sky models (for predicting)...')
-            for sector in self.imaging_sectors:
-                sector.make_skymodel()
+        self.log.info('Making sector sky models (for predicting)...')
+        for sector in self.imaging_sectors:
+            sector.make_skymodel()
 
         # Set the imaging parameters for each imaging sector
         sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']

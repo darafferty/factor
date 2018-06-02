@@ -43,13 +43,13 @@ def run(parset_file):
         Filename of parset containing processing parameters
     """
     # Read parset
+    log.info('Reading parset and checking state...')
     parset = parset_read(parset_file, use_log_file=False, skip_cluster=True)
 
     # Initialize field object
     field = Field(parset, mininmal=True)
     field.outlier_sectors = [None]
     field.imaging_sectors = [None]
-
 
     # Get the processing strategy
     strategy_steps = set_strategy(field)

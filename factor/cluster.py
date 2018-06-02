@@ -182,7 +182,7 @@ def get_compute_nodes(cluster_type):
     """
     if cluster_type == 'pbs':
         nodes = get_pbs_nodes()
-    elif cluster_type == 'slurm':
+    elif cluster_type == 'slurm' or cluster_type == 'juropa_slurm':
         nodes = get_slurm_nodes()
     else:
         nodes = ['localhost']
