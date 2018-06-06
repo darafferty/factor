@@ -115,11 +115,11 @@ prepare_imaging_data.argument.scphase.direction                   = [{{ central_
 {% if apply_slowgains %}
 prepare_imaging_data.argument.amp.type                            = applycal
 prepare_imaging_data.argument.amp.parmdb                          = h5parm
-prepare_imaging_data.argument.amp.correction                      = amplitude000
+prepare_imaging_data.argument.amp.correction                      = screenamplitude000
 prepare_imaging_data.argument.amp.direction                       = [{{ central_patch }}]
 prepare_imaging_data.argument.phase.type                          = applycal
 prepare_imaging_data.argument.phase.parmdb                        = h5parm
-prepare_imaging_data.argument.phase.correction                    = phase000
+prepare_imaging_data.argument.phase.correction                    = screenphase000
 prepare_imaging_data.argument.phase.direction                     = [{{ central_patch }}]
 {% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger

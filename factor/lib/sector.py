@@ -136,7 +136,7 @@ class Sector(object):
                 self.multiscale = False
         if self.multiscale:
             self.multiscale_scales_pixel = self.field.parset['imaging_specific']['multiscale_scales_pixel']
-            self.wsclean_niter /= 2 # fewer iterations are needed
+            self.wsclean_niter = int(self.wsclean_niter/1.5) # fewer iterations are needed
             self.log.debug("Will do multiscale cleaning.")
         else:
             self.multiscale_scales_pixel = 0

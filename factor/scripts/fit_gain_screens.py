@@ -293,11 +293,11 @@ def median2Dampfilter(amp_orig):
 
 
 def smooth(soltab, normalize=True):
-    parms = soltab.val[:]
-    weights = soltab.weight[:]
 
     if soltab.getType() == 'amplitude':
         # Check for flagged solutions. If found, set to 1
+        parms = soltab.val[:]  # ['time', 'freq', 'ant', 'dir', 'pol']
+        weights = soltab.weight[:]
         ntimes = len(soltab.time[:])
         nfreqs = len(soltab.freq[:])
         initial_flagged_indx = np.where(np.logical_or(np.isnan(parms), weights == 0.0))
@@ -305,53 +305,53 @@ def smooth(soltab, normalize=True):
         parms[initial_flagged_indx] = 1.0
 
         # Get station names
-        antenna_list = soltab.ant[:]
-        for pol in range(len(soltab.pol[:])):
-            for istat, antenna in enumerate(antenna_list):
-                soltab.setSelection(ant=[antenna])
-                channel_amp_orig = soltab.val[:] # ['time', 'freq', 'ant', 'dir', 'pol']
+        for dir in range(len(soltab.dir[:])):
+            for pol in range(len(soltab.pol[:])):
+                for ant in range(len(soltab.ant[:])):
+                    channel_amp_orig = parms[:, :, ant, dir, pol]
 
-                # Find flagged solutions and set to 1.0
-                channel_amp_interp = []
-                for chan in range(nfreqs):
-                    unflagged_times = np.where(channel_amp_orig[:, chan, 0, 0, pol] != 1.0)
-                    flagged_times = np.where(channel_amp_orig[:, chan, 0, 0, pol] == 1.0)
-                    if np.any(flagged_times):
-                        channel_amp_orig[flagged_times, chan, 0, 0, pol] = 1.0
-                    if np.any(unflagged_times):
-                        channel_amp_interp.append(channel_amp_orig[:, chan, 0, 0, pol])
-                    else:
-                        channel_amp_interp.append(None)
-
-                # now find the bad data
-                if ntimes > 5:
-                    pool = multiprocessing.Pool()
-                    results = pool.map(spline1D, channel_amp_interp)
-                    pool.close()
-                    pool.join()
-
-                    for chan, (amp_cleaned, model, noisevec, scatter, n_knots, idxbad, w) in enumerate(results):
-                        # put back the results
-                        if amp_cleaned is None:
-                            amp_cleaned = channel_amp_orig[:, chan, 0, 0, pol]
-                        parms[:, chan, istat, 0, pol] = np.copy(amp_cleaned)
-
-                if nfreqs > 5: # Do 2D smooth
-                    channel_amp_orig = parms[:, :, istat, 0, pol]
-
-                    # Smooth
+                    # Set up array for pool
                     channel_amp_interp = []
-                    unflagged_sols = np.where(channel_amp_orig != 1.0)
-                    if np.any(unflagged_sols):
-                        # Set flagged solutions to 1.0
-                        flagged_sols = np.where(np.logical_or(channel_amp_orig == 1.0, channel_amp_orig <= 0.0))
-                        channel_amp_orig[flagged_sols] = 1.0
+                    for chan in range(nfreqs):
+                        unflagged_times = np.where(channel_amp_orig[:, chan] != 1.0)
+                        flagged_times = np.where(channel_amp_orig[:, chan] == 1.0)
+                        if np.any(flagged_times):
+                            channel_amp_orig[flagged_times, chan] = 1.0
+                        if np.any(unflagged_times):
+                            channel_amp_interp.append(channel_amp_orig[:, chan])
+                        else:
+                            channel_amp_interp.append(None)
 
-                        # Filter
-                        amp_cleaned, amp_median, baddata = median2Dampfilter(channel_amp_orig.transpose([1, 0]))
-                        amp_cleaned = amp_cleaned.transpose([1, 0])
-                        amp_cleaned[flagged_sols] = 1.0
-                        parms[:, :, istat, 0, pol] = np.copy(amp_cleaned)
+                    # Do 1-D smooth
+                    if ntimes > 5:
+                        pool = multiprocessing.Pool()
+                        results = pool.map(spline1D, channel_amp_interp)
+                        pool.close()
+                        pool.join()
+
+                        for chan, (amp_cleaned, model, noisevec, scatter, n_knots, idxbad, w) in enumerate(results):
+                            # put back the results
+                            if amp_cleaned is None:
+                                amp_cleaned = channel_amp_orig[:, chan]
+                            parms[:, chan, ant, dir, pol] = np.copy(amp_cleaned)
+
+                    # Do 2-D smooth
+                    if nfreqs > 5:
+                        channel_amp_orig = parms[:, :, ant, dir, pol]
+
+                        # Smooth
+                        channel_amp_interp = []
+                        unflagged_sols = np.where(channel_amp_orig != 1.0)
+                        if np.any(unflagged_sols):
+                            # Set flagged solutions to 1.0
+                            flagged_sols = np.where(np.logical_or(channel_amp_orig == 1.0, channel_amp_orig <= 0.0))
+                            channel_amp_orig[flagged_sols] = 1.0
+
+                            # Filter
+                            amp_cleaned, amp_median, baddata = median2Dampfilter(channel_amp_orig.transpose([1, 0]))
+                            amp_cleaned = amp_cleaned.transpose([1, 0])
+                            amp_cleaned[flagged_sols] = 1.0
+                            parms[:, :, ant, dir, pol] = np.copy(amp_cleaned)
 
         # Normalize the amplitude solutions to a mean of one across all channels
         if normalize:
@@ -373,20 +373,25 @@ def smooth(soltab, normalize=True):
 
     elif soltab.getType() == 'phase':
         # Flag solutions with large deviations from the mean
-        maxiter = 5
-        nsigma = 3.0
-        outliers = []
-        for i in range(maxiter):
-            ind = np.where(np.abs(parms-np.mean(parms, axis=0)) >
-                           nsigma*np.std(parms, axis=0))
-            if ind[0].size == 0:
-                break
-            else:
-                outliers.append(ind)
-                parms[ind] = np.mean(parms)
-        for ind in outliers:
-            parms[ind] = np.NaN
-            weights[ind] = 0.0
+        nsigma = [2.0, 2.0, 3.0, 3.0, 4.0]
+        parms = soltab.val[:]
+        weights = soltab.weight[:]
+        for dir in range(len(soltab.dir[:])):
+            for pol in range(len(soltab.pol[:])):
+                for ant in range(len(soltab.ant[:])):
+                    phase_orig = parms[:, :, ant, dir, pol]
+                    outliers = []
+                    for nsig in nsigma:
+                        ind = np.where(np.abs(phase_orig-np.mean(phase_orig, axis=0)) >
+                                       nsig*np.std(phase_orig, axis=0))
+                        if ind[0].size == 0:
+                            break
+                        else:
+                            outliers.append(ind)
+                            phase_orig[ind] = np.mean(phase_orig)
+                    for ind in outliers:
+                        parms[:, :, ant, dir, pol][ind] = np.NaN
+                        weights[:, :, ant, dir, pol][ind] = 0.0
 
     else:
         print('Solution type must be phase or amplitude')
@@ -409,8 +414,8 @@ def remove_soltabs(solset, soltabnames):
 
 def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     ampsoltabname='amplitude000', phsoltabname='phase000', outsoltabroot='_screensols',
-    ref_id=0, fit_screens=False, calculate_weights=True, smooth_amplitudes=True,
-    smooth_phases=True, normalize=True):
+    ref_id=0, fit_screens=False, calculate_weights=True, smooth_amplitudes=False,
+    smooth_phases=True, normalize=False):
     """
     Fit screens to gain solutions
 
@@ -460,13 +465,13 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
 
     remove_soltabs(solset, ['screenamplitude000'])
     solset.makeSoltab('amplitude', 'screenamplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
-                      axesVals=[ampsoltab.time[:], ampsoltab.freq[:],ampsoltab.ant[:],
-                      ampsoltab.dir[:], ampsoltab.pol, vals=amp, weights=damp)
+                      axesVals=[ampsoltab.time[:], ampsoltab.freq[:], ampsoltab.ant[:],
+                      ampsoltab.dir[:], ampsoltab.pol[:]], vals=amp, weights=damp)
 
     remove_soltabs(solset, ['screenphase000'])
     solset.makeSoltab('phase', 'screenphase000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                       axesVals=[phsoltab.time[:], phsoltab.freq[:], phsoltab.ant[:],
-                      phsoltab.dir[:], phsoltab.pol, vals=ph, weights=dph)
+                      phsoltab.dir[:], phsoltab.pol[:]], vals=ph, weights=dph)
 
     if fit_screens:
         # Rename smoothed soltabs
@@ -501,3 +506,5 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         operations.screenvalues.run(soltab, source_dict, outsoltabroot)
         soltab = solset.getSoltab('phase{}'.format(outsoltabroot))
         soltab.rename('screenphase000')
+
+    H.close()

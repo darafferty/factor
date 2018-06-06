@@ -269,7 +269,7 @@ def remove_soltabs(solset, soltabnames):
 def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     tecsoltabname='tec000', errsoltabname='error000', outsoltabroot='_screensols',
     ref_id=0, fit_screens=False, calculate_weights=True, remove_jumps=False,
-    flag_on_err=False):
+    flag_on_err=True):
     """
     Fit screens to TEC solutions
 
@@ -339,12 +339,11 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
 
     if flag_on_err:
         # Flag solutions with high errors
-        maxiter = 5
-        nsigma = 3.0
+        nsigma = [2.0, 2.0, 3.0, 3.0, 4.0]
         outliers = []
-        for i in range(maxiter):
+        for nsig in nsigma:
             ind = np.where(np.abs(err_vals-np.mean(err_vals, axis=0)) >
-                           nsigma*np.std(err_vals, axis=0))
+                           nsig*np.std(err_vals, axis=0))
             if ind[0].size == 0:
                 break
             else:
@@ -354,14 +353,13 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
             tec[ind] = np.NaN
             dtec[ind] = 0.0
 
-    # Make soltab with adjusted solutions
     remove_soltabs(solset, ['screentec000'])
     solset.makeSoltab('tec', 'screentec000',
             axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
             station_names, source_names, tecsoltab.freq[:]], vals=tec, weights=dtec)
 
     if fit_screens:
-        # Rename adjusted soltab
+        # Rename fixed TEC soltab (otherwise it will be overwritten later)
         soltab = solset.getSoltab('screentec000')
         soltab.rename('fixedtec000')
 
@@ -381,10 +379,3 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         operations.screenvalues.run(soltab, source_dict, outsoltabroot)
         soltab = solset.getSoltab('tec{}'.format(outsoltabroot))
         soltab.rename('screentec000')
-    else:
-        # Use losoto's flagextend to remove slow-gain periods with low (<50%?) unflagged
-        # fraction. This step is not needed if we fit screens, as interpolated values
-        # are used
-        soltab = solset.getSoltab('screentec000')
-        slowgain_solint = 75
-        operations.flagextend(soltab, ['time'], [slowgain_solint], percent=50.0)
