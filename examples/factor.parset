@@ -75,6 +75,13 @@ input_skymodel = /data/skymodel.txt
 # Target flux per patch when grouping the sky model for calibration (default = 3.0 for HBA and 6.0 for LBA)
 # patch_target_flux_jy = 3.0
 
+# Solution intervals, etc.:
+# fast_timestep_sec = 8.0
+# fast_freqstep_hz = 1e6
+# slow_timestep_sec = 600.0
+# slow_freqstep_hz = 1e6
+# smoothnessconstraint = 3e6
+
 # TEC solver parameters:
 # approximatetec = True
 # maxapproxiter = 50

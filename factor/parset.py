@@ -293,6 +293,12 @@ def get_calibration_options(parset):
     else:
         parset_dict['slow_freqstep_hz'] = 1e6
 
+    # Smoothness constraint
+    if 'smoothnessconstraint' in parset_dict:
+        parset_dict['smoothnessconstraint'] = parset.getfloat('calibration', 'smoothnessconstraint')
+    else:
+        parset_dict['smoothnessconstraint'] = 3e6
+
     # dTEC solver parameters
     if 'approximatetec' in parset_dict:
         parset_dict['approximatetec'] = parset.getboolean('calibration', 'approximatetec')

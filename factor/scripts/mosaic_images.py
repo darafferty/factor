@@ -11,6 +11,7 @@ from astropy.io import fits as pyfits
 import itertools
 import multiprocessing
 from factor.cluster import get_total_memory
+#from reproject import reproject_interp
 
 
 def regrid_star(inputs):

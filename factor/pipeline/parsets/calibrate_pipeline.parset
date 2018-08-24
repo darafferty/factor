@@ -141,33 +141,34 @@ expand_sourcedb_mapfile_freq.control.mapfile_dir      = input.output.mapfile_dir
 expand_sourcedb_mapfile_freq.control.filename         = expand_sourcedb_freq.mapfile
 
 # solve for fast phases, length = ntimechunks
-solve_fast_phases.control.type                      = dppp_inplace
-solve_fast_phases.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
-solve_fast_phases.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
-solve_fast_phases.control.max_per_node              = 1
-solve_fast_phases.argument.numthreads               = {{ max_proc_per_node }}
-solve_fast_phases.argument.msin.datacolumn          = {{ data_colname }}
-solve_fast_phases.argument.msin.starttime           = starttime
-solve_fast_phases.argument.msin.ntimes              = ntimes
-solve_fast_phases.argument.msout                    = .
-solve_fast_phases.argument.steps                    = [solve]
-solve_fast_phases.argument.solve.type               = ddecal
+solve_fast_phases.control.type                        = dppp_inplace
+solve_fast_phases.control.mapfiles_in                 = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
+solve_fast_phases.control.inputkeys                   = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
+solve_fast_phases.control.max_per_node                = 1
+solve_fast_phases.argument.numthreads                 = {{ max_proc_per_node }}
+solve_fast_phases.argument.msin.datacolumn            = {{ data_colname }}
+solve_fast_phases.argument.msin.starttime             = starttime
+solve_fast_phases.argument.msin.ntimes                = ntimes
+solve_fast_phases.argument.msout                      = .
+solve_fast_phases.argument.steps                      = [solve]
+solve_fast_phases.argument.solve.type                 = ddecal
 {% if solve_tecandphase %}
-solve_fast_phases.argument.solve.mode               = tecandphase
+solve_fast_phases.argument.solve.mode                 = tecandphase
 {% else %}
-solve_fast_phases.argument.solve.mode               = tec
+solve_fast_phases.argument.solve.mode                 = tec
 {% endif %}
-solve_fast_phases.argument.solve.h5parm             = h5parm
-solve_fast_phases.argument.solve.sourcedb           = sourcedb
-solve_fast_phases.argument.solve.solint             = timestep
-solve_fast_phases.argument.solve.nchan              = freqstep
-solve_fast_phases.argument.solve.approximatetec     = {{ approximatetec }}
-solve_fast_phases.argument.solve.maxapproxiter      = {{ maxapproxiter }}
-solve_fast_phases.argument.solve.maxiter            = {{ maxiter }}
-solve_fast_phases.argument.solve.propagatesolutions = {{ propagatesolutions }}
-solve_fast_phases.argument.solve.stepsize           = {{ stepsize }}
-solve_fast_phases.argument.solve.tolerance          = {{ tolerance }}
-solve_fast_phases.argument.solve.uvlambdamin        = {{ solve_min_uv_lambda }}
+solve_fast_phases.argument.solve.h5parm               = h5parm
+solve_fast_phases.argument.solve.sourcedb             = sourcedb
+solve_fast_phases.argument.solve.solint               = timestep
+solve_fast_phases.argument.solve.nchan                = freqstep
+solve_fast_phases.argument.solve.approximatetec       = {{ approximatetec }}
+solve_fast_phases.argument.solve.smoothnessconstraint = {{ smoothnessconstraint }}
+solve_fast_phases.argument.solve.maxapproxiter        = {{ maxapproxiter }}
+solve_fast_phases.argument.solve.maxiter              = {{ maxiter }}
+solve_fast_phases.argument.solve.propagatesolutions   = {{ propagatesolutions }}
+solve_fast_phases.argument.solve.stepsize             = {{ stepsize }}
+solve_fast_phases.argument.solve.tolerance            = {{ tolerance }}
+solve_fast_phases.argument.solve.uvlambdamin          = {{ solve_min_uv_lambda }}
 
 # compress fast-phase mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_fast.control.kind        = plugin
@@ -240,6 +241,7 @@ solve_slow_gains.argument.solve.applycal.steps            = [tec]
 solve_slow_gains.argument.solve.applycal.tec.correction   = screentec000
 {% endif %}
 solve_slow_gains.argument.solve.uvlambdamin               = {{ solve_min_uv_lambda }}
+solve_slow_gains.argument.solve.smoothnessconstraint      = {{ smoothnessconstraint }}
 
 # compress slow-gain mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_slow.control.kind        = plugin

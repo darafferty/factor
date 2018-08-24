@@ -71,14 +71,9 @@ class Observation(object):
 
         # Find mean elevation and FOV
         tab = pt.table(self.ms_filename, ack=False)
-        exiting_colnames = tab.colnames()
-        if 'AZEL1' not in exiting_colnames:
-            tab.close()
-            pt.addDerivedMSCal(self.ms_filename)
-            tab = pt.table(self.ms_filename, ack=False)
-        el_values = tab.getcol('AZEL1', rowincr=10000)[:, 1]
+        el_values = pt.taql("SELECT mscal.azel1()[1] AS el from "
+                            + self.files[MS_id] + " limit ::10000").getcol("el")
         tab.close()
-        pt.removeDerivedMSCal(self.ms_filename)
         self.mean_el_rad = np.mean(el_values)
 
     def set_calibration_parameters(self, parset):

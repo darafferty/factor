@@ -43,6 +43,7 @@ class Field(object):
         self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
         self.solve_tecandphase = self.parset['calibration_specific']['solve_tecandphase']
         self.approximatetec = self.parset['calibration_specific']['approximatetec']
+        self.smoothnessconstraint = self.parset['calibration_specific']['smoothnessconstraint']
         self.propagatesolutions = self.parset['calibration_specific']['propagatesolutions']
         self.maxapproxiter = self.parset['calibration_specific']['maxapproxiter']
         self.maxiter = self.parset['calibration_specific']['maxiter']
@@ -579,6 +580,4 @@ class Field(object):
         else:
             # No need to mosaic a single image; just copy it
             output_image_filename = self.imaging_sectors[0].image_file
-            if os.path.exists(output_image_filename):
-                os.remove(output_image_filename)
             os.system('cp {0} {1}'.format(output_image_filename, field_image_filename))

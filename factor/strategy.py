@@ -74,7 +74,7 @@ def set_strategy(field):
                 strategy_list[i]['peel_outliers'] = True
             else:
                 strategy_list[i]['peel_outliers'] = False
-            if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
+            if nr_imaging_sectors > 1 or (i == 0 and nr_outlier_sectors > 0):
                 strategy_list[i]['do_predict'] = True
             else:
                 strategy_list[i]['do_predict'] = False
