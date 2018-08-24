@@ -70,10 +70,8 @@ class Observation(object):
         ant.close()
 
         # Find mean elevation and FOV
-        tab = pt.table(self.ms_filename, ack=False)
         el_values = pt.taql("SELECT mscal.azel1()[1] AS el from "
-                            + self.files[MS_id] + " limit ::10000").getcol("el")
-        tab.close()
+                            + self.ms_filename + " limit ::10000").getcol("el")
         self.mean_el_rad = np.mean(el_values)
 
     def set_calibration_parameters(self, parset):
