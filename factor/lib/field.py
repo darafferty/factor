@@ -49,13 +49,17 @@ class Field(object):
         self.maxiter = self.parset['calibration_specific']['maxiter']
         self.stepsize = self.parset['calibration_specific']['stepsize']
         self.tolerance = self.parset['calibration_specific']['tolerance']
+        self.tecscreenconstraint = self.parset['calibration_specific']['tecscreenconstraint']
+        self.tecscreen_max_order = self.parset['calibration_specific']['tecscreen_max_order']
+        self.use_beam = self.parset['calibration_specific']['use_beam']
 
         if not mininmal:
             # Scan MS files to get observation info
             self.scan_observations()
 
             # Make calibration and source sky models by grouping the initial sky model
-            self.make_skymodels(self.parset['input_skymodel'], self.parset['regroup_input_skymodel'])
+            self.make_skymodels(self.parset['input_skymodel'], self.parset['regroup_input_skymodel']
+                                find_sources=True)
 
             # Set up imaging sectors
             self.makeWCS()
@@ -140,7 +144,7 @@ class Field(object):
         """
         return sum([obs.parameters[parameter] for obs in self.observations], [])
 
-    def make_skymodels(self, skymodel, regroup=True):
+    def make_skymodels(self, skymodel, regroup=True, find_sources=False):
         """
         Groups a sky model into source and calibration patches
 
@@ -151,6 +155,10 @@ class Field(object):
         regroup : bool, optional
             If False, the calibration sky model is not regrouped to the target flux.
             Instead, the existing calibration groups are used
+        find_sources : bool, optional
+            If True, group the sky model by thresholding to find sources. This is not
+            needed if the input sky model was filtered by PyBDSF in the imaging
+            pipeline
         """
         self.log.info('Reading sky model...')
         if type(skymodel) is str:
@@ -178,25 +186,54 @@ class Field(object):
                                      keep='from2', inheritPatches=True)
 
         # Group by thresholding
-        self.log.info('Identifying sources...')
         source_skymodel = skymodel.copy()
-        source_skymodel.group('threshold', FWHM='60.0 arcsec', threshold=0.05)
-        self.source_skymodel = source_skymodel
+        if find_sources:
+            self.log.info('Identifying sources...')
+            source_skymodel.group('threshold', FWHM='20.0 arcsec', threshold=0.05)
+        self.source_skymodel = source_skymodel.copy()
 
         # Now tesselate to get patches of the target flux and write out calibration sky model
         if regroup:
             flux = self.parset['calibration_specific']['patch_target_flux_jy']
+            totflux = np.sum(source_skymodel.getColValues('I', units='Jy'))
+            if totflux < flux:
+                self.log.critical('Total flux of sky model ({0} Jy) is less than target flux ({1} Jy) '
+                                  'Exiting!'.format(totflux, flux))
+                sys.exit(1)
             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(flux))
             source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+
+            # If any patch falls below the target flux, merge it with the nearest patch
+            # and recalculate patch positions
+            check_flux = True
+            while check_flux:
+                check_flux = False
+                patch_fluxes = source_skymodel.getColValues('I', aggregate='sum')
+                patch_names = source_skymodel.getPatchNames().tolist()
+                for i, (pf, pn) in enumerate(zip(patch_fluxes, patch_names)):
+                    if pf < flux:
+                        RA, Dec = source_skymodel.getPatchPositions(patchName=pn, asArray=True)
+                        sep = source_skymodel.getDistance(RA, Dec, byPatch=True).tolist()[0]
+                        sep.pop(i)
+                        patch_names.pop(i)
+                        nearest_patch = patch_names[np.argmin(sep)]
+                        source_skymodel.merge([nearest_patch, pn])
+                        source_skymodel.setPatchPositions()
+                        check_flux = True
+                        break
             calibration_skymodel = source_skymodel
         else:
             calibration_skymodel = skymodel
-        self.log.info('Using {} calibration patches'.format(len(calibration_skymodel.getPatchNames())))
+        num_patches = len(calibration_skymodel.getPatchNames())
+        self.log.info('Using {} calibration patches'.format(num_patches))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         calibration_skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.calibration_skymodel = calibration_skymodel
 
-    def update_skymodels(self, iter):
+        # Check that the TEC screen order is not more than num_patches - 1
+        self.tecscreenorder = min(num_patches-1, self.tecscreen_max_order)
+
+    def update_skymodels(self, iter, regroup, imaged_sources_only):
         """
         Updates the source and calibration sky models from the output sector sky model(s)
 
@@ -207,13 +244,10 @@ class Field(object):
         """
         # Concat all output sector sky models
         self.log.info('Updating sky model...')
-        if self.parset['strategy'] == 'sectorselfcal':
+        if imaged_sources_only:
             # Use new models from the imaged sectors only
             sector_skymodels = [sector.image_skymodel_file for sector in self.imaging_sectors]
             sector_names = [sector.name for sector in self.imaging_sectors]
-
-            # Each sector is a single patch, so don't regroup
-            regroup = False
         else:
             # Use models from all sectors, whether imaged or not
             sector_skymodels = []
@@ -224,8 +258,6 @@ class Field(object):
                     sector_skymodels.append(sector.image_skymodel_file)
             sector_names = [sector.name for sector in self.sectors]
 
-            # Regroup to make patches with the target flux density
-            regroup = True
         for i, (sm, sn) in enumerate(zip(sector_skymodels, sector_names)):
             if i == 0:
                 skymodel = lsmtool.load(sm)
@@ -237,7 +269,7 @@ class Field(object):
         self.make_skymodels(skymodel, regroup=regroup)
 
         # Re-adjust sector boundaries and update their sky models
-        if not self.parset['strategy'] == 'sectorselfcal':
+        if regroup:
             self.adjust_sector_boundaries()
         for sector in self.sectors:
             sector.make_skymodel()
@@ -289,7 +321,8 @@ class Field(object):
                 nsectors_ra = 1
                 nsectors_dec = 1
             else:
-                nsectors_dec = int(np.ceil(nsectors_ra / np.sin(self.mean_el_rad)))
+                nsectors_dec = int(np.ceil(image_width_dec / (image_width_ra / nsectors_ra)))
+
             if nsectors_ra == 1 and nsectors_dec == 1:
                 # Make a single sector
                 nsectors_dec = 1
@@ -300,6 +333,10 @@ class Field(object):
                 y = np.array([center_y])
             else:
                 # Make the grid
+                self.log.info('Making grid with: center = ({0}, {1}) deg, width = ({2}, {3}) deg, '
+                              '# of sectors = ({4}, {5})'.format(image_ra, image_dec,
+                                                                  image_width_ra, image_width_dec,
+                                                                  nsectors_ra, nsectors_dec))
                 width_ra = image_width_ra / nsectors_ra
                 width_dec = image_width_dec / nsectors_dec
                 width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
@@ -429,10 +466,10 @@ class Field(object):
         for sector in self.imaging_sectors:
             # Make sure all sectors start from their initial polygons
             sector.poly = sector.initial_poly
-
         for sector in self.imaging_sectors:
             # Adjust boundaries for intersection with sources
             for p2 in intersecting_source_polys:
+                poly_bkup = sector.poly
                 if sector.poly.contains(p2.centroid):
                     # If point is inside, union the sector poly with the source one
                     sector.poly = sector.poly.union(p2)
@@ -440,11 +477,9 @@ class Field(object):
                     # If centroid of point is outside, difference the sector poly with
                     # the source one
                     sector.poly = sector.poly.difference(p2)
-
-            # Check whether the sector has been broken into two or more separate polygons
-            if type(sector.poly) is not Polygon:
-                # If so, keep largest one only
-                sector.poly = sector.poly[np.argmax([p.area for p in sector.poly])]
+                if type(sector.poly) is not Polygon:
+                    # use backup
+                    sector.poly = poly_bkup
 
             # Make sector region and vertices files
             sector.make_vertices_file()

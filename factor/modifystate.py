@@ -94,7 +94,7 @@ def run(parset_file):
         # Ask for confirmation
         try:
             while(True):
-                answer = raw_input('Reset all pipelines from {} onwards? '.format(pipeline))
+                answer = raw_input('Reset all pipelines from {} onwards (y/n)? '.format(pipeline))
                 if (answer.lower() == "n" or answer.lower() == "no" or
                     answer.lower() == "y" or answer.lower() == "yes"):
                     break

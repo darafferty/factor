@@ -155,14 +155,19 @@ solve_fast_phases.argument.solve.type                 = ddecal
 {% if solve_tecandphase %}
 solve_fast_phases.argument.solve.mode                 = tecandphase
 {% else %}
+{% if tecscreenconstraint %}
+solve_fast_phases.argument.solve.mode                 = tecscreen
+solve_fast_phases.argument.solve.order                = {{ tecscreenorder }}
+solve_fast_phases.argument.solve.mode                 = station
+{% else %}
 solve_fast_phases.argument.solve.mode                 = tec
+{% endif %}
 {% endif %}
 solve_fast_phases.argument.solve.h5parm               = h5parm
 solve_fast_phases.argument.solve.sourcedb             = sourcedb
 solve_fast_phases.argument.solve.solint               = timestep
 solve_fast_phases.argument.solve.nchan                = freqstep
 solve_fast_phases.argument.solve.approximatetec       = {{ approximatetec }}
-solve_fast_phases.argument.solve.smoothnessconstraint = 3e5
 solve_fast_phases.argument.solve.maxapproxiter        = {{ maxapproxiter }}
 solve_fast_phases.argument.solve.maxiter              = {{ maxiter }}
 solve_fast_phases.argument.solve.propagatesolutions   = {{ propagatesolutions }}
@@ -242,6 +247,8 @@ solve_slow_gains.argument.solve.applycal.tec.correction   = screentec000
 {% endif %}
 solve_slow_gains.argument.solve.uvlambdamin               = {{ solve_min_uv_lambda }}
 solve_slow_gains.argument.solve.smoothnessconstraint      = {{ smoothnessconstraint }}
+solve_slow_gains.argument.solve.maxiter                   = {{ maxiter }}
+solve_slow_gains.argument.solve.tolerance                 = {{ tolerance }}
 
 # compress slow-gain mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_slow.control.kind        = plugin

@@ -97,14 +97,8 @@ predict_model_data.argument.predict.applycal.steps                = [tec]
 {% endif %}
 predict_model_data.argument.predict.applycal.tec.correction       = screentec000
 {% endif %}
-{% if use_compression %}
 predict_model_data.argument.msout.storagemanager                  = "Dysco"
 predict_model_data.argument.msout.storagemanager.databitrate      = 0
-predict_model_data.argument.msout.storagemanager.weightbitrate    = 12
-predict_model_data.argument.msout.storagemanager.distribution     = "TruncatedGaussian"
-predict_model_data.argument.msout.storagemanager.disttruncation   = 1.5
-predict_model_data.argument.msout.storagemanager.normalization    = "AF"
-{% endif %}
 
 # create a mapfile with the MS filenames for each obs, length = nobs
 create_obs_files_map.control.kind        = plugin
@@ -115,11 +109,11 @@ create_obs_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_obs_files_map.control.filename    = obs_files.mapfile
 
 # for each obs, loop over sectors and subtract the model visibilities of all other sectors, length = nobs
-subtract_models.control.type           = subtract_sector_models
-subtract_models.control.mapfile_in     = create_obs_files_map.output.mapfile
-subtract_models.control.inputkey       = infile
-subtract_models.argument.flags         = [infile,{{ mapfile_dir }},sector_files_output_map.mapfile]
-subtract_models.argument.nr_outliers   = {{ nr_outliers }}
-subtract_models.argument.peel_outliers = {{ peel_outliers }}
-
-# TODO: phase shift resulting datasets to sector centers and delete originals?
+# create the RESIDUAL_DATA column for each sector as well, for use later in reweighting
+subtract_models.control.type               = subtract_sector_models
+subtract_models.control.mapfile_in         = create_obs_files_map.output.mapfile
+subtract_models.control.inputkey           = infile
+subtract_models.argument.flags             = [infile,{{ mapfile_dir }},sector_files_output_map.mapfile]
+subtract_models.argument.nr_outliers       = {{ nr_outliers }}
+subtract_models.argument.peel_outliers     = {{ peel_outliers }}
+subtract_models.argument.make_residual_col = True

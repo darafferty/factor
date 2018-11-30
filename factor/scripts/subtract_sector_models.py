@@ -21,7 +21,8 @@ def get_nchunks(msin, nsectors):
 
 
 def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
-         out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False):
+         out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False,
+         make_residual_col=False):
     """
     Subtract sector model data
 
@@ -46,6 +47,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         If True, use Dysco compression
     peel_outliers : bool, optional
         If True, outliers are peeled before sector models are subtracted
+    make_residual_col : bool, optional
+        If True, make a RESIDUAL_DATA column by subtracting all sources
     """
     if type(use_compression) is str:
         if use_compression.lower() == 'true':
@@ -57,6 +60,11 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             peel_outliers = True
         else:
             peel_outliers = False
+    if type(make_residual_col) is str:
+        if make_residual_col.lower() == 'true':
+            make_residual_col = True
+        else:
+            make_residual_col = False
     nr_outliers = int(nr_outliers)
 
     # Get the model data filenames. We only use files that contain the root of
@@ -191,6 +199,16 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                 else:
                     datamod_all += datamod_list[sector_ind]
             tout.putcol(out_column, datain-datamod_all, startrow=startrow, nrow=nrow)
+            if make_residual_col:
+                # Also subtract sector's model and output to RESIDUAL_DATA column
+                datamod_all += datamod_list[i]
+                if not 'RESIDUAL_DATA' in tout.colnames():
+                    desc = tout.getcoldesc('DATA')
+                    desc['name'] = 'RESIDUAL_DATA'
+                    coldmi = tout.getdminfo('DATA')
+                    coldmi["NAME"] = 'RESIDUAL_DATA'
+                    tout.addcols(desc, coldmi)
+                tout.putcol('RESIDUAL_DATA', datain-datamod_all, startrow=startrow, nrow=nrow)
             tout.flush()
     for tout in tout_list:
         tout.close()

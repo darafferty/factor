@@ -17,7 +17,7 @@ def main(h5file, soltype, root=None, refstat=None):
     h5file : str
         Name of solution h5parm file
     soltype : str
-        Type of solution to plot: tec, scalarphase, phase, or amplitude
+        Type of solution to plot: tec, tecerror, scalarphase, phase, or amplitude
     root : str, optional
         Root name for output plots. If None, the soltype is used
     refstat : str, optional
@@ -29,6 +29,12 @@ def main(h5file, soltype, root=None, refstat=None):
     if soltype == 'tec':
         st = ss.getSoltab('screentec000')
         ref = st.ant[0]
+        ncol = 1
+        color = ''
+        minmax = [0, 0]
+    if soltype == 'tecerror':
+        st = ss.getSoltab('error000')
+        ref = ''
         ncol = 1
         color = ''
         minmax = [0, 0]
@@ -51,7 +57,7 @@ def main(h5file, soltype, root=None, refstat=None):
         color = 'pol'
         minmax = [-3.2, 3.2]
     else:
-        print('ERROR: solution type "{}" not understood. Must be one of tec, scalarphase, '
+        print('ERROR: solution type "{}" not understood. Must be one of tec, tecerror, scalarphase, '
               'phase, or amplitude'.format(soltype))
 
     if root is None:
@@ -60,7 +66,7 @@ def main(h5file, soltype, root=None, refstat=None):
         ref = refstat
     print('Plotting {} solutions...'.format(soltype))
     plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, refAnt=ref,
-             prefix=root, minmax=minmax)
+             prefix=root, minmax=minmax, plotFlag=True, markerSize=4)
     h.close()
 
 
@@ -68,7 +74,7 @@ if __name__ == "__main__":
     descriptiontext = "Plot solutions.\n"
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
     parser.add_argument('h5file', help="Name of solution h5parm file")
-    parser.add_argument('soltype', help="Type of solution to plot: tec, scalarphase, phase, or amplitude")
+    parser.add_argument('soltype', help="Type of solution to plot: tec, tecerror, scalarphase, phase, or amplitude")
     parser.add_argument('--root', help="Root name for output plots (default: 'soltype_')", default=None)
     parser.add_argument('--refstat', help="Name of referance station (default: first)", default=None)
 

@@ -35,9 +35,10 @@ input_skymodel = /data/skymodel.txt
 # - image: image using the input solutions (no calibration is done)
 # strategy = fieldselfcal
 
-# Use Dysco compression for chunked files (default = True). Enabling this
-# option will result in less storage usage
-# use_compression = True
+# Fraction of data to use (default = 1.0). If less than one, the input data are divided
+# by time into chunks (of no less than slow_timestep_sec below) that sum to the requested
+# fraction, spaced out evenly over the full time range
+# data_fraction = 1.0
 
 # Flagging ranges (default = no flagging). A range of times, baselines, and
 # frequencies to flag can be specified (see the DPPP documentation for details
@@ -61,34 +62,32 @@ input_skymodel = /data/skymodel.txt
 # range over the previous image is less than 1.25%
 # max_selfcal_loops = 10
 
-# Plot solutions of given type: "tec", "amplitude", or "phase" (default = tec).
-# Set to "none" to disable plotting and to "all" to plot all solutions types
-# plot_solutions = tec
-
-# Use baseline-dependent preaveraging to increase the signal-to-noise of the
-# solve (default = False)
-# use_preaveraging = False
-
-# Minimum uv distance in lambda for calibration (default = 80.0)
-# solve_min_uv_lambda = 80.0
-
-# Target flux per patch when grouping the sky model for calibration (default = 3.0 for HBA and 6.0 for LBA)
+# Target flux per patch when grouping the sky model for calibration (default = 3.0 for
+# HBA and 6.0 for LBA)
 # patch_target_flux_jy = 3.0
 
-# Solution intervals, etc.:
+# General solver parameters (defaults shown):
+# maxiter = 50
+# propagatesolutions = True
+# stepsize = 0.02
+# tolerance = 1e-2
+# solve_min_uv_lambda = 80.0
+
+# Fast (TEC) solve parameters (defaults shown):
+# approximatetec = True
+# maxapproxiter = 25
 # fast_timestep_sec = 8.0
 # fast_freqstep_hz = 1e6
+# tecscreenconstraint = False
+# tecscreen_max_order = 20
+
+# Slow (gain) solve parameters (defaults shown):
 # slow_timestep_sec = 600.0
 # slow_freqstep_hz = 1e6
 # smoothnessconstraint = 3e6
 
-# TEC solver parameters:
-# approximatetec = True
-# maxapproxiter = 50
-# maxiter = 75
-# propagatesolutions = True
-# stepsize = 0.02
-# tolerance = 1e-8
+# Use the beam model during calibration and imaging (default = False)?
+# use_beam = False
 
 
 [imaging]
@@ -103,9 +102,16 @@ input_skymodel = /data/skymodel.txt
 # multiscale_scales_pixel = [0, 5, 10, 15]
 # do_multiscale = auto
 
+# Use screens during imaging (default = False).
+# use_tec_screen = False
+# use_amp_screen = False
+
 # IDG (image domain gridder) mode to use in WSClean (default = hybrid). The mode can be
 # cpu or hybrid.
 # idg_mode = hybrid
+
+# Reweight the visibility data before imaging (default = True)
+# reweight = True
 
 # Size of area to image when using a grid (default = mean FWHM of the primary beam)
 # Number of sectors along RA to use in imaging grid (default = 0). The number of sectors in

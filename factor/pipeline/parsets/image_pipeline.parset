@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, prepare_imaging_data, create_compressed_mapfile, premask, image, filter]
+pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, {% if reweight %} reweight, {% endif %} prepare_imaging_data, create_compressed_mapfile, premask, image, filter]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -40,6 +40,15 @@ expand_h5parm_map.control.mapfile_to_match = create_sector_files_map.output.mapf
 expand_h5parm_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_h5parm_map.control.filename         = expand_h5parms.mapfile
 
+# reweight the data based on the calibration quality, length = nobs
+{% if reweight %}
+reweight.control.type        = reweight
+reweight.control.mapfiles_in = [create_sector_files_map.output.mapfile,expand_h5parm_map]
+reweight.control.inputkeys   = [filename,gainfile]
+reweight.argument.ntsol      = 1
+reweight.argument.colname    = WEIGHT_SPECTRUM
+{% endif %}
+
 # phase shift, apply the direction-dependent solutions, and average, length = nobs
 # note: the apply steps will not be necessary once we can use screens in WSClean
 prepare_imaging_data.control.type                                 = dppp
@@ -57,15 +66,15 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 
 {% if solve_tecandphase %}
 {% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,amp,phase,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,amp,phase,flagzero,interp,avg]
 {% else %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,flagzero,interp,avg]
 {% endif %}
 {% else %}
 {% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,interp,avg]
 {% else %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,interp,avg]
 {% endif %}
 {% endif %}
 
@@ -73,15 +82,15 @@ prepare_imaging_data.argument.steps                               = [flag,shift,
 
 {% if solve_tecandphase %}
 {% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [tec,scphase,amp,phase,shift,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [tec,scphase,amp,phase,shift,flagzero,interp,avg]
 {% else %}
-prepare_imaging_data.argument.steps                               = [tec,scphase,shift,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [tec,scphase,shift,flagzero,interp,avg]
 {% endif %}
 {% else %}
 {% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [tec,amp,phase,shift,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [tec,amp,phase,shift,flagzero,interp,avg]
 {% else %}
-prepare_imaging_data.argument.steps                               = [tec,shift,flagzero,avg]
+prepare_imaging_data.argument.steps                               = [tec,shift,flagzero,interp,avg]
 {% endif %}
 {% endif %}
 
@@ -124,17 +133,11 @@ prepare_imaging_data.argument.phase.direction                     = [{{ central_
 {% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
 prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20
+prepare_imaging_data.argument.interp.type                         = interpolate
 prepare_imaging_data.argument.avg.type                            = squash
 prepare_imaging_data.argument.avg.freqstep                        = freqstep
 prepare_imaging_data.argument.avg.timestep                        = timestep
-{% if use_compression %}
 prepare_imaging_data.argument.msout.storagemanager                = "Dysco"
-prepare_imaging_data.argument.msout.storagemanager.databitrate    = 10
-prepare_imaging_data.argument.msout.storagemanager.weightbitrate  = 12
-prepare_imaging_data.argument.msout.storagemanager.distribution   = "TruncatedGaussian"
-prepare_imaging_data.argument.msout.storagemanager.disttruncation = 1.5
-prepare_imaging_data.argument.msout.storagemanager.normalization  = "AF"
-{% endif %}
 
 # make the compressed mapfile, length = 1
 create_compressed_mapfile.control.kind        = plugin

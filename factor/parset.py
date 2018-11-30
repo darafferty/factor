@@ -116,30 +116,13 @@ def get_global_options(parset):
     parset_dict = parset._sections['global'].copy()
     parset_dict.update({'calibration_specific': {}, 'imaging_specific': {}, 'cluster_specific': {}})
 
-    # Size of time chunks in seconds (default = calculate). Generally, the number of
-    # chunks should be at least the number of available nodes.
-    if 'chunk_size_sec' in parset_dict:
-        parset_dict['chunk_size_sec'] = parset.getfloat('global', 'chunk_size_sec')
+    # Fraction of data to use (default = 1.0). If less than one, the input data are divided
+    # by time into chunks (of no less than slow_timestep_sec below) that sum to the requested
+    # fraction, spaced out evenly over the full time range
+    if 'data_fraction' in parset_dict:
+        parset_dict['data_fraction'] = parset.getfloat('global', 'data_fraction')
     else:
-        parset_dict['chunk_size_sec'] = None
-
-    # Size of frequency chunks in hz (default = calculate). Generally, the number of
-    # chunks should be at least the number of available nodes.
-    if 'chunk_size_hz' in parset_dict:
-        parset_dict['chunk_size_hz'] = parset.getfloat('global', 'chunk_size_hz')
-    else:
-        parset_dict['chunk_size_hz'] = None
-
-    # Use Dysco compression (default = False). Enabling this
-    # option will result in less storage usage and signifcanctly faster
-    # processing. To use this option, you must have the Dysco library in your
-    # LD_LIBRARY_PATH. Note: if enabled, Factor will not make symbolic links to the
-    # input data, even if they are shorter than chunk_size_sec, but will copy them
-    # instead
-    if 'use_compression' in parset_dict:
-        parset_dict['use_compression'] = parset.getboolean('global', 'use_compression')
-    else:
-        parset_dict['use_compression'] = False
+        parset_dict['data_fraction'] = 1.0
 
     # Regroup initial skymodel (default = True)
     if 'regroup_input_skymodel' in parset_dict:
@@ -164,7 +147,7 @@ def get_global_options(parset):
 
     # Define strategy
     if 'strategy' not in parset_dict:
-        parset_dict['strategy'] = 'fieldselfcal'
+        parset_dict['strategy'] = 'fullfieldselfcal'
 
     # Flagging ranges (default = no flagging). A range of times, baselines, and
     # frequencies to flag can be specified (see the DPPP documentation for
@@ -195,10 +178,10 @@ def get_global_options(parset):
 
     # Check for invalid options
     given_options = parset.options('global')
-    allowed_options = ['dir_working', 'input_ms', 'chunk_size_sec', 'strategy',
+    allowed_options = ['dir_working', 'input_ms', 'strategy',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
-                       'flag_expr', 'chunk_size_hz', 'input_skymodel',
-                       'regroup_input_skymodel', 'input_h5parm']
+                       'flag_expr', 'input_skymodel',
+                       'regroup_input_skymodel', 'input_h5parm', 'data_fraction']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [global] section of the '
@@ -297,7 +280,7 @@ def get_calibration_options(parset):
     if 'smoothnessconstraint' in parset_dict:
         parset_dict['smoothnessconstraint'] = parset.getfloat('calibration', 'smoothnessconstraint')
     else:
-        parset_dict['smoothnessconstraint'] = 3e6
+        parset_dict['smoothnessconstraint'] = 6e6
 
     # dTEC solver parameters
     if 'approximatetec' in parset_dict:
@@ -311,11 +294,11 @@ def get_calibration_options(parset):
     if 'maxapproxiter' in parset_dict:
         parset_dict['maxapproxiter'] = parset.getint('calibration', 'maxapproxiter')
     else:
-        parset_dict['maxapproxiter'] = 50
+        parset_dict['maxapproxiter'] = 25
     if 'maxiter' in parset_dict:
         parset_dict['maxiter'] = parset.getint('calibration', 'maxiter')
     else:
-        parset_dict['maxiter'] = 75
+        parset_dict['maxiter'] = 50
     if 'stepsize' in parset_dict:
         parset_dict['stepsize'] = parset.getfloat('calibration', 'stepsize')
     else:
@@ -323,14 +306,29 @@ def get_calibration_options(parset):
     if 'tolerance' in parset_dict:
         parset_dict['tolerance'] = parset.getfloat('calibration', 'tolerance')
     else:
-        parset_dict['tolerance'] = 1e-8
+        parset_dict['tolerance'] = 1e-2
+    if 'tecscreenconstraint' in parset_dict:
+        parset_dict['tecscreenconstraint'] = parset.getboolean('calibration', 'tecscreenconstraint')
+    else:
+        parset_dict['tecscreenconstraint'] = True
+    if 'tecscreen_max_order' in parset_dict:
+        parset_dict['tecscreen_max_order'] = parset.getint('calibration', 'tecscreen_max_order')
+    else:
+        parset_dict['tecscreen_max_order'] = None
+
+    # Use the beam model during calibration and imaging (default = False)?
+    if 'use_beam' in parset_dict:
+        parset_dict['use_beam'] = parset.getboolean('calibration', 'use_beam')
+    else:
+        parset_dict['use_beam'] = True
 
     # Check for invalid options
     allowed_options = ['max_selfcal_loops', 'multires_selfcal', 'solve_min_uv_lambda',
                        'solve_tecandphase', 'fast_timestep_sec', 'fast_freqstep_hz',
                        'slow_timestep_sec', 'slow_freqstep_hz', 'approximatetec',
                        'propagatesolutions', 'maxapproxiter', 'maxiter', 'stepsize',
-                       'tolerance', 'plot_solutions', 'patch_target_flux_jy']
+                       'tolerance', 'patch_target_flux_jy', 'smoothnessconstraint',
+                       'use_beam', 'tecscreenconstraint', 'tecscreen_max_order']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '
@@ -475,6 +473,12 @@ def get_imaging_options(parset):
     if 'idg_mode' not in parset_dict:
         parset_dict['idg_mode'] = 'hybrid'
 
+    # Reweight the visibility data before imaging (default = True)
+    if 'reweight' in parset_dict:
+        parset_dict['reweight'] = parset.getboolean('imaging', 'reweight')
+    else:
+        parset_dict['reweight'] = True
+
     # Max desired peak flux density reduction at center of the facet edges due to
     # bandwidth smearing (at the mean frequency) and time smearing (default = 0.15 =
     # 15% reduction in peak flux). Higher values result in shorter run times but
@@ -547,7 +551,7 @@ def get_imaging_options(parset):
         parset_dict['wsclean_image_padding'] = 1.4
 
     # Check for invalid options
-    allowed_options = ['max_peak_smearing', 'cellsize_arcsec', 'robust',
+    allowed_options = ['max_peak_smearing', 'cellsize_arcsec', 'robust', 'reweight',
                        'multiscale_scales_pixel', 'grid_center_ra', 'grid_center_dec',
                        'grid_width_ra_deg', 'grid_width_dec_deg', 'grid_nsectors_ra',
                        'wsclean_image_padding', 'min_uv_lambda', 'max_uv_lambda',
