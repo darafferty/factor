@@ -104,11 +104,8 @@ class Observation(object):
         # available cores:
         #
         # tot_mem = size of MS / # timeslots * ?
-        if parset['chunk_size_sec'] is None:
-            target_time_chunksize = get_time_chunksize(parset['cluster_specific'], self.timepersample,
-                                                       self.numsamples, solint_fast_timestep)
-        else:
-            target_time_chunksize = parset['chunk_size_sec']
+        target_time_chunksize = get_time_chunksize(parset['cluster_specific'], self.timepersample,
+                                                   self.numsamples, solint_fast_timestep)
         samplesperchunk = int(round(target_time_chunksize / timepersample))
         chunksize = samplesperchunk * timepersample
         mystarttime = self.starttime
@@ -139,12 +136,9 @@ class Observation(object):
         #
         # tot_mem = size of MS / # timeslots * ?
         numchannels = self.numchannels
-        if parset['chunk_size_hz'] is None:
-            target_freq_chunksize = get_frequency_chunksize(parset['cluster_specific'], channelwidth,
-                                                       solint_slow_freqstep, solint_slow_timestep,
-                                                       self.antenna)
-        else:
-            target_freq_chunksize = parset['chunk_size_hz']
+        target_freq_chunksize = get_frequency_chunksize(parset['cluster_specific'], channelwidth,
+                                                   solint_slow_freqstep, solint_slow_timestep,
+                                                   self.antenna)
         channelsperchunk = int(round(target_freq_chunksize / channelwidth))
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq
