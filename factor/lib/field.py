@@ -58,7 +58,7 @@ class Field(object):
             self.scan_observations()
 
             # Make calibration and source sky models by grouping the initial sky model
-            self.make_skymodels(self.parset['input_skymodel'], self.parset['regroup_input_skymodel']
+            self.make_skymodels(self.parset['input_skymodel'], self.parset['regroup_input_skymodel'],
                                 find_sources=True)
 
             # Set up imaging sectors
