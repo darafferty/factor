@@ -137,8 +137,8 @@ class Observation(object):
         # tot_mem = size of MS / # timeslots * ?
         numchannels = self.numchannels
         target_freq_chunksize = get_frequency_chunksize(parset['cluster_specific'], channelwidth,
-                                                   solint_slow_freqstep, solint_slow_timestep,
-                                                   self.antenna)
+                                                        solint_slow_freqstep, solint_slow_timestep,
+                                                        self.antenna)
         channelsperchunk = int(round(target_freq_chunksize / channelwidth))
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq

@@ -45,8 +45,9 @@ expand_h5parm_map.control.filename         = expand_h5parms.mapfile
 reweight.control.type        = reweight
 reweight.control.mapfiles_in = [create_sector_files_map.output.mapfile,expand_h5parm_map]
 reweight.control.inputkeys   = [filename,gainfile]
-reweight.argument.ntsol      = 1
 reweight.argument.colname    = WEIGHT_SPECTRUM
+reweight.argument.gainfile   = gainfile
+reweight.argument.flags      = [filename,1]
 {% endif %}
 
 # phase shift, apply the direction-dependent solutions, and average, length = nobs
