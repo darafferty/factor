@@ -286,7 +286,14 @@ def readArguments():
     return vars(args)
 
 
-def main(msname, ntsol, colname="CAL_WEIGHT", gainfile="", uvcutkm=[0,2000], phaseonly=False)
+def main(msname, ntsol, colname="CAL_WEIGHT", gainfile="", uvcutkm=[0,2000], phaseonly=False):
+    ntsol = int(ntsol)
+    if type(phaseonly) is str:
+        if phaseonly.lower() == 'true':
+            phaseonly = True
+        else:
+            phaseonly = False
+
     print "Finding time-covariance weights for: %s"%msname
     covweights=CovWeights(MSName=msname,ntsol=ntsol,gainfile=gainfile,uvcut=uvcut,phaseonly=phaseonly)
     coefficients=covweights.FindWeights(tcorr=0,colname=colname)
