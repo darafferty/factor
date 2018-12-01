@@ -414,8 +414,8 @@ def remove_soltabs(solset, soltabnames):
 
 def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     ampsoltabname='amplitude000', phsoltabname='phase000', outsoltabroot='_screensols',
-    ref_id=0, fit_screens=False, calculate_weights=True, smooth_amplitudes=False,
-    smooth_phases=True, normalize=False):
+    ref_id=0, fit_screens=False, calculate_weights=False, smooth_amplitudes=False,
+    smooth_phases=False, normalize=False):
     """
     Fit screens to gain solutions
 

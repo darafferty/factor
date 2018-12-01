@@ -22,7 +22,7 @@ def get_nchunks(msin, nsectors):
 
 def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
          out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False,
-         make_residual_col=False):
+         make_residual_col=True):
     """
     Subtract sector model data
 
@@ -50,17 +50,17 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     make_residual_col : bool, optional
         If True, make a RESIDUAL_DATA column by subtracting all sources
     """
-    if type(use_compression) is str:
+    if isinstance(use_compression, basestring):
         if use_compression.lower() == 'true':
             use_compression = True
         else:
             use_compression = False
-    if type(peel_outliers) is str:
+    if isinstance(peel_outliers, basestring):
         if peel_outliers.lower() == 'true':
             peel_outliers = True
         else:
             peel_outliers = False
-    if type(make_residual_col) is str:
+    if isinstance(make_residual_col, basestring):
         if make_residual_col.lower() == 'true':
             make_residual_col = True
         else:
