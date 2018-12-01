@@ -43,7 +43,7 @@ expand_h5parm_map.control.filename         = expand_h5parms.mapfile
 # reweight the data based on the calibration quality, length = nobs
 {% if reweight %}
 reweight.control.type        = reweight
-reweight.control.mapfiles_in = [create_sector_files_map.output.mapfile,expand_h5parm_map]
+reweight.control.mapfiles_in = [create_sector_files_map.output.mapfile,expand_h5parm_map.output.mapfile]
 reweight.control.inputkeys   = [filename,gainfile]
 reweight.argument.colname    = WEIGHT_SPECTRUM
 reweight.argument.gainfile   = gainfile
