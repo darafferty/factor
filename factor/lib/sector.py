@@ -1,6 +1,5 @@
 """
 Definition of the Sector class that holds parameters for each iamge sector
-set
 """
 import logging
 import numpy as np
@@ -9,14 +8,14 @@ from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
 from PIL import Image, ImageDraw
 import pickle
-import lsmtool
 import os
 import copy
 
 
 class Sector(object):
     """
-    The Sector object contains various parameters for a sector of the field
+    The Sector object contains various parameters for a sector of the field. Sectors
+    are used only in imaging pipelines
 
     Parameters
     ----------
@@ -73,13 +72,13 @@ class Sector(object):
 
     def set_imaging_parameters(self, do_multiscale=None):
         """
-        Sets the imaging parameters
+        Sets the parameters needed for the imaging pipeline
 
         Parameters
         ----------
         do_multiscale : str
-            If True, multiscale clean is done. If None, multiscale clean is done when a
-            large source is detected
+            If True, multiscale clean is done. If None, multiscale clean is done only
+            when a large source is detected
         """
         self.cellsize_arcsec = self.field.parset['imaging_specific']['cellsize_arcsec']
         self.cellsize_deg = self.cellsize_arcsec / 3600.0
@@ -89,6 +88,12 @@ class Sector(object):
         self.max_uv_lambda = self.field.parset['imaging_specific']['max_uv_lambda']
         self.use_idg = self.field.parset['imaging_specific']['use_idg']
         self.idg_mode = self.field.parset['imaging_specific']['idg_mode']
+        self.reweight = self.field.parset['imaging_specific']['reweight']
+        self.flag_abstime = self.field.parset['flag_abstime']
+        self.flag_baseline = self.field.parset['flag_baseline']
+        self.flag_freqrange = self.field.parset['flag_freqrange']
+        self.flag_expr = self.field.parset['flag_expr']
+        self.solve_tecandphase = self.field.parset['calibration_specific']['solve_tecandphase']
 
         # Set image size based on current sector polygon
         xmin, ymin, xmax, ymax = self.poly.bounds
@@ -382,4 +387,3 @@ class Sector(object):
                 f.writelines(lines)
         else:
             self.log.error('Region format not understood.')
-

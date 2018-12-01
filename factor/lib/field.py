@@ -370,19 +370,11 @@ class Field(object):
         # Set the imaging parameters for each imaging sector
         sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']
         for i, sector in enumerate(self.imaging_sectors):
-            if len(sector_do_multiscale_list) > 0:
+            if len(sector_do_multiscale_list) == len(self.imaging_sectors):
                 do_multiscale = sector_do_multiscale_list[i]
             else:
                 do_multiscale = None
             sector.set_imaging_parameters(do_multiscale)
-
-            # Transfer any field flagging/calibration parameters so they are also used
-            # during imaging
-            sector.flag_abstime = self.flag_abstime
-            sector.flag_baseline = self.flag_baseline
-            sector.flag_freqrange = self.flag_freqrange
-            sector.flag_expr = self.flag_expr
-            sector.solve_tecandphase = self.solve_tecandphase
 
         # Make outlier sectors containing any remaining calibration sources (not
         # included in any sector sky model). These sectors are not imaged; they are only
