@@ -131,9 +131,9 @@ class CovWeights:
             thres=0.25*np.median(tempars)
             CoeffArray[:,i][tempars<thres]=thres
         if colname=="":
-            coeffFilename=self.MSName+"/CoeffArray.ntsol%i.npy"%(ntsol)
+            coeffFilename=self.MSName+"/CoeffArray.ntsol%i.npy"%(self.ntSol)
         else:
-            coeffFilename=self.MSName+"/CoeffArray.%s.ntsol%i.npy"%(colname,ntsol)
+            coeffFilename=self.MSName+"/CoeffArray.%s.ntsol%i.npy"%(colname,self.ntSol)
         print "Save coefficient array as %s."%coeffFilename
         np.save(coeffFilename,CoeffArray)
         return CoeffArray
@@ -199,7 +199,7 @@ def readGainFile(gainfile,ms,nt,nchan,nbl,tarray,nAnt,msname,phaseonly):
         if gainfile[-4:]==".npz":
             print "Assume reading a kMS sols file"
             gainsnpz=np.load(gainfile)
-	        gains=gainsnpz["Sols"]
+            gains=gainsnpz["Sols"]
             ant1gainarray=np.ones((nt*nbl,nchan))
             ant2gainarray=np.ones((nt*nbl,nchan))
             A0arr=ms.getcol("ANTENNA1")
@@ -240,7 +240,7 @@ def readGainFile(gainfile,ms,nt,nchan,nbl,tarray,nAnt,msname,phaseonly):
             freqs=table(msname+"/SPECTRAL_WINDOW").getcol("CHAN_FREQ")
             gains=gfile.getValues()[0] # axes: pol, dir, ant, freq, times
             gfreqs=gfile.getValues()[1]["freq"]
-            times=fgile.getValues()[1]["time"]
+            times=gfile.getValues()[1]["time"]
             ant1gainarray=np.zeros((nt*nbl,nchan))
             ant2gainarray=np.zeros((nt*nbl,nchan))
             for j in range(nAnt):
@@ -295,6 +295,6 @@ def main(msname, ntsol, colname="CAL_WEIGHT", gainfile="", uvcutkm=[0,2000], pha
             phaseonly = False
 
     print "Finding time-covariance weights for: %s"%msname
-    covweights=CovWeights(MSName=msname,ntsol=ntsol,gainfile=gainfile,uvcut=uvcut,phaseonly=phaseonly)
+    covweights=CovWeights(MSName=msname,ntsol=ntsol,gainfile=gainfile,uvcut=uvcutkm,phaseonly=phaseonly)
     coefficients=covweights.FindWeights(tcorr=0,colname=colname)
     covweights.SaveWeights(coefficients,colname=colname,AverageOverChannels=True,tcorr=0)
