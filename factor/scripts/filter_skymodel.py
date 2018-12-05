@@ -120,9 +120,9 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--threshisl', help='', type=float, default=3.0)
     parser.add_argument('-p', '--threshpix', help='', type=float, default=5.0)
     parser.add_argument('-r', '--rmsbox', help='rms box width and step (e.g., "(60, 20)")',
-        type=str, default='(60, 20)')
+                        type=str, default='(60, 20)')
     parser.add_argument('--rmsbox_bright', help='rms box for bright sources(?) width and step (e.g., "(60, 20)")',
-        type=str, default='(60, 20)')
+                        type=str, default='(60, 20)')
     parser.add_argument('-o', '--adaptive_rmsbox', help='use an adaptive rms box', type=bool, default=False)
 
     args = parser.parse_args()

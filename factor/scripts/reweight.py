@@ -110,7 +110,7 @@ class CovWeights:
                                       rmsarray[t_i:t_e, set2, f_i:f_e, :])
                             )
                         )
-            if not quiet:
+            if not self.quiet:
                 PrintProgress(t_i, nt)
 
         # get rid of NaNs
@@ -147,8 +147,8 @@ class CovWeights:
         ant1gainarray, ant2gainarray = readGainFile(self.gainfile, ms, nt, nchan, nbl,
                                                     tarray, nAnt, self.MSName, self.phaseonly,
                                                     self.dirname)
-        ant1gainarray = ant1gainarray.reshape((nt, nbl, nChan))
-        ant2gainarray = ant2gainarray.reshape((nt, nbl, nChan))
+        ant1gainarray = ant1gainarray.reshape((nt, nbl, nchan))
+        ant2gainarray = ant2gainarray.reshape((nt, nbl, nchan))
         for t in range(nt):
             for i in range(nbl):
                 for j in range(nchan):
@@ -156,7 +156,7 @@ class CovWeights:
                                            CoeffArray[t, j, A1ind[i]] * ant2gainarray[t, i, j] +
                                            CoeffArray[t, j, A0ind[i]] * CoeffArray[t, j, A1ind[i]] +
                                            0.1)[:, np.newaxis]
-            if not quiet:
+            if not self.quiet:
                 PrintProgress(t, nt)
         w = w.reshape(nt*nbl, nchan, npol)
 
@@ -264,8 +264,8 @@ def main(msname, solint_sec, solint_hz, colname="CAL_WEIGHT", gainfile="", uvcut
     """
     solint_sec = float(solint_sec)
     solint_hz = float(solint_hz)
-    uvcut_lambda_min = float(uvcut_lambda_min)
-    uvcut_lambda_max = float(uvcut_lambda_max)
+    uvcut_min = float(uvcut_min)
+    uvcut_max = float(uvcut_max)
     uvcut = [uvcut_min, uvcut_max]
     if isinstance(phaseonly, basestring):
         if phaseonly.lower() == 'true':
@@ -274,7 +274,7 @@ def main(msname, solint_sec, solint_hz, colname="CAL_WEIGHT", gainfile="", uvcut
             phaseonly = False
 
     covweights = CovWeights(MSName=msname, solint_sec=solint_sec, solint_hz=solint_hz,
-                          gainfile=gainfile, uvcut=uvcut, phaseonly=phaseonly,
-                          dirname=dirname, quiet=quiet)
+                            gainfile=gainfile, uvcut=uvcut, phaseonly=phaseonly,
+                            dirname=dirname, quiet=quiet)
     coefficients = covweights.FindWeights(colname=colname)
     covweights.SaveWeights(coefficients, colname=colname)

@@ -54,7 +54,7 @@ class Sector(object):
         # observation-specific settings
         self.observations = []
         for obs in field.observations:
-            obs.log = None # deepcopy cannot copy the log object
+            obs.log = None  # deepcopy cannot copy the log object
             cobs = copy.deepcopy(obs)
             obs.log = logging.getLogger('factor:{}'.format(obs.name))
             cobs.log = logging.getLogger('factor:{}'.format(cobs.name))
@@ -99,8 +99,8 @@ class Sector(object):
 
         # Set image size based on current sector polygon
         xmin, ymin, xmax, ymax = self.poly.bounds
-        self.width_ra = (xmax - xmin) * self.field.wcs_pixel_scale # deg
-        self.width_dec = (ymax - ymin) * self.field.wcs_pixel_scale # deg
+        self.width_ra = (xmax - xmin) * self.field.wcs_pixel_scale  # deg
+        self.width_dec = (ymax - ymin) * self.field.wcs_pixel_scale  # deg
         self.imsize = [int(self.width_ra / self.cellsize_deg * 1.1),
                        int(self.width_dec / self.cellsize_deg * 1.1)]
         if self.use_idg:
@@ -135,7 +135,7 @@ class Sector(object):
         # Set multiscale: get source sizes and check for large sources
         self.multiscale = do_multiscale
         if self.multiscale is None:
-            large_size_arcmin = 4.0 # threshold source size for multiscale to be activated
+            large_size_arcmin = 4.0  # threshold source size for multiscale to be activated
             sizes_arcmin = self.source_sizes * 60.0
             if sizes_arcmin is not None and any([s > large_size_arcmin for s in sizes_arcmin]):
                 self.multiscale = True
@@ -143,7 +143,7 @@ class Sector(object):
                 self.multiscale = False
         if self.multiscale:
             self.multiscale_scales_pixel = self.field.parset['imaging_specific']['multiscale_scales_pixel']
-            self.wsclean_niter = int(self.wsclean_niter/1.5) # fewer iterations are needed
+            self.wsclean_niter = int(self.wsclean_niter/1.5)  # fewer iterations are needed
             self.log.debug("Will do multiscale cleaning.")
         else:
             self.multiscale_scales_pixel = 0
@@ -156,7 +156,7 @@ class Sector(object):
                                        self.width_ra, self.width_dec)
 
         # Set BL-dependent averaging
-        do_bl_averaging = False # does not yet work with IDG
+        do_bl_averaging = False  # does not yet work with IDG
         if do_bl_averaging:
             timestep_sec = (self.observations[0].timepersample *
                             self.observations[0].parameters['image_timestep'])
@@ -186,7 +186,7 @@ class Sector(object):
         """
         max_baseline = 1 / (3 * cellsize_deg * np.pi / 180)
         wsclean_nwavelengths_time = int(max_baseline * 2*np.pi * timestep_sec /
-            (24 * 60 * 60) / 4)
+                                        (24 * 60 * 60) / 4)
         return wsclean_nwavelengths_time
 
     def make_skymodel(self):
@@ -203,7 +203,7 @@ class Sector(object):
 
         # Write filtered sky model to file
         self.predict_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
-                                                      '{}_predict_skymodel.txt'.format(self.name))
+                                                  '{}_predict_skymodel.txt'.format(self.name))
         skymodel.write(self.predict_skymodel_file, clobber=True)
 
         # Save list of patches (directions) in the format written by DDECal in the h5parm
@@ -253,7 +253,7 @@ class Sector(object):
         # Keep only those sources inside the sector bounding box
         inside = np.zeros(len(skymodel), dtype=bool)
         xmin, ymin, xmax, ymax = self.poly.bounds
-        inside_ind = np.where( (x >= xmin) & (x <= xmax) & (y >= ymin ) & (y <= ymax ))
+        inside_ind = np.where((x >= xmin) & (x <= xmax) & (y >= ymin) & (y <= ymax))
         inside[inside_ind] = True
         skymodel.select(inside)
         RA = skymodel.getColValues('Ra')
@@ -277,7 +277,7 @@ class Sector(object):
         inside = np.zeros(len(skymodel), dtype=bool)
         mask = Image.new('L', (xsize, ysize), 0)
         verts = [(xv-xshift, yv-yshift) for xv, yv in zip(self.poly.exterior.coords.xy[0],
-                                            self.poly.exterior.coords.xy[1])]
+                                                          self.poly.exterior.coords.xy[1])]
         ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
         inside_ind = np.where(np.array(mask).transpose()[(x.astype(int), y.astype(int))])
         inside[inside_ind] = True
@@ -333,7 +333,7 @@ class Sector(object):
         Return the vertices as RA, Dec for the sector boundary
         """
         ra, dec = self.field.xy2radec(self.poly.exterior.coords.xy[0].tolist(),
-                                 self.poly.exterior.coords.xy[1].tolist())
+                                      self.poly.exterior.coords.xy[1].tolist())
         vertices = [np.array(ra), np.array(dec)]
 
         return vertices
@@ -363,7 +363,7 @@ class Sector(object):
         if region_format == 'casa':
             lines = ['#CRTFv0\n\n']
             xylist = []
-            RAs = vertices[0][0:-1] # trim last point, as it is a repeat of the first
+            RAs = vertices[0][0:-1]  # trim last point, as it is a repeat of the first
             Decs = vertices[1][0:-1]
             for x, y in zip(RAs, Decs):
                 xylist.append('[{0}deg, {1}deg]'.format(x, y))
@@ -383,7 +383,7 @@ class Sector(object):
                 xylist.append('{0}, {1}'.format(x, y))
             lines.append('polygon({0})\n'.format(', '.join(xylist)))
             lines.append('point({0}, {1}) # point=cross width=2 text={{{2}}}\n'.
-                format(self.ra, self.dec, self.name))
+                         format(self.ra, self.dec, self.name))
 
             with open(outputfile, 'wb') as f:
                 f.writelines(lines)

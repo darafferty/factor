@@ -356,8 +356,8 @@ class Field(object):
                 # Make the grid
                 self.log.info('Making grid with: center = ({0}, {1}) deg, width = ({2}, {3}) deg, '
                               '# of sectors = ({4}, {5})'.format(image_ra, image_dec,
-                                                                  image_width_ra, image_width_dec,
-                                                                  nsectors_ra, nsectors_dec))
+                                                                 image_width_ra, image_width_dec,
+                                                                 nsectors_ra, nsectors_dec))
                 width_ra = image_width_ra / nsectors_ra
                 width_dec = image_width_dec / nsectors_dec
                 width_x = width_ra / abs(self.wcs.wcs.cdelt[0])
@@ -435,7 +435,7 @@ class Field(object):
         RA, Dec = skymodel.getPatchPositions(asArray=True)
         x, y = self.radec2xy(RA, Dec)
         sizes = skymodel.getPatchSizes(units='degree')
-        minsize = 1  #  minimum allowed source size in pixels
+        minsize = 1  # minimum allowed source size in pixels
         sizes = [max(minsize, s/2.0/self.wcs_pixel_scale) for s in sizes]  # radii in pixels
 
         for i, (xs, ys, ss) in enumerate(zip(x, y, sizes)):

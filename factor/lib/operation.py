@@ -11,7 +11,6 @@ from factor import _logging
 from jinja2 import Environment, FileSystemLoader
 from lofarpipe.support.utilities import create_directory
 from lofarpipe.support.data_map import DataMap
-import glob
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 env_parset = Environment(loader=FileSystemLoader(os.path.join(DIR, '..', 'pipeline', 'parsets')))

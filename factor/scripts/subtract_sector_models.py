@@ -222,7 +222,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             if make_residual_col:
                 # Also subtract sector's model and output to RESIDUAL_DATA column
                 datamod_all += datamod_list[i]
-                if not 'RESIDUAL_DATA' in tout.colnames():
+                if 'RESIDUAL_DATA' not in tout.colnames():
                     desc = tout.getcoldesc('DATA')
                     desc['name'] = 'RESIDUAL_DATA'
                     coldmi = tout.getdminfo('DATA')

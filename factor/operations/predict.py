@@ -37,8 +37,8 @@ class Predict(Operation):
             sector_filename.extend(sector.get_obs_parameters('ms_filename'))
             sector_model_filename.extend(sector.get_obs_parameters('ms_model_filename'))
             sector_patches.extend(sector.get_obs_parameters('patch_names'))
-            sector_starttime.extend(sector.get_obs_parameters('predict_starttime')
-            sector_ntimes.extend(sector.get_obs_parameters('predict_ntimes')
+            sector_starttime.extend(sector.get_obs_parameters('predict_starttime'))
+            sector_ntimes.extend(sector.get_obs_parameters('predict_ntimes'))
         sector_patches = '[{}]'.format(';'.join(sector_patches))  # convert to ;-separated list
         obs_filename = []
         for obs in field.observations:

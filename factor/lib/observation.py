@@ -19,6 +19,12 @@ class Observation(object):
     ----------
     ms_filename : str
         Filename of the MS file
+    starttime : float, optional
+        The start time of the observation (in JD seconds). If None, the start time
+        is the start of the MS file
+    endtime : float, optional
+        The end time of the observation (in JD seconds). If None, the end time
+        is the end of the MS file
     """
     def __init__(self, ms_filename, starttime=None, endtime=None):
         self.ms_filename = ms_filename
@@ -189,12 +195,14 @@ class Observation(object):
         self.parameters['ms_filename'] = self.ms_filename
 
         # The filename of the sector's model data (from predict)
-        ms_model_filename = '{0}.{1}_modeldata'.format(self.ms_filename, sector_name)
+        ms_model_filename = '{0}.{1}_{2}_modeldata'.format(self.ms_filename, self.starttime,
+                                                           sector_name)
         self.parameters['ms_model_filename'] = ms_model_filename
 
         # The filename of the sector's data with all non-sector sources peeled off (i.e.,
         # the data used for imaging)
-        ms_subtracted_filename = '{0}.{1}'.format(self.ms_filename, sector_name)
+        ms_subtracted_filename = '{0}.{1}_{2}'.format(self.ms_filename, self.starttime,
+                                                      sector_name)
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
 
         # The sky model patch names
@@ -204,7 +212,6 @@ class Observation(object):
         # associated MS file)
         self.parameters['predict_starttime'] = self.starttime
         self.parameters['predict_ntimes'] = self.numsamples
-
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
                                width_ra, width_dec):
@@ -314,8 +321,8 @@ class Observation(object):
             Time width in seconds for target reduction_factor
 
         """
-        delta_time = np.sqrt( (1.0 - reduction_factor) /
-            (1.22E-9 * (delta_theta / resolution)**2.0) )
+        delta_time = np.sqrt((1.0 - reduction_factor) /
+                             (1.22E-9 * (delta_theta / resolution)**2.0))
 
         return delta_time
 
@@ -369,7 +376,7 @@ class Observation(object):
         # Increase delta_freq until we drop below target reduction_factor
         delta_freq = 1e-3 * freq
         while self.get_bandwidth_smearing_factor(freq, delta_freq, delta_theta,
-            resolution) > reduction_factor:
+                                                 resolution) > reduction_factor:
             delta_freq *= 1.1
 
         return delta_freq
