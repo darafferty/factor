@@ -64,6 +64,7 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
                     obs.ms_filename = obs.ms_field
                     obs.set_calibration_parameters(parset)
                 field.sectors = [sector for sector in field.sectors if not sector.is_outlier]
+                field.outlier_sectors = []
 
         # Image the sectors
         if step['do_image']:

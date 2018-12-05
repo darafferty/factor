@@ -94,6 +94,8 @@ class Sector(object):
         self.flag_freqrange = self.field.parset['flag_freqrange']
         self.flag_expr = self.field.parset['flag_expr']
         self.solve_tecandphase = self.field.parset['calibration_specific']['solve_tecandphase']
+        self.target_fast_timestep = self.field.parset['calibration_specific']['fast_timestep_sec']
+        self.target_slow_freqstep = self.field.parset['calibration_specific']['slow_freqstep_hz']
 
         # Set image size based on current sector polygon
         xmin, ymin, xmax, ymax = self.poly.bounds

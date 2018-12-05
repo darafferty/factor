@@ -1,4 +1,4 @@
-pipeline.steps = [create_sector_files_map, create_sector_skymodels_map, create_sector_sourcedbs, expand_sourcedbs_map, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, subtract_models]
+pipeline.steps = [create_sector_files_map, create_starttime_map, create_ntimes_map, create_sector_skymodels_map, create_sector_sourcedbs, expand_sourcedbs_map, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, subtract_models]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -9,6 +9,22 @@ create_sector_files_map.control.hosts       = {{ hosts }}
 create_sector_files_map.control.files       = {{ sector_filename }}
 create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_sector_files_map.control.filename    = sector_files.mapfile
+
+# create a mapfile with each observation's starttime value, length = nsectors*nobs
+create_starttime_map.control.kind        = plugin
+create_starttime_map.control.type        = addListMapfile
+create_starttime_map.control.hosts       = {{ hosts }}
+create_starttime_map.control.files       = {{ starttime }}
+create_starttime_map.control.mapfile_dir = input.output.mapfile_dir
+create_starttime_map.control.filename    = starttime.mapfile
+
+# create a mapfile with each observation's ntimes value, length = nsectors*nobs
+create_ntimes_map.control.kind        = plugin
+create_ntimes_map.control.type        = addListMapfile
+create_ntimes_map.control.hosts       = {{ hosts }}
+create_ntimes_map.control.files       = {{ ntimes }}
+create_ntimes_map.control.mapfile_dir = input.output.mapfile_dir
+create_ntimes_map.control.filename    = ntimes.mapfile
 
 # create a mapfile with the sector sky models, length = nsectors
 create_sector_skymodels_map.control.kind        = plugin
@@ -62,11 +78,13 @@ create_sector_patches_map.control.separator   = ;
 # predict model visibilities, length = nsectors*nobs
 # note that this step uses a lot of memory, so only one DPPP is run at a time
 predict_model_data.control.type                                   = dppp_single
-predict_model_data.control.mapfiles_in                            = [create_sector_files_map.output.mapfile,expand_sourcedbs_map.output.mapfile,expand_combined_h5parms_map.output.mapfile,create_sector_patches_map.output.mapfile]
-predict_model_data.control.inputkeys                              = [msin,sourcedb,combined_h5parm,directions]
+predict_model_data.control.mapfiles_in                            = [create_sector_files_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,expand_sourcedbs_map.output.mapfile,expand_combined_h5parms_map.output.mapfile,create_sector_patches_map.output.mapfile]
+predict_model_data.control.inputkeys                              = [msin,starttime,ntime,sourcedb,combined_h5parm,directions]
 predict_model_data.control.mapfile_out                            = create_predict_output_map.output.mapfile
 predict_model_data.argument.numthreads                            = {{ max_cpus_per_proc_single }}
 predict_model_data.argument.msin.datacolumn                       = DATA
+predict_model_data.argument.msin.starttime                        = starttime
+predict_model_data.argument.msin.ntimes                           = ntimes
 predict_model_data.argument.msout.overwrite                       = True
 predict_model_data.argument.msout.writefullresflag                = False
 predict_model_data.argument.steps                                 = [predict]
@@ -111,9 +129,10 @@ create_obs_files_map.control.filename    = obs_files.mapfile
 # for each obs, loop over sectors and subtract the model visibilities of all other sectors, length = nobs
 # create the RESIDUAL_DATA column for each sector as well, for use later in reweighting
 subtract_models.control.type               = subtract_sector_models
-subtract_models.control.mapfile_in         = create_obs_files_map.output.mapfile
-subtract_models.control.inputkey           = infile
+subtract_models.control.mapfiles_in        = [create_obs_files_map.output.mapfile,create_starttime_map.output.mapfile]
+subtract_models.control.inputkeys          = [infile,starttime]
 subtract_models.argument.flags             = [infile,{{ mapfile_dir }},sector_files_output_map.mapfile]
 subtract_models.argument.nr_outliers       = {{ nr_outliers }}
 subtract_models.argument.peel_outliers     = {{ peel_outliers }}
+subtract_models.argument.starttime         = starttime
 subtract_models.argument.make_residual_col = True

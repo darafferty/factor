@@ -1,300 +1,280 @@
-# based on https://github.com/ebonnassieux/Scripts/blob/master/QualityWeightsLOFAR.py
+#! /usr/bin/env python
+"""
+Script to reweight uv data
 
-import os
+Based on https://github.com/ebonnassieux/Scripts/blob/master/QualityWeightsLOFAR.py
+"""
 from casacore.tables import table
 import numpy as np
-import pylab
-from numpy import ma
 import sys
 import warnings
-import time
-import math
-import argparse
+
 
 class CovWeights:
-    def __init__(self,MSName,ntsol=1,SaveDataProducts=0,uvcut=[0,2000],gainfile=None,phaseonly=False):
-        if MSName[-1]=="/":
-            self.MSName=MSName[0:-1]
+    def __init__(self, MSName, solint_sec, solint_hz, uvcut=[0, 2000], gainfile=None,
+                 phaseonly=False, dirname=None, quiet=True):
+        if MSName[-1] == "/":
+            self.MSName = MSName[0:-1]
         else:
-            self.MSName=MSName
-        self.MaxCorrTime=0
-        self.SaveDataProducts=SaveDataProducts
-        self.ntSol=ntsol
-        self.uvcut=uvcut
-        self.gainfile=gainfile
-        self.phaseonly=phaseonly
+            self.MSName = MSName
+        tab = table(self.MSName, ack=False)
+        self.timepersample = tab.getcell('EXPOSURE', 0)
+        self.ntSol = max(1, int(round(solint_sec / self.timepersample)))
+        tab.close()
+        sw = table(self.MSName+'::SPECTRAL_WINDOW', ack=False)
+        self.referencefreq = sw.col('REF_FREQUENCY')[0]
+        self.channelwidth = sw.col('CHAN_WIDTH')[0][0]
+        self.nchanSol = max(1, self.get_nearest_frequstep(solint_hz / self.channelwidth))
+        sw.close()
+        self.uvcut = uvcut
+        self.gainfile = gainfile
+        self.phaseonly = phaseonly
+        self.dirname = dirname
+        self.quiet = quiet
 
-    def FindWeights(self,tcorr=0,colname=""):
-        ms=table(self.MSName,readonly=False)
-        # open antennas
-        ants=table(ms.getkeyword("ANTENNA"))
-        # open antenna tables
-        antnames=ants.getcol("NAME")
-        nAnt=len(antnames)
-        # open uvw to perform uvcut - TEST
-        u,v,_=ms.getcol("UVW").T
-        # load ant indices
-        A0=ms.getcol("ANTENNA1")
-        A1=ms.getcol("ANTENNA2")
-        tarray=ms.getcol("TIME")
-        nbl=np.where(tarray==tarray[0])[0].size
+    def FindWeights(self, colname=""):
+        ms = table(self.MSName, readonly=False)
+        ants = table(ms.getkeyword("ANTENNA"))
+        antnames = ants.getcol("NAME")
+        ants.close()
+        nAnt = len(antnames)
+
+        u, v, _ = ms.getcol("UVW").T
+        A0 = ms.getcol("ANTENNA1")
+        A1 = ms.getcol("ANTENNA2")
+        tarray = ms.getcol("TIME")
+        nbl = np.where(tarray == tarray[0])[0].size
         warnings.filterwarnings("ignore")
         warnings.filterwarnings("default")
         if "RESIDUAL_DATA" not in ms.colnames():
-            print "RESIDUAL_DATA column not in measurement set: creating it and filling with RESIDUAL_DATA"
-            desc=ms.getcoldesc("CORRECTED_DATA")
-            desc["name"]="RESIDUAL_DATA"
-            desc['comment']=desc['comment'].replace(" ","_")
-            ms.addcols(desc)
-            ms.putcol("RESIDUAL_DATA","CORRECTED_DATA")
-        flags=ms.getcol("FLAG")
-        print "Please ensure that RESIDUAL_DATA or CORRECTED_DATA contains residual visibilities from complete skymodel subtraction."
-        residualdata=ms.getcol("RESIDUAL_DATA")
-        flags=ms.getcol("FLAG")
-        # apply uvcut
-        uvlen=np.sqrt(u**2+v**2)
-        flags[uvlen>self.uvcut[1]]=1
-        flags[uvlen<self.uvcut[0]]=1
-        # apply flags to data
-        residualdata[flags==1]=0
-        # exit files gracefully
-        ants.close()
-        # initialise
-        nChan=residualdata.shape[1]
-        nPola=residualdata.shape[2]
-        nt=residualdata.shape[0]/nbl
-        # reshape antennas and data columns
-        residualdata=residualdata.reshape((nt,nbl,nChan,nPola))
-        # average residual data within calibration cells
-        ### TODO: the averaging should be done later; try using a filter instead of this ###
-#        times=np.array(list(sorted(set(tarray))))
-        A0=A0.reshape((nt,nbl))
-        A1=A1.reshape((nt,nbl))
-#        ant1=np.arange(nAnt)
-#        CoeffArray=np.zeros((nt,nAnt))
-#        print "Begin calculating antenna-based coefficients"
-#        for i,t_i in enumerate(times):
-#            indexmax=min(len(times)-1,i+self.ntSol)
-#            indexmin=max(0,i-self.ntSol)
-#            tmin=times[indexmin]
-#            tmax=times[indexmax]
-#            tmask=(tarray>tmin)*(tarray<tmax)
-#            for ant in ant1:
-#                # set of vis for baselines ant-ant_i
-#                set1=(A0==ant)
-#                # set of vis for baselines ant_i-ant
-#                set2=(A1==ant)
-#                resmask=tmask*(set1+set2)
-#                rarray=residualdata[resmask]
-#                CoeffArray[i,ant] = np.mean(np.abs(rarray*rarray.conj()))
-#            PrintProgress(i,nt)
-
-        if self.ntSol>1:
-            tspill=nt%self.ntSol
-            nt1=nt+self.ntSol-tspill
-            for i in range(nt1/self.ntSol):
-                residualdata[i*self.ntSol:(i+1)*self.ntSol,:,:,:]=np.mean(residualdata[i*self.ntSol:(i+1)*self.ntSol,:,:,:],axis=0)
-        A0=A0.reshape((nt,nbl))
-        A1=A1.reshape((nt,nbl))
-        ant1=np.arange(nAnt)
-        # make rms array
-        darray=ms.getcol("RESIDUAL_DATA").reshape((nt,nbl,nChan,nPola))
+            print('reweight: RESIDUAL_DATA not found. Exiting...')
+            sys.exit(1)
+        residualdata = ms.getcol("RESIDUAL_DATA")
+        flags = ms.getcol("FLAG")
         ms.close()
-        rmsarray=np.zeros((nt,nbl,nChan,2),dtype=np.complex64)
-        residuals=np.zeros_like(rmsarray,dtype=np.complex64)
-        rmsarray[:,:,:,0]=darray[:,:,:,1]
-        rmsarray[:,:,:,1]=darray[:,:,:,2]
-        # make proper residual array
-        residuals[:,:,:,0]=darray[:,:,:,0]
-        residuals[:,:,:,1]=darray[:,:,:,3]
-        # antenna coefficient array
-        CoeffArray=np.zeros((nt,nAnt))
+
+        # apply uvcut
+        c_m_s = 2.99792458e8
+        uvlen = np.sqrt(u**2 + v**2) / c_m_s * self.referencefreq
+        flags[uvlen > self.uvcut[1]] = 1
+        flags[uvlen < self.uvcut[0]] = 1
+        residualdata[flags == 1] = 0
+
+        # initialise
+        nChan = residualdata.shape[1]
+        nPola = residualdata.shape[2]
+        nt = residualdata.shape[0] / nbl
+        residualdata = residualdata.reshape((nt, nbl, nChan, nPola))
+        A0 = A0.reshape((nt, nbl))
+        A1 = A1.reshape((nt, nbl))
+
+        # make rms and residuals arrays
+        rmsarray = np.zeros((nt, nbl, nChan, 2), dtype=np.complex64)
+        residuals = np.zeros_like(rmsarray, dtype=np.complex64)
+        rmsarray[:, :, :, 0] = residualdata[:, :, :, 1]
+        rmsarray[:, :, :, 1] = residualdata[:, :, :, 2]
+        residuals[:, :, :, 0] = residualdata[:, :, :, 0]
+        residuals[:, :, :, 1] = residualdata[:, :, :, 3]
+
         # start calculating the weights
-        print "Begin calculating antenna-based coefficients"
-        warnings.filterwarnings("ignore")
-        print "Find variance-only weights"
-        for t_i in range(nt):
-            # build weights for each antenna at time t_i
-            for ant in ant1:
-                # set of vis for baselines ant-ant_i
-                set1=np.where(A0[t_i]==ant1)[0]
-                # set of vis for baselines ant_i-ant
-                set2=np.where(A1[t_i]==ant)[0]
-                CoeffArray[t_i,ant] = np.sqrt(np.mean(np.append(residuals[t_i,set1,:,:],residuals[t_i,set2,:,:])*np.append(residuals[t_i,set1,:,:],residuals[t_i,set2,:,:]).conj())\
-                                              - np.std( (np.append(rmsarray[t_i,set1,:,:], rmsarray[t_i,set2,:,:]))) )
-            PrintProgress(t_i,nt)
-        warnings.filterwarnings("default")
+        CoeffArray = np.zeros((nt, nAnt))
+        ant1 = np.arange(nAnt)
+        num_sols_time = int(np.ceil(float(nt) / self.ntSol))
+        num_sols_freq = int(np.ceil(float(nChan) / self.nchanSol))
+        tcellsize = self.ntSol
+        for t_i in range(num_sols_time):
+            if (t_i == num_sols_time - 1) and (nt % self.ntSol > 0):
+                tcellsize = nt % self.ntSol
+            t_e = t_i + tcellsize
+            fcellsize = self.nchanSol
+            for f_i in range(num_sols_freq):
+                if (f_i == num_sols_freq - 1) and (nChan % self.nchanSol > 0):
+                    fcellsize = nChan % self.nchanSol
+                f_e = f_i + fcellsize
+
+                # build weights for each antenna in the current time-frequency block
+                for ant in ant1:
+                    # set of vis for baselines ant-ant_i
+                    set1 = np.where(A0[t_i] == ant)[0]
+                    # set of vis for baselines ant_i-ant
+                    set2 = np.where(A1[t_i] == ant)[0]
+                    CoeffArray[t_i:t_e, f_i:f_e, ant] = np.sqrt(
+                        np.nanmean(
+                            np.append(residuals[t_i:t_e, set1, f_i:f_e, :],
+                                      residuals[t_i:t_e, set2, f_i:f_e, :]) *
+                            np.append(residuals[t_i:t_e, set1, f_i:f_e, :],
+                                      residuals[t_i:t_e, set2, f_i:f_e, :]).conj()
+                            ) -
+                        np.nanstd(
+                            np.append(rmsarray[t_i:t_e, set1, f_i:f_e, :],
+                                      rmsarray[t_i:t_e, set2, f_i:f_e, :])
+                            )
+                        )
+            if not quiet:
+                PrintProgress(t_i, nt)
+
+        # get rid of NaNs
         for i in range(nAnt):
-            # get rid of NaN
-            CoeffArray[np.isnan(CoeffArray)]=np.inf
-            tempars=CoeffArray[:,i]
-            thres=0.25*np.median(tempars)
-            CoeffArray[:,i][tempars<thres]=thres
-        if colname=="":
-            coeffFilename=self.MSName+"/CoeffArray.ntsol%i.npy"%(self.ntSol)
-        else:
-            coeffFilename=self.MSName+"/CoeffArray.%s.ntsol%i.npy"%(colname,self.ntSol)
-        print "Save coefficient array as %s."%coeffFilename
-        np.save(coeffFilename,CoeffArray)
+            CoeffArray[np.isnan(CoeffArray)] = np.inf
+            tempars = CoeffArray[:, :, i]
+            thres = 0.25 * np.median(tempars)
+            CoeffArray[:, :, i][tempars < thres] = thres
+
         return CoeffArray
 
-    def SaveWeights(self,CoeffArray,colname=None,AverageOverChannels=True,tcorr=0):
-        print "Begin saving the data"
-        ms=table(self.MSName,readonly=False)
-        # open antennas
-        ants=table(ms.getkeyword("ANTENNA"))
-        # open antenna tables
-        antnames=ants.getcol("NAME")
-        nAnt=len(antnames)
-        tarray=ms.getcol("TIME")
-        darray=ms.getcol("DATA")
-        tvalues=np.array(sorted(list(set(tarray))))
-        nt=tvalues.shape[0]
-        nbl=tarray.shape[0]/nt
-        nchan=darray.shape[1]
-        A0=np.array(ms.getcol("ANTENNA1").reshape((nt,nbl)))
-        A1=np.array(ms.getcol("ANTENNA2").reshape((nt,nbl)))
-        if colname in ms.colnames():
-            print "%s column already present; will overwrite"%colname
-        else:
-            W=np.ones((nt*nbl,nchan))
-            desc=ms.getcoldesc("IMAGING_WEIGHT")
-            desc["name"]=colname
-            desc['comment']=desc['comment'].replace(" ","_")
-            ms.addcols(desc)
-            ms.putcol(colname,W)
-        # create weight array
-        w=np.zeros((nt,nbl,nchan))
-        ant1=np.arange(nAnt)
+    def SaveWeights(self, CoeffArray, colname=None):
+        ms = table(self.MSName, readonly=False)
+        ants = table(ms.getkeyword("ANTENNA"))
+        antnames = ants.getcol("NAME")
+        nAnt = len(antnames)
+        tarray = ms.getcol("TIME")
+        darray = ms.getcol("DATA")
+        tvalues = np.array(sorted(list(set(tarray))))
+        nt = tvalues.shape[0]
+        nbl = tarray.shape[0]/nt
+        nchan = darray.shape[1]
+        npol = darray.shape[2]
+        A0 = np.array(ms.getcol("ANTENNA1").reshape((nt, nbl)))
+        A1 = np.array(ms.getcol("ANTENNA2").reshape((nt, nbl)))
+
+        # initialize weight array
+        w = np.zeros((nt, nbl, nchan, npol))
         print "Fill weights array"
-        A0ind=A0[0,:]
-        A1ind=A1[0,:]
-        warnings.filterwarnings("ignore")
+        A0ind = A0[0, :]
+        A1ind = A1[0, :]
 
         # do gains stuff
-        ant1gainarray,ant2gainarray=readGainFile(self.gainfile, ms, nt, nchan, nbl,tarray,nAnt,self.MSName,self.phaseonly)
-        for i in range(nbl):
-            for j in range(nchan):
-                w[:,i,j]=1./(CoeffArray[:,A0ind[i]]*ant2gainarray[i,j]+CoeffArray[:,A1ind[i]]*ant1gainarray[i,j]+CoeffArray[:,A0ind[i]]*CoeffArray[:,A1ind[i]] + 0.1)
-            PrintProgress(i,nbl)
-        warnings.filterwarnings("default")
-        w=w.reshape(nt*nbl,nchan)
-        w[np.isnan(w)]=0
-        w[np.isinf(w)]=0
-        # normalise
-        w=w/np.mean(w)
+        ant1gainarray, ant2gainarray = readGainFile(self.gainfile, ms, nt, nchan, nbl,
+                                                    tarray, nAnt, self.MSName, self.phaseonly,
+                                                    self.dirname)
+        ant1gainarray = ant1gainarray.reshape((nt, nbl, nChan))
+        ant2gainarray = ant2gainarray.reshape((nt, nbl, nChan))
+        for t in range(nt):
+            for i in range(nbl):
+                for j in range(nchan):
+                    w[t, i, j, :] = 1.0 / (CoeffArray[t, j, A0ind[i]] * ant1gainarray[t, i, j] +
+                                           CoeffArray[t, j, A1ind[i]] * ant2gainarray[t, i, j] +
+                                           CoeffArray[t, j, A0ind[i]] * CoeffArray[t, j, A1ind[i]] +
+                                           0.1)[:, np.newaxis]
+            if not quiet:
+                PrintProgress(t, nt)
+        w = w.reshape(nt*nbl, nchan, npol)
+
+        # normalize
+        w[np.isinf(w)] = np.nan
+        w = w / np.nanmean(w)
+        w[np.isnan(w)] = 0
+
         # save in weights column
-        if colname!=None:
-            ms.putcol(colname,w)
-        else: print "No colname given, so weights not saved in MS."
+        if colname is not None:
+            ms.putcol(colname, w)
         ants.close()
         ms.close()
 
-def readGainFile(gainfile,ms,nt,nchan,nbl,tarray,nAnt,msname,phaseonly):
-    if phaseonly==True:
+
+def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, dirname):
+    if phaseonly:
         print "Assume amplitude gain values of 1 everywhere"
-        ant1gainarray1=np.ones((nt*nbl,nchan))
-        ant2gainarray1=np.ones((nt*nbl,nchan))
+        ant1gainarray1 = np.ones((nt*nbl, nchan))
+        ant2gainarray1 = np.ones((nt*nbl, nchan))
     else:
-        if gainfile[-4:]==".npz":
-            print "Assume reading a kMS sols file"
-            gainsnpz=np.load(gainfile)
-            gains=gainsnpz["Sols"]
-            ant1gainarray=np.ones((nt*nbl,nchan))
-            ant2gainarray=np.ones((nt*nbl,nchan))
-            A0arr=ms.getcol("ANTENNA1")
-            A1arr=ms.getcol("ANTENNA2")
-            print "Build squared gain array"
-            for i in range(len(gains)):
-                timemask=(tarray>gains[i][0])*(tarray<gains[i][1])
-                for j in range(nAnt):
-                    mask1=timemask*(A0arr==j)
-                    mask2=timemask*(A1arr==j)
-                    for k in range(nchan):
-                        ant1gainarray[mask1,:]=np.abs(np.nanmean(gains[i][2][0,j,0]))#np.abs(np.nanmean(gains[i][3][0,j]))
-                        ant2gainarray[mask2,:]=np.abs(np.nanmean(gains[i][2][0,j,0]))#np.abs(np.nanmean(gains[i][3][0,j]))
-                PrintProgress(i,len(gains))
-            np.save(msname+"/ant1gainarray",ant1gainarray)
-            np.save(msname+"/ant2gainarray",ant2gainarray)
-            ant1gainarray=np.load(msname+"/ant1gainarray.npy")
-            ant2gainarray=np.load(msname+"/ant2gainarray.npy")
-            #        ant1gainarray1=np.ones((nt,nbl,nchan))
-            #        ant2gainarray1=np.ones((nt,nbl,nchan))
-            #        for i in range(nchan):
-            #            ant1gainarray1[:,:,i]=ant1gainarray**2
-            #            ant2gainarray1[:,:,i]=ant2gainarray**2
-            ant1gainarray1=ant1gainarray**2#1.reshape((nt*nbl,nchan))
-            ant2gainarray1=ant2gainarray**2#1.reshape((nt*nbl,nchan))
-        if gainfile[-3:]==".h5":
-            print "Assume reading losoto h5parm file"
-            import losoto
-            solsetName="sol000"
-            soltabName="screenamplitude000"
-            try:
-                gfile=losoto.h5parm.openSoltab(gainfile,solsetName=solsetName,soltabName=soltabName)
-            except:
-                print "Could not find amplitude gains in h5parm. Assuming gains of 1 everywhere."
-                ant1gainarray1=np.ones((nt*nbl,nchan))
-                ant2gainarray1=np.ones((nt*nbl,nchan))
-                return ant1gainarray1,ant2gainarray1
-            freqs=table(msname+"/SPECTRAL_WINDOW").getcol("CHAN_FREQ")
-            gains=gfile.getValues()[0] # axes: pol, dir, ant, freq, times
-            gfreqs=gfile.getValues()[1]["freq"]
-            times=gfile.getValues()[1]["time"]
-            ant1gainarray=np.zeros((nt*nbl,nchan))
-            ant2gainarray=np.zeros((nt*nbl,nchan))
+        import losoto.h5parm
+        solsetName = "sol000"
+        soltabName = "screenamplitude000"
+        try:
+            gfile = losoto.h5parm.openSoltab(gainfile, solsetName=solsetName, soltabName=soltabName)
+        except:
+            print "Could not find amplitude gains in h5parm. Assuming gains of 1 everywhere."
+            ant1gainarray1 = np.ones((nt*nbl, nchan))
+            ant2gainarray1 = np.ones((nt*nbl, nchan))
+            return ant1gainarray1, ant2gainarray1
+
+        freqs = table(msname+"/SPECTRAL_WINDOW").getcol("CHAN_FREQ")
+        gains = gfile.val  # axes: times, freqs, ants, dirs, pols
+        flagged = np.where(gains == 0.0)
+        gains[flagged] = np.nan
+        gfreqs = gfile.freq
+        times = gfile.time
+        dindx = gfile.dir.tolist().index(dirname)
+        ant1gainarray = np.zeros((nt*nbl, nchan))
+        ant2gainarray = np.zeros((nt*nbl, nchan))
+        A0arr = ms.getcol("ANTENNA1")
+        A1arr = ms.getcol("ANTENNA2")
+        deltime = (times[1] - times[0]) / 2.0
+        delfreq = (gfreqs[1] - gfreqs[0]) / 2.0
+        for i in range(len(times)):
+            timemask = (tarray >= times[i]-deltime) * (tarray < times[i]+deltime)
+            if np.all(~timemask):
+                continue
             for j in range(nAnt):
-                mask1=timemask*(A0arr==j)
-                mask2=timemask*(A1arr==j)
+                mask1 = timemask * (A0arr == j)
+                mask2 = timemask * (A1arr == j)
                 for k in range(nchan):
-                    if freqs[k] in gfreqs:
-                        freqmask=(gfreqs==k)
-                        ant1gainarray[mask1,k]=np.mean(gains[:,0,j,freqmask],axis=0)
-                        ant2gainarray[mask2,k]=np.mean(gains[:,0,j,freqmask],axis=0)
+                    chan_freq = freqs[0, k]
+                    freqmask = np.logical_and(gfreqs >= chan_freq-delfreq,
+                                              gfreqs < chan_freq+delfreq)
+                    if chan_freq < gfreqs[0]:
+                        freqmask[0] = True
+                    if chan_freq > gfreqs[-1]:
+                        freqmask[-1] = True
+                    ant1gainarray[mask1, k] = np.nanmean(gains[i, freqmask, j, dindx, :], axis=(0, 1))
+                    ant2gainarray[mask2, k] = np.nanmean(gains[i, freqmask, j, dindx, :], axis=(0, 1))
+        ant1gainarray1 = ant1gainarray**2
+        ant2gainarray1 = ant2gainarray**2
 
-    return ant1gainarray1,ant2gainarray1
+    return ant1gainarray1, ant2gainarray1
 
 
-### auxiliary functions ###
-def PrintProgress(currentIter,maxIter,msg=""):
+def PrintProgress(currentIter, maxIter, msg=""):
     sys.stdout.flush()
-    if msg=="":
-        msg="Progress:"
-    sys.stdout.write("\r%s %5.1f %% "%(msg,100*(currentIter+1.)/maxIter))
-    if currentIter==(maxIter-1):
+    if msg == "":
+        msg = "Progress:"
+    sys.stdout.write("\r%s %5.1f %% " % (msg, 100*(currentIter+1.)/maxIter))
+    if currentIter == (maxIter-1):
         sys.stdout.write("\n")
-def invSVD(A):
-    u,s,v=np.linalg.svd(A)
-    s[s<1.e-6*s.max()]=1.e-6*s.max()
-    ssq=np.abs((1./s))
-    # rebuild matrix
-    Asq=np.dot(v,np.dot(np.diag(ssq),np.conj(u)))
-    v0=v.T*ssq.reshape(1,ssq.size)
-    return Asq
-def readArguments():
-    parser=argparse.ArgumentParser("Calculate visibility imagin weights based on calibration quality")
-    parser.add_argument("-v","--verbose",help="Be verbose, say everything program does. Default is False",required=False,action="store_true")
-    parser.add_argument("--filename",type=str,help="Name of the measurement set for which weights want to be calculated",required=True,nargs="+")
-    parser.add_argument("--ntsol",type=int,help="Solution interval, in timesteps, for your calibration",required=True)
-    parser.add_argument("--colname",type=str,help="Name of the weights column name you want to save the weights to. Default is CAL_WEIGHT.",required=False,default="CAL_WEIGHT")
-    parser.add_argument("--gainfile",type=str,help="Name of the gain file you want to read to rebuild the calibration quality weights."+\
-                        " If no file is given, equivalent to rebuilding weights for phase-only calibration.",required=False,default="")
-    parser.add_argument("--uvcutkm",type=float,nargs=2,default=[0,2000],required=False,help="uvcut used during calibration, in km.")
-    parser.add_argument("--phaseonly",help="Use if calibration was phase-only; this means that gain information doesn't need to be read.",required=False,action="store_true")
-#    parser.add_argument("--nchansol",type=int,help="Solution interval, in channels, for your calibration",required=True)
-    args=parser.parse_args()
-    return vars(args)
 
 
-def main(msname, ntsol, colname="CAL_WEIGHT", gainfile="", uvcutkm=[0,2000], phaseonly=False):
-    ntsol = int(ntsol)
-    if type(phaseonly) is str:
+def main(msname, solint_sec, solint_hz, colname="CAL_WEIGHT", gainfile="", uvcut_min=80.0,
+         uvcut_max=1e6, phaseonly=True, dirname=None, quiet=True):
+    """
+    Reweight visibilities
+
+    Parameters
+    ----------
+    filename : str
+        Name of the input measurement set
+    solint_sec : float
+        Solution interval in seconds of calibration
+    solint_hz : float
+        Solution interval in Hz of calibration
+    colname : str, optional
+        Name of the weights column name you want to save the weights to
+    gainfile : str, optional
+        Name of the gain file you want to read to rebuild the calibration quality weights.
+        If no file is given, equivalent to rebuilding weights for phase-only calibration
+    uvcut_min : float, optional
+        Min uvcut in lambda used during calibration
+    uvcut_max : float, optional
+        Max uvcut in lambda used during calibration
+    phaseonly : bool, optional
+        Use if calibration was phase-only; this means that gain information doesn't need
+        to be read
+    dirname : str, optional
+        Name of calibration patch
+    """
+    solint_sec = float(solint_sec)
+    solint_hz = float(solint_hz)
+    uvcut_lambda_min = float(uvcut_lambda_min)
+    uvcut_lambda_max = float(uvcut_lambda_max)
+    uvcut = [uvcut_min, uvcut_max]
+    if isinstance(phaseonly, basestring):
         if phaseonly.lower() == 'true':
             phaseonly = True
         else:
             phaseonly = False
 
-    print "Finding time-covariance weights for: %s"%msname
-    covweights=CovWeights(MSName=msname,ntsol=ntsol,gainfile=gainfile,uvcut=uvcutkm,phaseonly=phaseonly)
-    coefficients=covweights.FindWeights(tcorr=0,colname=colname)
-    covweights.SaveWeights(coefficients,colname=colname,AverageOverChannels=True,tcorr=0)
+    covweights = CovWeights(MSName=msname, solint_sec=solint_sec, solint_hz=solint_hz,
+                          gainfile=gainfile, uvcut=uvcut, phaseonly=phaseonly,
+                          dirname=dirname, quiet=quiet)
+    coefficients = covweights.FindWeights(colname=colname)
+    covweights.SaveWeights(coefficients, colname=colname)

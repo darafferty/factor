@@ -2,8 +2,6 @@
 """
 Script to subtract sector model data
 """
-import argparse
-from argparse import RawTextHelpFormatter
 import casacore.tables as pt
 import numpy as np
 import sys
@@ -12,9 +10,9 @@ import subprocess
 from lofarpipe.support.data_map import DataMap
 
 
-def get_nchunks(msin, nsectors):
+def get_nchunks(msin, nsectors, fraction=1.0):
     tot_m, used_m, free_m = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
-    msin_m = float(subprocess.check_output(['du', '-sh', msin]).split()[0][:-1]) * 1000.0
+    msin_m = float(subprocess.check_output(['du', '-sh', msin]).split()[0][:-1]) * 1000.0 * fraction
     tot_required_m = msin_m * nsectors * 2.0
     nchunks = max(1, int(np.ceil(tot_required_m / free_m)))
     return nchunks
@@ -22,7 +20,7 @@ def get_nchunks(msin, nsectors):
 
 def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
          out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False,
-         make_residual_col=True):
+         make_residual_col=True, starttime=None):
     """
     Subtract sector model data
 
@@ -49,6 +47,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         If True, outliers are peeled before sector models are subtracted
     make_residual_col : bool, optional
         If True, make a RESIDUAL_DATA column by subtracting all sources
+    starttime : float, optional
+        Start time in JD seconds
     """
     if isinstance(use_compression, basestring):
         if use_compression.lower() == 'true':
@@ -68,7 +68,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     nr_outliers = int(nr_outliers)
 
     # Get the model data filenames. We only use files that contain the root of
-    # msin, so that models for other observations are not picked up
+    # msin, so that models for other observations are not picked up (starttime and ntimes
+    # are used when a single MS file is used for multiple observations)
     if msin.endswith('_field'):
         msin_root = msin.rstrip('_field')
     else:
@@ -76,6 +77,21 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     mapfile = os.path.join(mapfile_dir, filename)
     model_map = DataMap.load(mapfile)
     model_list = [item.file for item in model_map if msin_root in item.file]
+    if starttime is not None:
+        # Filter the list of models to include only ones for the given times
+        nrows_list = []
+        for i, msmod in enumerate(model_list[:]):
+            tin = pt.table(msmod, readonly=True, ack=False)
+            starttime_chunk = np.min(tin.getcol('TIME'))
+            if starttime_chunk != starttime:
+                model_list.pop(i)
+            else:
+                nrows_list.append(tin.nrows())  # all models have the same nrows
+            tin.close()
+        if len(set(nrows_list)) > 1:
+            print('subtract_sector_models: Model data files have differing number of rows...')
+            sys.exit(1)
+
     nsectors = len(model_list)
     if nsectors == 1 and nr_outliers == 1:
         # This means we have a single imaging sector and outlier sector, so duplicate
@@ -86,6 +102,15 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         sys.exit(1)
     print('subtract_sector_models: Found {} model data files'.format(nsectors))
 
+    # If starttime is given, figure out startrow and nrows for input MS file
+    tin = pt.table(msin, readonly=True, ack=False)
+    if starttime is not None:
+        startrow_in = np.where(tin.getcol('TIME') == starttime)
+        nrows_in = nrows_list[0]
+    else:
+        startrow_in = 0
+        nrows_in = tin.nrows()
+
     # If outliers are to be peeled, do that first
     if peel_outliers:
         # Open input and output table
@@ -95,13 +120,14 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout = pt.table(msout, readonly=False, ack=False)
 
-        nchunks = get_nchunks(msin, nr_outliers)
-        nrows_per_chunk = tin.nrows() / nchunks
-        startrows = [0]
+        fraction = float(nrows_in) / float(tin.nrows())
+        nchunks = get_nchunks(msin, nr_outliers, fraction)
+        nrows_per_chunk = nrows_in / nchunks
+        startrows = [startrow_in]
         nrows = [nrows_per_chunk]
         for i in range(1, nchunks):
             if i == nchunks-1:
-                nrow = tin.nrows() - (nchunks - 1)*nrows_per_chunk
+                nrow = nrows_in - (nchunks - 1) * nrows_per_chunk
             else:
                 nrow = nrows_per_chunk
             nrows.append(nrow)
@@ -110,7 +136,6 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
 
         for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
             # For each chunk, load data
-            print('subtract_sector_models: Processing chunk {}...'.format(c))
             datain = tin.getcol(msin_column, startrow=startrow, nrow=nrow)
             if use_compression:
                 # Replace flagged values with NaNs before compression
@@ -119,13 +144,11 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                 datain[flagged] = np.NaN
             datamod_list = []
             for i, msmodel in enumerate(model_list[nsectors-nr_outliers:]):
-                print('subtract_sector_models: Loading data for outlier sector {}...'.format(i))
                 tmod = pt.table(msmodel, readonly=True, ack=False)
                 datamod_list.append(tmod.getcol(model_column, startrow=startrow, nrow=nrow))
                 tmod.close()
 
             # For each sector, subtract sum of model data for this chunk
-            print('subtract_sector_models: Peeling data...')
             other_sectors_ind = list(range(nr_outliers))
             datamod_all = None
             for sector_ind in other_sectors_ind:
@@ -151,20 +174,20 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         if nr_outliers > 0 and i == len(model_list)-nr_outliers:
             # Break so we don't open output tables for the outliers
             break
-            _modeldata
         msout = msmod.rstrip('_modeldata')
         if not os.path.exists(msout):
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout_list.append(pt.table(msout, readonly=False, ack=False))
 
     # Define chunks based on available memory
-    nchunks = get_nchunks(msin, nsectors)
-    nrows_per_chunk = tin.nrows() / nchunks
-    startrows = [0]
+    fraction = float(nrows_in) / float(tin.nrows())
+    nchunks = get_nchunks(msin, nr_outliers, fraction)
+    nrows_per_chunk = nrows_in / nchunks
+    startrows = [startrow_in]
     nrows = [nrows_per_chunk]
     for i in range(1, nchunks):
         if i == nchunks-1:
-            nrow = tin.nrows() - (nchunks - 1)*nrows_per_chunk
+            nrow = nrows_in - (nchunks - 1) * nrows_per_chunk
         else:
             nrow = nrows_per_chunk
         nrows.append(nrow)
@@ -173,7 +196,6 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
 
     for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
         # For each chunk, load data
-        print('subtract_sector_models: Processing chunk {}...'.format(c))
         datain = tin.getcol(msin_column, startrow=startrow, nrow=nrow)
         if use_compression:
             # Replace flagged values with NaNs before compression
@@ -182,14 +204,12 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             datain[flagged] = np.NaN
         datamod_list = []
         for i, msmodel in enumerate(model_list):
-            print('subtract_sector_models: Loading data for sector {}...'.format(i))
             tmod = pt.table(msmodel, readonly=True, ack=False)
             datamod_list.append(tmod.getcol(model_column, startrow=startrow, nrow=nrow))
             tmod.close()
 
         # For each sector, subtract sum of model data for this chunk
         for i, tout in enumerate(tout_list):
-            print('subtract_sector_models: Subtracting data for sector {}...'.format(i))
             other_sectors_ind = list(range(nsectors))
             other_sectors_ind.pop(i)
             datamod_all = None
@@ -218,19 +238,3 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     for msmod in model_list:
         if os.path.exists(msmod):
             os.system('/bin/rm -rf {0}'.format(msmod))
-
-
-if __name__ == '__main__':
-    descriptiontext = "Add/subtract columns (column_out = column1 +/- column2).\n"
-
-    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
-    parser.add_argument('ms1', help='name of MS file 1')
-    parser.add_argument('ms2', help='name of MS file 2')
-    parser.add_argument('column1', help='name of column 1')
-    parser.add_argument('column2', help='name of column 2')
-    parser.add_argument('column_out', help='name of the output column (written to ms1)')
-    parser.add_argument('op', help='operation: "add" or "subtract"')
-    parser.add_argument('in_memory', help='do operation in memory')
-    args = parser.parse_args()
-
-    main(args.ms1, args.ms2, args.column1, args.column2, args.column_out, args.op, args.in_memory)

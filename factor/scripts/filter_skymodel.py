@@ -51,19 +51,19 @@ def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=
         If adaptive_rmsbox is True, this value sets the threshold above
         which a source will use the small rms box
     """
-    if rmsbox is not None and type(rmsbox) is str:
+    if rmsbox is not None and isinstance(rmsbox, basestring):
         rmsbox = eval(rmsbox)
 
-    if type(rmsbox_bright) is str:
+    if isinstance(rmsbox_bright, basestring):
         rmsbox_bright = eval(rmsbox_bright)
 
-    if type(adaptive_rmsbox) is str:
+    if isinstance(adaptive_rmsbox, basestring):
         if adaptive_rmsbox.lower() == 'true':
             adaptive_rmsbox = True
         else:
             adaptive_rmsbox = False
 
-    if type(use_adaptive_threshold) is str:
+    if isinstance(use_adaptive_threshold, basestring):
         if use_adaptive_threshold.lower() == 'true':
             use_adaptive_threshold = True
         else:

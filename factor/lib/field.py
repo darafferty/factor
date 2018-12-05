@@ -65,7 +65,7 @@ class Field(object):
             self.makeWCS()
             self.define_sectors()
 
-    def scan_observations(self):
+    def scan_observations(self, data_fraction=1.0):
         """
         Checks input MS files and initializes the associated Observation objects
         """
@@ -73,6 +73,27 @@ class Field(object):
         self.observations = []
         for ms_filename in self.ms_filenames:
             self.observations.append(Observation(ms_filename))
+
+        # Break observations into smaller time chunks if desired
+        if data_fraction < 1.0:
+            self.full_observations = self.observations[:]
+            self.observations = []
+            for obs in self.full_observations:
+                mintime = self.parset['calibration_specific']['slow_timestep_sec']
+                tottime = obs.endtime - obs.starttime
+                nchunks = int(np.ceil(data_fraction / (mintime / tottime)))
+                if nchunks > 1:
+                    steptime = mintime * (tottime / mintime - nchunks) / nchunks + mintime
+                    starttimes = np.arange(obs.starttime, obs.endtime, steptime)
+                    endtimes = np.arange(obs.starttime+mintime, obs.endtime+mintime, steptime)
+                    for starttime, endtime in zip(starttimes, endtimes):
+                        if endtime > obs.endtime:
+                            starttime = obs.endtime - mintime
+                            endtime = obs.endtime
+                        self.observations.append(Observation(obs.ms_filename, starttime=starttime,
+                                                             endtime=endtime))
+                else:
+                    self.observations.append(obs)
 
         # Check that all observations have the same frequency axis
         # NOTE: this may not be necessary and is disabled for now

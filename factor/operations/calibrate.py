@@ -26,6 +26,8 @@ class Calibrate(Operation):
         timechunk_filename = field.get_obs_parameters('timechunk_filename')
         starttime = field.get_obs_parameters('starttime')
         ntimes = field.get_obs_parameters('ntimes')
+        slow_starttime = field.get_obs_parameters('slow_starttime')
+        slow_ntimes = field.get_obs_parameters('slow_ntimes')
         freqchunk_filename = field.get_obs_parameters('freqchunk_filename')
         startchan = field.get_obs_parameters('startchan')
         nchan = field.get_obs_parameters('nchan')
@@ -44,6 +46,8 @@ class Calibrate(Operation):
                                 'freqchunk_filename': freqchunk_filename,
                                 'starttime': starttime,
                                 'ntimes': ntimes,
+                                'slow_starttime': slow_starttime,
+                                'slow_ntimes': slow_ntimes,
                                 'startchan': startchan,
                                 'nchan': nchan,
                                 'solint_fast_timestep': solint_fast_timestep,

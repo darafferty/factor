@@ -20,11 +20,13 @@ class Observation(object):
     ms_filename : str
         Filename of the MS file
     """
-    def __init__(self, ms_filename):
+    def __init__(self, ms_filename, starttime=None, endtime=None):
         self.ms_filename = ms_filename
         self.ms_field = self.ms_filename + '_field'
         self.name = os.path.basename(self.ms_filename)
         self.log = logging.getLogger('factor:{}'.format(self.name))
+        self.starttime = starttime
+        self.endtime = endtime
         self.parameters = {}
         self.scan_ms()
 
@@ -34,8 +36,18 @@ class Observation(object):
         """
         # Get time info
         tab = pt.table(self.ms_filename, ack=False)
-        self.starttime = np.min(tab.getcol('TIME'))
-        self.endtime = np.max(tab.getcol('TIME'))
+        if self.starttime is None:
+            self.starttime = np.min(tab.getcol('TIME'))
+        else:
+            self.starttime = max(self.starttime, np.min(tab.getcol('TIME')))
+        if self.endtime is None:
+            self.endtime = np.max(tab.getcol('TIME'))
+        else:
+            self.endtime = min(self.endtime, np.max(tab.getcol('TIME')))
+        if self.endtime < np.max(tab.getcol('TIME')):
+            self.goesto_endofms = False
+        else:
+            self.goesto_endofms = True
         self.timepersample = tab.getcell('EXPOSURE', 0)
         self.numsamples = int(np.ceil((self.endtime - self.starttime) / self.timepersample))
         tab.close()
@@ -120,7 +132,8 @@ class Observation(object):
         starttimes = [mystarttime+(chunksize * i) for i in range(self.ntimechunks)]
         self.parameters['starttime'] = [self.convert_mjd(t) for t in starttimes]
         self.parameters['ntimes'] = [samplesperchunk] * self.ntimechunks
-        self.parameters['ntimes'][-1] = 0  # set last entry to extend until end
+        if self.goesto_endofms:
+            self.parameters['ntimes'][-1] = 0  # set last entry to extend until end
 
         # Find solution intervals for slow-gain solve
         solint_slow_timestep = max(1, int(round(target_slow_timestep / timepersample)))
@@ -153,6 +166,8 @@ class Observation(object):
         self.parameters['startchan'] = [channelsperchunk * i for i in range(nchunks)]
         self.parameters['nchan'] = [channelsperchunk] * nchunks
         self.parameters['nchan'][-1] = 0  # set last entry to extend until end
+        self.parameters['slow_starttime'] = [self.convert_mjd(self.starttime)]  * nchunks
+        self.parameters['slow_ntimes'] = [self.numsamples] * nchunks
 
         # Set solution intervals (same for every calibration chunk)
         self.parameters['solint_fast_timestep'] = [solint_fast_timestep] * self.ntimechunks
@@ -184,6 +199,12 @@ class Observation(object):
 
         # The sky model patch names
         self.parameters['patch_names'] = patch_names
+
+        # The start time and number of times (since an observation can be a part of its
+        # associated MS file)
+        self.parameters['predict_starttime'] = self.starttime
+        self.parameters['predict_ntimes'] = self.numsamples
+
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
                                width_ra, width_dec):

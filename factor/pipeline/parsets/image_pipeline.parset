@@ -47,7 +47,15 @@ reweight.control.mapfiles_in = [create_sector_files_map.output.mapfile,expand_h5
 reweight.control.inputkeys   = [filename,gainfile]
 reweight.argument.colname    = WEIGHT_SPECTRUM
 reweight.argument.gainfile   = gainfile
-reweight.argument.flags      = [filename,1]
+reweight.argument.dirname    = [{{ central_patch }}]
+reweight.argument.uvcut_min  = {{ min_uv_lambda }}
+reweight.argument.uvcut_max  = {{ max_uv_lambda }}
+{% if apply_slowgains %}
+reweight.argument.phaseonly  = False
+{% else %}
+reweight.argument.phaseonly  = True
+{% endif %}
+reweight.argument.flags      = [filename,{{ target_fast_timestep }},{{ target_slow_freqstep }}]
 {% endif %}
 
 # phase shift, apply the direction-dependent solutions, and average, length = nobs
