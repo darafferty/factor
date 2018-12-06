@@ -24,8 +24,9 @@ class CovWeights:
         sw = table(self.MSName+'::SPECTRAL_WINDOW', ack=False)
         self.referencefreq = sw.col('REF_FREQUENCY')[0]
         self.channelwidth = sw.col('CHAN_WIDTH')[0][0]
-        self.nchanSol = max(1, self.get_nearest_frequstep(solint_hz / self.channelwidth))
+        self.numchannels = sw.col('NUM_CHAN')[0]
         sw.close()
+        self.nchanSol = max(1, self.get_nearest_frequstep(solint_hz / self.channelwidth))
         self.uvcut = uvcut
         self.gainfile = gainfile
         self.phaseonly = phaseonly
@@ -33,7 +34,7 @@ class CovWeights:
         self.quiet = quiet
 
     def FindWeights(self, colname=""):
-        ms = table(self.MSName, readonly=False)
+        ms = table(self.MSName, ack=False)
         ants = table(ms.getkeyword("ANTENNA"))
         antnames = ants.getcol("NAME")
         ants.close()
@@ -77,7 +78,7 @@ class CovWeights:
         residuals[:, :, :, 1] = residualdata[:, :, :, 3]
 
         # start calculating the weights
-        CoeffArray = np.zeros((nt, nAnt))
+        CoeffArray = np.zeros((nt, nChan, nAnt))
         ant1 = np.arange(nAnt)
         num_sols_time = int(np.ceil(float(nt) / self.ntSol))
         num_sols_freq = int(np.ceil(float(nChan) / self.nchanSol))
@@ -123,7 +124,7 @@ class CovWeights:
         return CoeffArray
 
     def SaveWeights(self, CoeffArray, colname=None):
-        ms = table(self.MSName, readonly=False)
+        ms = table(self.MSName, readonly=False, ack=False)
         ants = table(ms.getkeyword("ANTENNA"))
         antnames = ants.getcol("NAME")
         nAnt = len(antnames)
@@ -155,7 +156,7 @@ class CovWeights:
                     w[t, i, j, :] = 1.0 / (CoeffArray[t, j, A0ind[i]] * ant1gainarray[t, i, j] +
                                            CoeffArray[t, j, A1ind[i]] * ant2gainarray[t, i, j] +
                                            CoeffArray[t, j, A0ind[i]] * CoeffArray[t, j, A1ind[i]] +
-                                           0.1)[:, np.newaxis]
+                                           0.1)
             if not self.quiet:
                 PrintProgress(t, nt)
         w = w.reshape(nt*nbl, nchan, npol)
@@ -170,6 +171,34 @@ class CovWeights:
             ms.putcol(colname, w)
         ants.close()
         ms.close()
+
+
+    def get_nearest_frequstep(self, freqstep):
+        """
+        Gets the nearest frequstep
+
+        Parameters
+        ----------
+        freqstep : int
+            Target frequency step
+
+        Returns
+        -------
+        optimum_step : int
+            Optimum frequency step nearest to target step
+        """
+        # Generate a list of possible values for freqstep
+        if not hasattr(self, 'freq_divisors'):
+            tmp_divisors = []
+            for step in range(self.numchannels, 0, -1):
+                if (self.numchannels % step) == 0:
+                    tmp_divisors.append(step)
+            self.freq_divisors = np.array(tmp_divisors)
+
+        # Find nearest
+        idx = np.argmin(np.abs(self.freq_divisors - freqstep))
+
+        return self.freq_divisors[idx]
 
 
 def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, dirname):

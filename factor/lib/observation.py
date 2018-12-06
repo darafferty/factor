@@ -20,10 +20,10 @@ class Observation(object):
     ms_filename : str
         Filename of the MS file
     starttime : float, optional
-        The start time of the observation (in JD seconds). If None, the start time
+        The start time of the observation (in MJD seconds). If None, the start time
         is the start of the MS file
     endtime : float, optional
-        The end time of the observation (in JD seconds). If None, the end time
+        The end time of the observation (in MJD seconds). If None, the end time
         is the end of the MS file
     """
     def __init__(self, ms_filename, starttime=None, endtime=None):
@@ -46,6 +46,10 @@ class Observation(object):
             self.starttime = np.min(tab.getcol('TIME'))
         else:
             self.starttime = max(self.starttime, np.min(tab.getcol('TIME')))
+        if self.starttime > np.min(tab.getcol('TIME')):
+            self.startsat_startofms = False
+        else:
+            self.startsat_startofms = True
         if self.endtime is None:
             self.endtime = np.max(tab.getcol('TIME'))
         else:
@@ -195,13 +199,19 @@ class Observation(object):
         self.parameters['ms_filename'] = self.ms_filename
 
         # The filename of the sector's model data (from predict)
-        ms_model_filename = '{0}.{1}_{2}_modeldata'.format(self.ms_filename, self.starttime,
+        if self.startsat_startofms and self.goesto_endofms:
+            # Don't include starttime if observation covers full MS
+            infix = ""
+        else:
+            # Include starttime to avoid naming conflicts
+            infix = "mjd{}_".format(self.starttime)
+        ms_model_filename = '{0}.{1}{2}_modeldata'.format(self.ms_filename, infix,
                                                            sector_name)
         self.parameters['ms_model_filename'] = ms_model_filename
 
         # The filename of the sector's data with all non-sector sources peeled off (i.e.,
         # the data used for imaging)
-        ms_subtracted_filename = '{0}.{1}_{2}'.format(self.ms_filename, self.starttime,
+        ms_subtracted_filename = '{0}.{1}{2}'.format(self.ms_filename, infix,
                                                       sector_name)
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
 
