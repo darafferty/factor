@@ -3,6 +3,7 @@ Definition of the Observation class that holds parameters for each measurement
 set
 """
 import os
+import sys
 import logging
 import casacore.tables as pt
 import numpy as np
@@ -45,7 +46,12 @@ class Observation(object):
         if self.starttime is None:
             self.starttime = np.min(tab.getcol('TIME'))
         else:
-            self.starttime = max(self.starttime, np.min(tab.getcol('TIME')))
+            valid_times = np.where(tab.getcol('TIME') >= self.starttime)[0]
+            if len(valid_times) == 0:
+                self.log.critical('Start time of {0} is greater than the last time in the MS! '
+                                  'Exiting!'.format(self.starttime))
+                sys.exit(1)
+            self.starttime = tab.getcol('TIME')[valid_times[0]]
         if self.starttime > np.min(tab.getcol('TIME')):
             self.startsat_startofms = False
         else:
@@ -53,13 +59,18 @@ class Observation(object):
         if self.endtime is None:
             self.endtime = np.max(tab.getcol('TIME'))
         else:
-            self.endtime = min(self.endtime, np.max(tab.getcol('TIME')))
+            valid_times = np.where(tab.getcol('TIME') <= self.endtime)[0]
+            if len(valid_times) == 0:
+                self.log.critical('End time of {0} is less than the first time in the MS! '
+                                  'Exiting!'.format(self.endtime))
+                sys.exit(1)
+            self.endtime = tab.getcol('TIME')[valid_times[-1]]
         if self.endtime < np.max(tab.getcol('TIME')):
             self.goesto_endofms = False
         else:
             self.goesto_endofms = True
         self.timepersample = tab.getcell('EXPOSURE', 0)
-        self.numsamples = int(np.ceil((self.endtime - self.starttime) / self.timepersample))
+        self.numsamples = int(np.ceil((self.endtime - self.starttime) / self.timepersample)) + 1
         tab.close()
 
         # Get frequency info

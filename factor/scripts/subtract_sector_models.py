@@ -107,10 +107,12 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         for i, msmod in enumerate(model_list[:]):
             tin = pt.table(msmod, readonly=True, ack=False)
             starttime_chunk = np.min(tin.getcol('TIME'))
+            endtime_chunk = np.max(tin.getcol('TIME'))
             if convert_mjd(starttime_chunk) != starttime:
                 model_list.pop(i)
             else:
-                nrows_list.append(tin.nrows())  # all models have the same nrows
+                nrows = int(np.ceil((endtime_chunk - starttime_chunk) / tin.getcell('EXPOSURE', 0))) + 1
+                nrows_list.append(nrows)  # all models have the same nrows
             tin.close()
         if len(set(nrows_list)) > 1:
             print('subtract_sector_models: Model data files have differing number of rows...')
@@ -130,7 +132,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     tin = pt.table(msin, readonly=True, ack=False)
     if starttime is not None:
         times = [convert_mjd(t) for t in tin.getcol('TIME')]
-        startrow_in = np.where(times == starttime)
+        startrow_in = times.index(starttime)
         nrows_in = nrows_list[0]
     else:
         startrow_in = 0
@@ -206,7 +208,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
 
     # Define chunks based on available memory
     fraction = float(nrows_in) / float(tin.nrows())
-    nchunks = get_nchunks(msin, nr_outliers, fraction)
+    nchunks = get_nchunks(msin, nsectors, fraction)
     nrows_per_chunk = nrows_in / nchunks
     startrows = [startrow_in]
     nrows = [nrows_per_chunk]
