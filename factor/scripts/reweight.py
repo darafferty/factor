@@ -35,7 +35,7 @@ class CovWeights:
 
     def FindWeights(self, colname=""):
         ms = table(self.MSName, ack=False)
-        ants = table(ms.getkeyword("ANTENNA"))
+        ants = table(ms.getkeyword("ANTENNA"), ack=False)
         antnames = ants.getcol("NAME")
         ants.close()
         nAnt = len(antnames)
@@ -57,17 +57,18 @@ class CovWeights:
         # apply uvcut
         c_m_s = 2.99792458e8
         uvlen = np.sqrt(u**2 + v**2) / c_m_s * self.referencefreq
-        flags[uvlen > self.uvcut[1]] = 1
-        flags[uvlen < self.uvcut[0]] = 1
-        residualdata[flags == 1] = 0
+        flags[uvlen > self.uvcut[1], :, :] = True
+        flags[uvlen < self.uvcut[0], :, :] = True
+        residualdata[flags] = np.nan
+        residualdata[residualdata == 0] = np.nan
 
         # initialise
         nChan = residualdata.shape[1]
         nPola = residualdata.shape[2]
         nt = residualdata.shape[0] / nbl
         residualdata = residualdata.reshape((nt, nbl, nChan, nPola))
-        A0 = A0.reshape((nt, nbl))
-        A1 = A1.reshape((nt, nbl))
+        A0 = A0.reshape((nt, nbl))[0, :]
+        A1 = A1.reshape((nt, nbl))[0, :]
 
         # make rms and residuals arrays
         rmsarray = np.zeros((nt, nbl, nChan, 2), dtype=np.complex64)
@@ -83,22 +84,22 @@ class CovWeights:
         num_sols_time = int(np.ceil(float(nt) / self.ntSol))
         num_sols_freq = int(np.ceil(float(nChan) / self.nchanSol))
         tcellsize = self.ntSol
-        for t_i in range(num_sols_time):
-            if (t_i == num_sols_time - 1) and (nt % self.ntSol > 0):
+        for t_i in range(0, nt, self.ntSol):
+            if (t_i == nt - self.ntSol) and (nt % self.ntSol > 0):
                 tcellsize = nt % self.ntSol
             t_e = t_i + tcellsize
             fcellsize = self.nchanSol
-            for f_i in range(num_sols_freq):
-                if (f_i == num_sols_freq - 1) and (nChan % self.nchanSol > 0):
+            for f_i in range(0, nChan, self.nchanSol):
+                if (f_i == nChan - self.nchanSol) and (nChan % self.nchanSol > 0):
                     fcellsize = nChan % self.nchanSol
                 f_e = f_i + fcellsize
 
                 # build weights for each antenna in the current time-frequency block
                 for ant in ant1:
                     # set of vis for baselines ant-ant_i
-                    set1 = np.where(A0[t_i] == ant)[0]
+                    set1 = np.where(A0 == ant)[0]
                     # set of vis for baselines ant_i-ant
-                    set2 = np.where(A1[t_i] == ant)[0]
+                    set2 = np.where(A1 == ant)[0]
                     CoeffArray[t_i:t_e, f_i:f_e, ant] = np.sqrt(
                         np.nanmean(
                             np.append(residuals[t_i:t_e, set1, f_i:f_e, :],
@@ -114,18 +115,35 @@ class CovWeights:
             if not self.quiet:
                 PrintProgress(t_i, nt)
 
-        # get rid of NaNs
+#         # plot
+#         Nr = 8
+#         Nc = 8
+#         xvals = range(nt)
+#         yvals = range(nChan)
+#         figSize = [10+3*Nc, 8+2*Nr]
+#         figgrid, axa = plt.subplots(Nr, Nc, sharex=True, sharey=True, figsize=figSize)
+#         for i in range(nAnt):
+#             ax = axa.flatten()[i]
+#             bbox = ax.get_window_extent().transformed(figgrid.dpi_scale_trans.inverted())
+#             aspect = ((xvals[-1]-xvals[0])*bbox.height)/((yvals[-1]-yvals[0])*bbox.width)
+#             im = ax.imshow(CoeffArray[:, :, i].transpose(1,0), origin='lower', interpolation="none", cmap=plt.cm.rainbow, norm=None,
+#                             extent=[xvals[0],xvals[-1],yvals[0],yvals[-1]], aspect=str(aspect))
+#         figgrid.colorbar(im, ax=axa.ravel().tolist(), use_gridspec=True, fraction=0.02, pad=0.005, aspect=35)
+#         figgrid.savefig(self.MSName+'_coef1.png', bbox_inches='tight')
+#         plt.close()
+
+        # get rid of NaNs and low values
+        CoeffArray[np.isnan(CoeffArray)] = np.inf
         for i in range(nAnt):
-            CoeffArray[np.isnan(CoeffArray)] = np.inf
             tempars = CoeffArray[:, :, i]
-            thres = 0.25 * np.median(tempars)
+            thres = 0.25 * np.median(tempars[np.where(np.isfinite(tempars))])
             CoeffArray[:, :, i][tempars < thres] = thres
 
         return CoeffArray
 
     def SaveWeights(self, CoeffArray, colname=None):
         ms = table(self.MSName, readonly=False, ack=False)
-        ants = table(ms.getkeyword("ANTENNA"))
+        ants = table(ms.getkeyword("ANTENNA"), ack=False)
         antnames = ants.getcol("NAME")
         nAnt = len(antnames)
         tarray = ms.getcol("TIME")
@@ -137,6 +155,8 @@ class CovWeights:
         npol = darray.shape[2]
         A0 = np.array(ms.getcol("ANTENNA1").reshape((nt, nbl)))
         A1 = np.array(ms.getcol("ANTENNA2").reshape((nt, nbl)))
+        warnings.filterwarnings("ignore")
+        warnings.filterwarnings("default")
 
         # initialize weight array
         w = np.zeros((nt, nbl, nchan, npol))
@@ -159,9 +179,9 @@ class CovWeights:
                                            0.1)
             if not self.quiet:
                 PrintProgress(t, nt)
-        w = w.reshape(nt*nbl, nchan, npol)
 
         # normalize
+        w = w.reshape(nt*nbl, nchan, npol)
         w[np.isinf(w)] = np.nan
         w = w / np.nanmean(w)
         w[np.isnan(w)] = 0
