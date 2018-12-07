@@ -220,7 +220,7 @@ class Observation(object):
 
         # The start time and number of times (since an observation can be a part of its
         # associated MS file)
-        self.parameters['predict_starttime'] = self.starttime
+        self.parameters['predict_starttime'] = self.convert_mjd(self.starttime)
         self.parameters['predict_ntimes'] = self.numsamples
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
