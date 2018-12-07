@@ -310,7 +310,7 @@ def get_calibration_options(parset):
     if 'tecscreenconstraint' in parset_dict:
         parset_dict['tecscreenconstraint'] = parset.getboolean('calibration', 'tecscreenconstraint')
     else:
-        parset_dict['tecscreenconstraint'] = True
+        parset_dict['tecscreenconstraint'] = False
     if 'tecscreen_max_order' in parset_dict:
         parset_dict['tecscreen_max_order'] = parset.getint('calibration', 'tecscreen_max_order')
     else:
