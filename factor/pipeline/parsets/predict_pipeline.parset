@@ -79,7 +79,7 @@ create_sector_patches_map.control.separator   = ;
 # note that this step uses a lot of memory, so only one DPPP is run at a time
 predict_model_data.control.type                                   = dppp_single
 predict_model_data.control.mapfiles_in                            = [create_sector_files_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,expand_sourcedbs_map.output.mapfile,expand_combined_h5parms_map.output.mapfile,create_sector_patches_map.output.mapfile]
-predict_model_data.control.inputkeys                              = [msin,starttime,ntime,sourcedb,combined_h5parm,directions]
+predict_model_data.control.inputkeys                              = [msin,starttime,ntimes,sourcedb,combined_h5parm,directions]
 predict_model_data.control.mapfile_out                            = create_predict_output_map.output.mapfile
 predict_model_data.argument.numthreads                            = {{ max_cpus_per_proc_single }}
 predict_model_data.argument.msin.datacolumn                       = DATA
