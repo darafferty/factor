@@ -8,6 +8,7 @@ import sys
 import os
 import subprocess
 from lofarpipe.support.data_map import DataMap
+from astropy.time import Time
 
 
 def get_nchunks(msin, nsectors, fraction=1.0):
@@ -16,6 +17,29 @@ def get_nchunks(msin, nsectors, fraction=1.0):
     tot_required_m = msin_m * nsectors * 2.0
     nchunks = max(1, int(np.ceil(tot_required_m / free_m)))
     return nchunks
+
+
+def convert_mjd(mjd_sec):
+    """
+    Converts MJD to casacore MVTime
+
+    Parameters
+    ----------
+    mjd_sec : float
+        MJD time in seconds
+
+    Returns
+    -------
+    mvtime : str
+        Casacore MVTime string
+    """
+    t = Time(mjd_sec / 3600 / 24, format='mjd', scale='utc')
+    date, hour = t.iso.split(' ')
+    year, month, day = date.split('-')
+    d = t.datetime
+    month = d.ctime().split(' ')[1]
+
+    return '{0}{1}{2}/{3}'.format(day, month, year, hour)
 
 
 def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
@@ -47,7 +71,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         If True, outliers are peeled before sector models are subtracted
     make_residual_col : bool, optional
         If True, make a RESIDUAL_DATA column by subtracting all sources
-    starttime : float, optional
+    starttime : str, optional
         Start time in JD seconds
     """
     if isinstance(use_compression, basestring):
@@ -83,7 +107,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         for i, msmod in enumerate(model_list[:]):
             tin = pt.table(msmod, readonly=True, ack=False)
             starttime_chunk = np.min(tin.getcol('TIME'))
-            if starttime_chunk != starttime:
+            if convert_mjd(starttime_chunk) != starttime:
                 model_list.pop(i)
             else:
                 nrows_list.append(tin.nrows())  # all models have the same nrows
@@ -105,7 +129,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     # If starttime is given, figure out startrow and nrows for input MS file
     tin = pt.table(msin, readonly=True, ack=False)
     if starttime is not None:
-        startrow_in = np.where(tin.getcol('TIME') == starttime)
+        times = [convert_mjd(t) for t in tin.getcol('TIME')]
+        startrow_in = np.where(times == starttime)
         nrows_in = nrows_list[0]
     else:
         startrow_in = 0
