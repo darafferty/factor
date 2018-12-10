@@ -8,6 +8,12 @@ from casacore.tables import table
 import numpy as np
 import sys
 import warnings
+# if not 'matplotlib' in sys.modules:
+#     import matplotlib as mpl
+#     mpl.rcParams['xtick.labelsize'] = 20
+#     mpl.rcParams['font.size'] = 20
+#     mpl.use("Agg")
+# import matplotlib.pyplot as plt # after setting "Agg" to speed up
 
 
 class CovWeights:
@@ -115,7 +121,7 @@ class CovWeights:
             if not self.quiet:
                 PrintProgress(t_i, nt)
 
-#         # plot
+        # plot
 #         Nr = 8
 #         Nc = 8
 #         xvals = range(nt)
@@ -138,7 +144,6 @@ class CovWeights:
             tempars = CoeffArray[:, :, i]
             thres = 0.25 * np.median(tempars[np.where(np.isfinite(tempars))])
             CoeffArray[:, :, i][tempars < thres] = thres
-
         return CoeffArray
 
     def SaveWeights(self, CoeffArray, colname=None):

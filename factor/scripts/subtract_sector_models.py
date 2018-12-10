@@ -92,8 +92,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     nr_outliers = int(nr_outliers)
 
     # Get the model data filenames. We only use files that contain the root of
-    # msin, so that models for other observations are not picked up (starttime and ntimes
-    # are used when a single MS file is used for multiple observations)
+    # msin, so that models for other observations are not picked up (starttime
+    # is also used when a single MS file is used for multiple observations)
     if msin.endswith('_field'):
         msin_root = msin.rstrip('_field')
     else:
@@ -107,12 +107,10 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         for i, msmod in enumerate(model_list[:]):
             tin = pt.table(msmod, readonly=True, ack=False)
             starttime_chunk = np.min(tin.getcol('TIME'))
-            endtime_chunk = np.max(tin.getcol('TIME'))
             if convert_mjd(starttime_chunk) != starttime:
                 model_list.pop(i)
             else:
-                nrows = int(np.ceil((endtime_chunk - starttime_chunk) / tin.getcell('EXPOSURE', 0))) + 1
-                nrows_list.append(nrows)  # all models have the same nrows
+                nrows_list.append(tin.nrows())
             tin.close()
         if len(set(nrows_list)) > 1:
             print('subtract_sector_models: Model data files have differing number of rows...')
@@ -224,11 +222,11 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
         # For each chunk, load data
         datain = tin.getcol(msin_column, startrow=startrow, nrow=nrow)
-        if use_compression:
-            # Replace flagged values with NaNs before compression
-            flags = tin.getcol('FLAG', startrow=startrow, nrow=nrow)
-            flagged = np.where(flags)
-            datain[flagged] = np.NaN
+#         if use_compression:
+#             # Replace flagged values with NaNs before compression
+#             flags = tin.getcol('FLAG', startrow=startrow, nrow=nrow)
+#             flagged = np.where(flags)
+#             datain[flagged] = np.NaN
         datamod_list = []
         for i, msmodel in enumerate(model_list):
             tmod = pt.table(msmodel, readonly=True, ack=False)
@@ -250,10 +248,16 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                 # Also subtract sector's model and output to RESIDUAL_DATA column
                 datamod_all += datamod_list[i]
                 if 'RESIDUAL_DATA' not in tout.colnames():
-                    desc = tout.getcoldesc('DATA')
+                    tmod = pt.table(model_list[0], readonly=True, ack=False)
+                    desc = tmod.getcoldesc('DATA')
                     desc['name'] = 'RESIDUAL_DATA'
-                    coldmi = tout.getdminfo('DATA')
+                    coldmi = tmod.getdminfo('DATA')
                     coldmi["NAME"] = 'RESIDUAL_DATA'
+                    tmod.close()
+#                     desc = tout.getcoldesc('DATA')
+#                     desc['name'] = 'RESIDUAL_DATA'
+#                     coldmi = tout.getdminfo('DATA')
+#                     coldmi["NAME"] = 'RESIDUAL_DATA'
                     tout.addcols(desc, coldmi)
                 tout.putcol('RESIDUAL_DATA', datain-datamod_all, startrow=startrow, nrow=nrow)
             tout.flush()
