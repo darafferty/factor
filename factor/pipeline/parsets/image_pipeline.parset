@@ -176,7 +176,7 @@ image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile
 image.control.inputkeys              = [msfile,fitsmask]
 {% if use_idg %}
 {% if use_beam %}
-image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-grid-with-beam,msfile]
+image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-grid-with-beam,-use-differential-lofar-beam,msfile]
 {% else %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
 {% endif %}

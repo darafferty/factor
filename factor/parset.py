@@ -316,7 +316,7 @@ def get_calibration_options(parset):
     else:
         parset_dict['tecscreen_max_order'] = None
 
-    # Use the beam model during calibration and imaging (default = False)?
+    # Use the beam model during calibration (default = False)?
     if 'use_beam' in parset_dict:
         parset_dict['use_beam'] = parset.getboolean('calibration', 'use_beam')
     else:
@@ -473,6 +473,12 @@ def get_imaging_options(parset):
     if 'idg_mode' not in parset_dict:
         parset_dict['idg_mode'] = 'hybrid'
 
+    # Use the beam model during imaging (default = False)?
+    if 'use_beam' in parset_dict:
+        parset_dict['use_beam'] = parset.getboolean('imaging', 'use_beam')
+    else:
+        parset_dict['use_beam'] = True
+
     # Reweight the visibility data before imaging (default = True)
     if 'reweight' in parset_dict:
         parset_dict['reweight'] = parset.getboolean('imaging', 'reweight')
@@ -558,7 +564,7 @@ def get_imaging_options(parset):
                        'robust', 'sector_center_ra_list', 'sector_center_dec_list',
                        'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
                        'use_idg', 'idg_mode', 'sector_do_multiscale_list', 'target_ra',
-                       'target_dec', 'target_radius_arcmin']
+                       'target_dec', 'target_radius_arcmin','use_beam']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [imaging] section of the '

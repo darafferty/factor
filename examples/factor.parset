@@ -86,7 +86,7 @@ input_skymodel = /data/skymodel.txt
 # slow_freqstep_hz = 1e6
 # smoothnessconstraint = 3e6
 
-# Use the beam model during calibration and imaging (default = False)?
+# Use the beam model during calibration (default = False)?
 # use_beam = False
 
 
@@ -109,6 +109,9 @@ input_skymodel = /data/skymodel.txt
 # IDG (image domain gridder) mode to use in WSClean (default = hybrid). The mode can be
 # cpu or hybrid.
 # idg_mode = hybrid
+
+# Use the beam model during imaging (default = False)?
+# use_beam = False
 
 # Reweight the visibility data before imaging (default = True)
 # reweight = True

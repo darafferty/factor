@@ -60,7 +60,7 @@ def set_strategy(field):
             else:
                 strategy_list[i]['do_check'] = True
 
-    if field.parset['strategy'] == 'subfieldselfcal':
+    elif field.parset['strategy'] == 'subfieldselfcal':
         # Selfcal with peeling of non-imaged sources (intended to be run on a contiguous
         # subfield and not on separated sectors):
         #     - calibration on all sources
