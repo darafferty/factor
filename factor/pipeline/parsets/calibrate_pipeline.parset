@@ -173,11 +173,14 @@ solve_fast_phases.argument.solve.mode               = tecandphase
 {% else %}
 {% if tecscreenconstraint %}
 solve_fast_phases.argument.solve.mode               = tecscreen
-solve_fast_phases.argument.solve.order              = {{ tecscreenorder }}
-solve_fast_phases.argument.solve.mode               = station
+solve_fast_phases.argument.solve.tecscreen.order    = {{ tecscreenorder }}
+solve_fast_phases.argument.solve.tecscreen.mode     = station
 {% else %}
 solve_fast_phases.argument.solve.mode               = tec
 {% endif %}
+{% endif %}
+{% if use_beam %}
+solve_fast_phases.argument.solve.usebeammodel       = True
 {% endif %}
 solve_fast_phases.argument.solve.h5parm             = h5parm
 solve_fast_phases.argument.solve.sourcedb           = sourcedb
@@ -262,6 +265,9 @@ solve_slow_gains.argument.solve.applycal.phase.correction = screenphase000
 {% else %}
 solve_slow_gains.argument.solve.applycal.steps            = [tec]
 solve_slow_gains.argument.solve.applycal.tec.correction   = screentec000
+{% endif %}
+{% if use_beam %}
+solve_slow_gains.argument.solve.usebeammodel              = True
 {% endif %}
 solve_slow_gains.argument.solve.uvlambdamin               = {{ solve_min_uv_lambda }}
 solve_slow_gains.argument.solve.smoothnessconstraint      = {{ smoothnessconstraint }}

@@ -51,7 +51,8 @@ reweight.argument.dirname    = [{{ central_patch }}]
 reweight.argument.uvcut_min  = {{ min_uv_lambda }}
 reweight.argument.uvcut_max  = {{ max_uv_lambda }}
 {% if apply_slowgains %}
-reweight.argument.phaseonly  = False
+# disable amplitude-dependent reweighting for now
+reweight.argument.phaseonly  = True
 {% else %}
 reweight.argument.phaseonly  = True
 {% endif %}
@@ -174,7 +175,11 @@ image.control.type                   = wsclean
 image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile]
 image.control.inputkeys              = [msfile,fitsmask]
 {% if use_idg %}
+{% if use_beam %}
+image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-grid-with-beam,msfile]
+{% else %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
+{% endif %}
 {% else %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,msfile]
 {% endif %}

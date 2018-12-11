@@ -55,7 +55,7 @@ class Field(object):
 
         if not mininmal:
             # Scan MS files to get observation info
-            self.scan_observations()
+            self.scan_observations(self.parset['data_fraction'])
 
             # Make calibration and source sky models by grouping the initial sky model
             self.make_skymodels(self.parset['input_skymodel'], self.parset['regroup_input_skymodel'],
@@ -290,8 +290,8 @@ class Field(object):
         self.make_skymodels(skymodel, regroup=regroup)
 
         # Re-adjust sector boundaries and update their sky models
-        if regroup:
-            self.adjust_sector_boundaries()
+#         if regroup:
+#             self.adjust_sector_boundaries()
         for sector in self.sectors:
             sector.make_skymodel()
 

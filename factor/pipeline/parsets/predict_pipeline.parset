@@ -115,6 +115,9 @@ predict_model_data.argument.predict.applycal.steps                = [tec]
 {% endif %}
 predict_model_data.argument.predict.applycal.tec.correction       = screentec000
 {% endif %}
+{% if use_beam %}
+predict_model_data.argument.predict.usebeammodel                  = True
+{% endif %}
 predict_model_data.argument.msout.storagemanager                  = "Dysco"
 predict_model_data.argument.msout.storagemanager.databitrate      = 0
 
