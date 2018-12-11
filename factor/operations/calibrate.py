@@ -23,6 +23,7 @@ class Calibrate(Operation):
         self.pipeline_parset_template = 'calibrate_pipeline.parset'
 
         # Define extra parameters needed for this operation
+        field.set_obs_parameters()
         timechunk_filename = field.get_obs_parameters('timechunk_filename')
         starttime = field.get_obs_parameters('starttime')
         ntimes = field.get_obs_parameters('ntimes')

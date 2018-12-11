@@ -139,11 +139,14 @@ class Field(object):
         self.fwhm_ra_deg = self.fwhm_deg / sec_el
         self.fwhm_dec_deg = self.fwhm_deg
 
-        # Set calibration parameters for each observation
+    def set_obs_parameters(self):
+        """
+        Sets parameters for all observations from current parset and sky model
+        """
         ntimechunks = 0
         nfreqchunks = 0
         for obs in self.observations:
-            obs.set_calibration_parameters(self.parset)
+            obs.set_calibration_parameters(self.parset, self.num_patches)
             ntimechunks += obs.ntimechunks
             nfreqchunks += obs.nfreqchunks
         self.ntimechunks = ntimechunks
@@ -245,14 +248,14 @@ class Field(object):
             calibration_skymodel = source_skymodel
         else:
             calibration_skymodel = skymodel
-        num_patches = len(calibration_skymodel.getPatchNames())
-        self.log.info('Using {} calibration patches'.format(num_patches))
+        self.num_patches = len(calibration_skymodel.getPatchNames())
+        self.log.info('Using {} calibration patches'.format(self.num_patches))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         calibration_skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.calibration_skymodel = calibration_skymodel
 
         # Check that the TEC screen order is not more than num_patches - 1
-        self.tecscreenorder = min(num_patches-1, self.tecscreen_max_order)
+        self.tecscreenorder = min(self.num_patches-1, self.tecscreen_max_order)
 
     def update_skymodels(self, iter, regroup, imaged_sources_only):
         """

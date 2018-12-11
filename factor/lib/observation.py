@@ -107,7 +107,7 @@ class Observation(object):
                             + self.ms_filename + " limit ::10000").getcol("el")
         self.mean_el_rad = np.mean(el_values)
 
-    def set_calibration_parameters(self, parset):
+    def set_calibration_parameters(self, parset, ndir):
         """
         Sets the calibration parameters
 
@@ -115,6 +115,8 @@ class Observation(object):
         ----------
         parset : dict
             Parset with processing parameters
+        ndir : int
+            Number of calibration directions/patches
         """
         # Get the target solution intervals
         target_fast_timestep = parset['calibration_specific']['fast_timestep_sec']
@@ -174,9 +176,16 @@ class Observation(object):
         smoothnesscontraint_freqstep = max(1, self.get_nearest_frequstep(target_smoothnessconstraint /
                                                                          channelwidth))
         min_freqstep = max(smoothnesscontraint_freqstep, solint_slow_freqstep)
-        target_freq_chunksize = get_frequency_chunksize(parset['cluster_specific'], channelwidth,
-                                                        min_freqstep, solint_slow_timestep,
-                                                        self.antenna)
+        target_freq_chunksize, target_slow_timestep = get_frequency_chunksize(
+                                                          parset['cluster_specific'], channelwidth,
+                                                          min_freqstep, solint_slow_timestep,
+                                                          self.antenna, ndir)
+
+        # Find new solint_slow_timestep, in case it was changed to allow the solve to fit
+        # in memory
+        solint_slow_timestep = max(1, int(round(target_slow_timestep / timepersample)))
+
+        # Now define chunks
         channelsperchunk = int(round(target_freq_chunksize / channelwidth))
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq
