@@ -69,7 +69,7 @@ class Field(object):
         """
         Checks input MS files and initializes the associated Observation objects
         """
-        self.log.debug('Scanning observations...')
+        self.log.debug('Scanning observation(s)...')
         self.observations = []
         for ms_filename in self.ms_filenames:
             self.observations.append(Observation(ms_filename))

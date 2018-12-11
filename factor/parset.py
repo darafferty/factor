@@ -229,7 +229,7 @@ def get_calibration_options(parset):
     if 'solve_tecandphase' in parset_dict:
         parset_dict['solve_tecandphase'] = parset.getboolean('calibration', 'solve_tecandphase')
     else:
-        parset_dict['solve_tecandphase'] = True
+        parset_dict['solve_tecandphase'] = False
 
     # Maximum number of cycles of the last step of selfcal to perform (default =
     # 10). The last step is looped until the number of cycles reaches this value or
