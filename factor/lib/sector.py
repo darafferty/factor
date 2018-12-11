@@ -88,7 +88,6 @@ class Sector(object):
         self.max_uv_lambda = self.field.parset['imaging_specific']['max_uv_lambda']
         self.use_idg = self.field.parset['imaging_specific']['use_idg']
         self.idg_mode = self.field.parset['imaging_specific']['idg_mode']
-        self.use_beam = self.field.parset['imaging_specific']['use_beam']
         self.reweight = self.field.parset['imaging_specific']['reweight']
         self.flag_abstime = self.field.parset['flag_abstime']
         self.flag_baseline = self.field.parset['flag_baseline']
@@ -97,6 +96,7 @@ class Sector(object):
         self.solve_tecandphase = self.field.parset['calibration_specific']['solve_tecandphase']
         self.target_fast_timestep = self.field.parset['calibration_specific']['fast_timestep_sec']
         self.target_slow_freqstep = self.field.parset['calibration_specific']['slow_freqstep_hz']
+        self.use_beam = self.field.parset['calibration_specific']['use_beam']
 
         # Set image size based on current sector polygon
         xmin, ymin, xmax, ymax = self.poly.bounds
