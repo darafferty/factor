@@ -225,12 +225,6 @@ def get_calibration_options(parset):
     else:
         parset_dict['patch_target_flux_jy'] = 2.5
 
-    # Solve for TEC + scalarphase instead of TEC only
-    if 'solve_tecandphase' in parset_dict:
-        parset_dict['solve_tecandphase'] = parset.getboolean('calibration', 'solve_tecandphase')
-    else:
-        parset_dict['solve_tecandphase'] = False
-
     # Maximum number of cycles of the last step of selfcal to perform (default =
     # 10). The last step is looped until the number of cycles reaches this value or
     # until the improvement in dynamic range over the previous image is less than
@@ -241,16 +235,9 @@ def get_calibration_options(parset):
     else:
         parset_dict['max_selfcal_loops'] = 10
 
-    # Use multi-resolution selfcal that starts at 20 arcsec resolution and increases the
-    # resolution in stages to the full resolution (default = False). This method may
-    # improve convergence, especially when the starting model is poor
-    if 'multires_selfcal' in parset_dict:
-        parset_dict['multires_selfcal'] = parset.getboolean('calibration', 'multires_selfcal')
-    elif 'multiscale_selfcal' in parset_dict:
-        log.warning('Option "multiscale_selfcal" is deprecated and should be changed to "multires_selfcal"')
-        parset_dict['multires_selfcal'] = parset.getboolean('calibration', 'multiscale_selfcal')
-    else:
-        parset_dict['multires_selfcal'] = False
+    # Solve mode: tec, tecscreen, or tecandphase (default = tec)
+    if 'mode' not in parset_dict:
+        parset_dict['mode'] = 'tec'
 
     # Minimum uv distance in lambda for calibration (default = 80)
     if 'solve_min_uv_lambda' in parset_dict:
@@ -307,14 +294,10 @@ def get_calibration_options(parset):
         parset_dict['tolerance'] = parset.getfloat('calibration', 'tolerance')
     else:
         parset_dict['tolerance'] = 1e-2
-    if 'tecscreenconstraint' in parset_dict:
-        parset_dict['tecscreenconstraint'] = parset.getboolean('calibration', 'tecscreenconstraint')
-    else:
-        parset_dict['tecscreenconstraint'] = False
     if 'tecscreen_max_order' in parset_dict:
         parset_dict['tecscreen_max_order'] = parset.getint('calibration', 'tecscreen_max_order')
     else:
-        parset_dict['tecscreen_max_order'] = None
+        parset_dict['tecscreen_max_order'] = 20
 
     # Use the beam model during calibration (default = False)?
     if 'use_beam' in parset_dict:
@@ -323,12 +306,12 @@ def get_calibration_options(parset):
         parset_dict['use_beam'] = True
 
     # Check for invalid options
-    allowed_options = ['max_selfcal_loops', 'multires_selfcal', 'solve_min_uv_lambda',
-                       'solve_tecandphase', 'fast_timestep_sec', 'fast_freqstep_hz',
+    allowed_options = ['max_selfcal_loops', 'mode', 'solve_min_uv_lambda',
+                       'fast_timestep_sec', 'fast_freqstep_hz',
                        'slow_timestep_sec', 'slow_freqstep_hz', 'approximatetec',
                        'propagatesolutions', 'maxapproxiter', 'maxiter', 'stepsize',
                        'tolerance', 'patch_target_flux_jy', 'smoothnessconstraint',
-                       'use_beam', 'tecscreenconstraint', 'tecscreen_max_order']
+                       'use_beam', 'tecscreen_max_order']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '

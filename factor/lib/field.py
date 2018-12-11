@@ -41,7 +41,6 @@ class Field(object):
         self.flag_expr = self.parset['flag_expr']
         self.input_h5parm = self.parset['input_h5parm']
         self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
-        self.solve_tecandphase = self.parset['calibration_specific']['solve_tecandphase']
         self.approximatetec = self.parset['calibration_specific']['approximatetec']
         self.smoothnessconstraint = self.parset['calibration_specific']['smoothnessconstraint']
         self.propagatesolutions = self.parset['calibration_specific']['propagatesolutions']
@@ -49,7 +48,7 @@ class Field(object):
         self.maxiter = self.parset['calibration_specific']['maxiter']
         self.stepsize = self.parset['calibration_specific']['stepsize']
         self.tolerance = self.parset['calibration_specific']['tolerance']
-        self.tecscreenconstraint = self.parset['calibration_specific']['tecscreenconstraint']
+        self.mode = self.parset['calibration_specific']['mode']
         self.tecscreen_max_order = self.parset['calibration_specific']['tecscreen_max_order']
         self.use_beam = self.parset['calibration_specific']['use_beam']
 

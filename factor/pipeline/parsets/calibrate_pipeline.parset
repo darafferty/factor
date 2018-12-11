@@ -168,16 +168,10 @@ solve_fast_phases.argument.msin.ntimes              = ntimes
 solve_fast_phases.argument.msout                    = .
 solve_fast_phases.argument.steps                    = [solve]
 solve_fast_phases.argument.solve.type               = ddecal
-{% if solve_tecandphase %}
-solve_fast_phases.argument.solve.mode               = tecandphase
-{% else %}
-{% if tecscreenconstraint %}
-solve_fast_phases.argument.solve.mode               = tecscreen
+solve_fast_phases.argument.solve.mode               = {{ mode }}
+{% if mode == tecscreen %}
 solve_fast_phases.argument.solve.tecscreen.order    = {{ tecscreenorder }}
 solve_fast_phases.argument.solve.tecscreen.mode     = station
-{% else %}
-solve_fast_phases.argument.solve.mode               = tec
-{% endif %}
 {% endif %}
 {% if use_beam %}
 solve_fast_phases.argument.solve.usebeammodel       = True
@@ -219,7 +213,7 @@ combine_fast_phases.argument.flags      = [-c,infiles]
 combine_fast_phases.argument.outh5parm  = outfile
 
 # fit screens to fast phases, length = 1
-{% if solve_tecandphase %}
+{% if mode == 'tecandphase' %}
 fit_fast_screens.control.type       = fit_fast_phase_screens
 {% else %}
 fit_fast_screens.control.type       = fit_tec_screens
@@ -258,7 +252,7 @@ solve_slow_gains.argument.solve.solint                    = timestep
 solve_slow_gains.argument.solve.nchan                     = freqstep
 solve_slow_gains.argument.solve.propagatesolutions        = {{ propagatesolutions }}
 solve_slow_gains.argument.solve.applycal.parmdb           = fast_h5parm
-{% if solve_tecandphase %}
+{% if mode == 'tecandphase' %}
 solve_slow_gains.argument.solve.applycal.steps            = [tec,phase]
 solve_slow_gains.argument.solve.applycal.tec.correction   = screentec000
 solve_slow_gains.argument.solve.applycal.phase.correction = screenphase000

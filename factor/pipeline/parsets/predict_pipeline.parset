@@ -95,7 +95,7 @@ predict_model_data.argument.predict.applycal.parmdb               = combined_h5p
 # Note: the following parameter seems to be needed but is not used
 predict_model_data.argument.predict.applycal.correction           = screentec000
 predict_model_data.argument.predict.directions                    = directions
-{% if solve_tecandphase %}
+{% if mode == 'tecandphase' %}
 {% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,phase,slowamp,slowphase]
 predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude000

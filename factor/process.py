@@ -62,7 +62,7 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
                 # outlier sectors (since, once peeled, they are no longer needed)
                 for obs in field.observations:
                     obs.ms_filename = obs.ms_field
-                    obs.set_calibration_parameters(parset)
+                    obs.set_calibration_parameters(parset, field.num_patches)
                 field.sectors = [sector for sector in field.sectors if not sector.is_outlier]
                 field.outlier_sectors = []
 

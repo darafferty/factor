@@ -54,7 +54,7 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 
-{% if solve_tecandphase %}
+{% if mode == 'tecandphase' %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,amp,phase,flagzero,avg]
 {% else %}
@@ -70,7 +70,7 @@ prepare_imaging_data.argument.steps                               = [flag,shift,
 
 {% else %}
 
-{% if solve_tecandphase %}
+{% if mode == 'tecandphase' %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [shift,tec,scphase,amp,phase,flagzero,avg]
 {% else %}
@@ -105,7 +105,7 @@ prepare_imaging_data.argument.tec.type                            = applycal
 prepare_imaging_data.argument.tec.parmdb                          = h5parm
 prepare_imaging_data.argument.tec.correction                      = screentec000
 prepare_imaging_data.argument.tec.direction                       = [{{ central_patch }}]
-{% if solve_tecandphase %}
+{% if mode == 'tecandphase' %}
 prepare_imaging_data.argument.scphase.type                        = applycal
 prepare_imaging_data.argument.scphase.parmdb                      = h5parm
 prepare_imaging_data.argument.scphase.correction                  = screenphase000
