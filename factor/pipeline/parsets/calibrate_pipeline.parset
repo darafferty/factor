@@ -226,6 +226,7 @@ fit_fast_screens.control.type       = fit_tec_screens
 fit_fast_screens.control.mapfile_in = combine_fast_phases.output.mapfile
 fit_fast_screens.control.inputkey   = infile
 fit_fast_screens.argument.flags     = [infile]
+fit_fast_screens.argument.order     = {{ tecscreenorder }}
 
 {% if do_slowgain_solve %}
 # expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks*nobs

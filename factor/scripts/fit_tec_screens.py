@@ -268,8 +268,8 @@ def remove_soltabs(solset, soltabnames):
 
 def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     tecsoltabname='tec000', errsoltabname='error000', outsoltabroot='_screensols',
-    ref_id=0, fit_screens=False, calculate_weights=False, remove_jumps=False,
-    flag_on_err=False):
+    ref_id=0, fit_screens=True, calculate_weights=False, remove_jumps=False,
+    flag_on_err=False, order=20):
     """
     Fit screens to TEC solutions
 
@@ -301,8 +301,11 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         If True, attempt to remove 2pi jumps
     flag_on_err : bool, optional
         If True, flag solutions with high errors
+    order : int, optional
+        Order of TEC screen
     """
     ref_id = int(ref_id)
+    order = int(order)
 
     # Read in solutions
     H = h5parm(h5parmfile, readonly=False)
@@ -359,7 +362,7 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
             station_names, source_names, tecsoltab.freq[:]], vals=tec, weights=dtec)
 
     if fit_screens:
-        # Rename fixed TEC soltab (otherwise it will be overwritten later)
+        # Rename orignal TEC soltab (otherwise it will be overwritten later)
         soltab = solset.getSoltab('screentec000')
         soltab.rename('fixedtec000')
 
@@ -370,7 +373,7 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         # Fit screens
         remove_soltabs(solset, ['tecscreen000', 'tecscreen000resid'])
         operations.stationscreen.run(soltab, 'tecscreen000', niter=1, nsigma=5,
-            refAnt=ref_id, order=20, scale_order=False)
+            refAnt=ref_id, order=order, scale_order=False)
 
         # Calculate values from screens
         remove_soltabs(solset, ['tec_screensols000'])
