@@ -169,7 +169,7 @@ solve_fast_phases.argument.msout                    = .
 solve_fast_phases.argument.steps                    = [solve]
 solve_fast_phases.argument.solve.type               = ddecal
 solve_fast_phases.argument.solve.mode               = {{ mode }}
-{% if mode == tecscreen %}
+{% if mode == 'tecscreen' %}
 solve_fast_phases.argument.solve.tecscreen.order    = {{ tecscreenorder }}
 solve_fast_phases.argument.solve.tecscreen.mode     = station
 {% endif %}
@@ -180,8 +180,10 @@ solve_fast_phases.argument.solve.h5parm             = h5parm
 solve_fast_phases.argument.solve.sourcedb           = sourcedb
 solve_fast_phases.argument.solve.solint             = timestep
 solve_fast_phases.argument.solve.nchan              = freqstep
+{% if mode == 'tec' or mode == 'tecandphase' %}
 solve_fast_phases.argument.solve.approximatetec     = {{ approximatetec }}
 solve_fast_phases.argument.solve.maxapproxiter      = {{ maxapproxiter }}
+{% endif %}
 solve_fast_phases.argument.solve.maxiter            = {{ maxiter }}
 solve_fast_phases.argument.solve.propagatesolutions = {{ propagatesolutions }}
 solve_fast_phases.argument.solve.stepsize           = {{ stepsize }}
