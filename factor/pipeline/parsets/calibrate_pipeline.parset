@@ -211,6 +211,9 @@ combine_fast_phases.control.mapfile_out = create_fast_output_map.output.mapfile
 combine_fast_phases.control.outputkey   = outfile
 combine_fast_phases.argument.flags      = [-c,infiles]
 combine_fast_phases.argument.outh5parm  = outfile
+{% if mode == 'tecscreen' %}
+combine_fast_phases.argument.insoltab   = tec000
+{% endif %}
 
 # fit screens to fast phases, length = 1
 {% if mode == 'tecandphase' %}

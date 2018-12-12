@@ -303,7 +303,7 @@ def get_calibration_options(parset):
     if 'use_beam' in parset_dict:
         parset_dict['use_beam'] = parset.getboolean('calibration', 'use_beam')
     else:
-        parset_dict['use_beam'] = True
+        parset_dict['use_beam'] = False
 
     # Check for invalid options
     allowed_options = ['max_selfcal_loops', 'mode', 'solve_min_uv_lambda',
@@ -460,7 +460,7 @@ def get_imaging_options(parset):
     if 'use_beam' in parset_dict:
         parset_dict['use_beam'] = parset.getboolean('imaging', 'use_beam')
     else:
-        parset_dict['use_beam'] = True
+        parset_dict['use_beam'] = False
 
     # Reweight the visibility data before imaging (default = True)
     if 'reweight' in parset_dict:
