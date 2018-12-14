@@ -2,8 +2,6 @@
 """
 Script to fit TEC solutions with screens
 """
-import argparse
-from argparse import RawTextHelpFormatter
 import losoto.operations as operations
 from losoto.h5parm import h5parm
 import numpy as np
@@ -50,12 +48,13 @@ def remove_jumps(tec_vals, jump_val, nsamples):
         # Select only those start positions that lie in regions of low scatter
         # with values near zero
         startpoints = np.random.random_integers(0, len(tec_vals)-1, nsamples*10)
-        startpoints = [s for s in startpoints if (s not in noisy_ind[0] and tec_vals[s] < jump_val/2.0)]
+        startpoints = [s for s in startpoints if (s not in noisy_ind[0] and
+                                                  tec_vals[s] < jump_val/2.0)]
         if len(startpoints) > nsamples:
             startpoints = startpoints[:nsamples]
 
     # For each start position, move backward and forward in time, removing jumps
-    min_err = jump_val / 5.0
+#     min_err = jump_val / 5.0
     max_err = jump_val / 2.0
     tec_samples = []
     for s, startindx in enumerate(startpoints):
@@ -68,7 +67,7 @@ def remove_jumps(tec_vals, jump_val, nsamples):
                 if not skip:
                     diff = np.fmod(tec[i]-tec[i-1], jump_val)
                     tec[i-1] = tec[i] - diff
-                    err = 0.025 #max(0.02, np.mean(stddev))
+                    err = 0.025  # max(0.02, np.mean(stddev))
                     if approx_equal(abs(diff), jump_val, tol=err):
                         tec[i-1] += np.sign(diff) * jump_val
                     if i > 1:
@@ -89,7 +88,7 @@ def remove_jumps(tec_vals, jump_val, nsamples):
                 if not skip:
                     diff = np.fmod(tec[i]-tec[i+1], jump_val)
                     tec[i+1] = tec[i] - diff
-                    err = 0.025 #max(0.02, np.mean(stddev))
+                    err = 0.025  # max(0.02, np.mean(stddev))
                     if approx_equal(abs(diff), jump_val, tol=err):
                         tec[i+1] += np.sign(diff) * jump_val
                     if i < len(tec_vals)-2:
@@ -200,8 +199,10 @@ def _float_approx_equal(x, y, tol=1e-18, rel=None):
     if tol is rel is None:
         raise TypeError('cannot specify both absolute and relative errors are None')
     tests = []
-    if tol is not None: tests.append(tol)
-    if rel is not None: tests.append(rel*abs(x))
+    if tol is not None:
+        tests.append(tol)
+    if rel is not None:
+        tests.append(rel*abs(x))
     assert tests
     return abs(x - y) <= max(tests)
 
@@ -238,7 +239,7 @@ def approx_equal(x, y, *args, **kwargs):
         # Allow the objects to specify what they consider "approximately equal",
         # giving precedence to x. If either object has the appropriate method, we
         # pass on any optional arguments untouched.
-        for a,b in ((x, y), (y, x)):
+        for a, b in ((x, y), (y, x)):
             try:
                 method = getattr(a, methodname)
             except AttributeError:
@@ -267,9 +268,9 @@ def remove_soltabs(solset, soltabnames):
 
 
 def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
-    tecsoltabname='tec000', errsoltabname='error000', outsoltabroot='_screensols',
-    ref_id=0, fit_screens=True, calculate_weights=False, remove_jumps=False,
-    flag_on_err=False, order=20):
+         tecsoltabname='tec000', errsoltabname='error000', outsoltabroot='_screensols',
+         ref_id=0, fit_screens=True, calculate_weights=False, remove_jumps=False,
+         flag_on_err=False, order=20):
     """
     Fit screens to TEC solutions
 
@@ -356,15 +357,13 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
             tec[ind] = np.NaN
             dtec[ind] = 0.0
 
-    remove_soltabs(solset, ['screentec000'])
-    solset.makeSoltab('tec', 'screentec000',
-            axesNames=['time', 'ant', 'dir', 'freq'], axesVals=[times,
-            station_names, source_names, tecsoltab.freq[:]], vals=tec, weights=dtec)
+    tecsoltab.rename('origtec000', overwrite=True)
+    solset.makeSoltab('tec', 'tec000', axesNames=['time', 'ant', 'dir', 'freq'],
+                      axesVals=[times, station_names, source_names, tecsoltab.freq[:]],
+                      vals=tec, weights=dtec)
 
     if fit_screens:
-        # Rename orignal TEC soltab (otherwise it will be overwritten later)
-        soltab = solset.getSoltab('screentec000')
-        soltab.rename('fixedtec000')
+        soltab = solset.getSoltab('tec000')
 
         # Find weights
         if calculate_weights:
@@ -373,12 +372,13 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         # Fit screens
         remove_soltabs(solset, ['tecscreen000', 'tecscreen000resid'])
         operations.stationscreen.run(soltab, 'tecscreen000', niter=1, nsigma=5,
-            refAnt=ref_id, order=order, scale_order=False)
+                                     refAnt=ref_id, order=order, scale_order=False)
 
         # Calculate values from screens
-        remove_soltabs(solset, ['tec_screensols000'])
+        remove_soltabs(solset, ['screentec000'])
         soltab = solset.getSoltab('tecscreen000')
         source_dict = solset.getSou()
-        operations.screenvalues.run(soltab, source_dict, outsoltabroot)
-        soltab = solset.getSoltab('tec{}'.format(outsoltabroot))
-        soltab.rename('screentec000')
+        operations.screenvalues.run(soltab, source_dict, 'screentec000')
+    else:
+        soltab = solset.getSoltab('tec000')
+        soltab.rename('screentec000', overwrite=True)
