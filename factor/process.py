@@ -71,7 +71,8 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
             # Set flag for slow-gain apply
             imaging_sectors = [sector for sector in field.sectors if not sector.is_outlier]
             for sector in imaging_sectors:
-                sector.apply_slowgains = step['do_slowgain']
+                if not sector.use_gain_screens:
+                    sector.apply_slowgains = step['do_slowgain']
 
             # Put the sectors using multiscale clean first, as they take the longest to
             # image

@@ -267,9 +267,9 @@ def remove_soltabs(solset, soltabnames):
             pass
 
 
-def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
-         tecsoltabname='tec000', errsoltabname='error000', outsoltabroot='_screensols',
-         ref_id=0, fit_screens=True, calculate_weights=False, remove_jumps=False,
+def main(h5parmfile, solsetname='sol000', tecsoltabname='tec000',
+         errsoltabname='error000', outsoltabroot='_screensols', ref_id=0,
+         fit_screens=True, calculate_weights=True, remove_jumps=False,
          flag_on_err=False, order=20):
     """
     Fit screens to TEC solutions
@@ -382,3 +382,4 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     else:
         soltab = solset.getSoltab('tec000')
         soltab.rename('screentec000', overwrite=True)
+    H.close()

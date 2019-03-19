@@ -54,34 +54,18 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 
-{% if mode == 'tecandphase' %}
-{% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,amp,phase,flagzero,avg]
-{% else %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,flagzero,avg]
-{% endif %}
-{% else %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,avg]
 {% endif %}
-{% endif %}
 
 {% else %}
 
-{% if mode == 'tecandphase' %}
-{% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [shift,tec,scphase,amp,phase,flagzero,avg]
-{% else %}
-prepare_imaging_data.argument.steps                               = [shift,tec,scphase,flagzero,avg]
-{% endif %}
-{% else %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [shift,tec,amp,phase,flagzero,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [shift,tec,flagzero,avg]
-{% endif %}
 {% endif %}
 
 {% endif %}
@@ -105,12 +89,6 @@ prepare_imaging_data.argument.tec.type                            = applycal
 prepare_imaging_data.argument.tec.parmdb                          = h5parm
 prepare_imaging_data.argument.tec.correction                      = screentec000
 prepare_imaging_data.argument.tec.direction                       = [{{ central_patch }}]
-{% if mode == 'tecandphase' %}
-prepare_imaging_data.argument.scphase.type                        = applycal
-prepare_imaging_data.argument.scphase.parmdb                      = h5parm
-prepare_imaging_data.argument.scphase.correction                  = screenphase000
-prepare_imaging_data.argument.scphase.direction                   = [{{ central_patch }}]
-{% endif %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.amp.type                            = applycal
 prepare_imaging_data.argument.amp.parmdb                          = h5parm

@@ -66,6 +66,9 @@ input_skymodel = /data/skymodel.txt
 # HBA and 6.0 for LBA)
 # patch_target_flux_jy = 3.0
 
+# Solve mode: tec or tecscreen (default = tec)
+# mode = tec
+
 # General solver parameters (defaults shown):
 # maxiter = 50
 # propagatesolutions = True
@@ -73,15 +76,14 @@ input_skymodel = /data/skymodel.txt
 # tolerance = 1e-2
 # solve_min_uv_lambda = 80.0
 
-# Fast (TEC) solve parameters (defaults shown):
+# Fast solve parameters (defaults shown):
 # approximatetec = True
 # maxapproxiter = 25
 # fast_timestep_sec = 8.0
 # fast_freqstep_hz = 1e6
-# tecscreenconstraint = False
 # tecscreen_max_order = 20
 
-# Slow (gain) solve parameters (defaults shown):
+# Slow solve parameters (defaults shown):
 # slow_timestep_sec = 600.0
 # slow_freqstep_hz = 1e6
 # smoothnessconstraint = 3e6
@@ -103,8 +105,8 @@ input_skymodel = /data/skymodel.txt
 # do_multiscale = auto
 
 # Use screens during imaging (default = False).
-# use_tec_screen = False
-# use_amp_screen = False
+# use_tec_screens = False
+# use_gain_screens = False
 
 # IDG (image domain gridder) mode to use in WSClean (default = hybrid). The mode can be
 # cpu or hybrid.

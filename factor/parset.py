@@ -235,7 +235,7 @@ def get_calibration_options(parset):
     else:
         parset_dict['max_selfcal_loops'] = 10
 
-    # Solve mode: tec, tecscreen, or tecandphase (default = tec)
+    # Solve mode: tec or tecscreen (default = tec)
     if 'mode' not in parset_dict:
         parset_dict['mode'] = 'tec'
 
@@ -448,13 +448,20 @@ def get_imaging_options(parset):
             'entires')
         sys.exit(1)
 
-    # Use IDG (image domain gridder) in WSClean. The mode can be cpu, gpu, or hybrid.
-    if 'use_idg' in parset_dict:
-        parset_dict['use_idg'] = parset.getboolean('imaging', 'use_idg')
-    else:
-        parset_dict['use_idg'] = True
+    # IDG (image domain gridder) mode to use in WSClean (default = hybrid). The mode can
+    # be cpu, gpu, or hybrid.
     if 'idg_mode' not in parset_dict:
         parset_dict['idg_mode'] = 'hybrid'
+
+    # Use screens during imaging (default = False).
+    if 'use_tec_screens' in parset_dict:
+        parset_dict['use_tec_screens'] = parset.getboolean('imaging', 'use_tec_screens')
+    else:
+        parset_dict['use_tec_screens'] = False
+    if 'use_gain_screens' in parset_dict:
+        parset_dict['use_gain_screens'] = parset.getboolean('imaging', 'use_gain_screens')
+    else:
+        parset_dict['use_gain_screens'] = False
 
     # Use the beam model during imaging (default = False)?
     if 'use_beam' in parset_dict:

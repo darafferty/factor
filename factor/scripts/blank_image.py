@@ -5,86 +5,11 @@ a clean mask
 """
 import argparse
 from argparse import RawTextHelpFormatter
+from .lib import miscellaneous as misc
 import numpy as np
 import sys
-import pickle
-from shapely.geometry import Point, Polygon
-from shapely.prepared import prep
 from astropy.io import fits as pyfits
 from astropy import wcs
-from PIL import Image, ImageDraw
-
-
-def read_vertices(filename):
-    """
-    Returns facet vertices stored in input file
-    """
-    with open(filename, 'r') as f:
-        vertices = pickle.load(f)
-    return vertices
-
-
-def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
-    ximsize=512, yimsize=512, cellsize_deg=0.000417):
-    """
-    Make a blank image and save it to disk
-
-    Parameters
-    ----------
-    image_name : str
-        Filename of output image
-    reference_ra_deg : float, optional
-        RA for center of output mask image
-    reference_dec_deg : float, optional
-        Dec for center of output mask image
-    imsize : int, optional
-        Size of output image
-    cellsize_deg : float, optional
-        Size of a pixel in degrees
-
-    """
-    shape_out = [1, 1, yimsize, ximsize]
-    hdu = pyfits.PrimaryHDU(np.ones(shape_out, dtype=np.float32))
-    hdulist = pyfits.HDUList([hdu])
-    header = hdulist[0].header
-
-    # Add WCS info
-    header['CRVAL1'] = reference_ra_deg
-    header['CDELT1'] = -cellsize_deg
-    header['CRPIX1'] = ximsize/2.0
-    header['CUNIT1'] = 'deg'
-    header['CTYPE1'] = 'RA---SIN'
-    header['CRVAL2'] = reference_dec_deg
-    header['CDELT2'] = cellsize_deg
-    header['CRPIX2'] = yimsize/2.0
-    header['CUNIT2'] = 'deg'
-    header['CTYPE2'] = 'DEC--SIN'
-
-    # Add STOKES info
-    header['CRVAL3'] = 1.0
-    header['CDELT3'] = 1.0
-    header['CRPIX3'] = 1.0
-    header['CUNIT3'] = ''
-    header['CTYPE3'] = 'STOKES'
-
-    # Add frequency info
-    header['RESTFRQ'] = 15036
-    header['CRVAL4'] = 150e6
-    header['CDELT4'] = 3e8
-    header['CRPIX4'] = 1.0
-    header['CUNIT4'] = 'Hz'
-    header['CTYPE4'] = 'FREQ'
-    header['SPECSYS'] = 'TOPOCENT'
-
-    # Add equinox
-    header['EQUINOX'] = 2000.0
-
-    # Add telescope
-    header['TELESCOP'] = 'LOFAR'
-
-    hdulist[0].header = header
-    hdulist.writeto(image_name, overwrite=True)
-    hdulist.close()
 
 
 def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
@@ -131,8 +56,9 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
             temp_image = output_image + '.tmp'
             ximsize = int(imsize.split(' ')[0])
             yimsize = int(imsize.split(' ')[1])
-            make_template_image(temp_image, reference_ra_deg, reference_dec_deg,
-                ximsize=ximsize, yimsize=yimsize, cellsize_deg=float(cellsize_deg))
+            misc.make_template_image(temp_image, reference_ra_deg, reference_dec_deg,
+                                     ximsize=ximsize, yimsize=yimsize,
+                                     cellsize_deg=float(cellsize_deg))
         else:
             print('ERROR: a reference position must be given to make an empty template image')
             sys.exit(1)
@@ -146,7 +72,7 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
         w = wcs.WCS(header)
         RAind = w.axis_type_names.index('RA')
         Decind = w.axis_type_names.index('DEC')
-        vertices = read_vertices(vertices_file)
+        vertices = misc.read_vertices(vertices_file)
         RAverts = vertices[0]
         Decverts = vertices[1]
         verts = []
@@ -155,8 +81,6 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
             ra_dec[0][RAind] = RAvert
             ra_dec[0][Decind] = Decvert
             verts.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
-        poly = Polygon(verts)
-        prepared_polygon = prep(poly)
 
         if make_blank_image:
             hdu = pyfits.open(temp_image, memmap=False)
@@ -164,19 +88,11 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
             hdu = pyfits.open(input_image, memmap=False)
         data = hdu[0].data
 
-        # Mask everything outside of the polygon + plus its border (outline)
-        mask = Image.new('L', (data.shape[2], data.shape[3]), 0)
-        ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
-        data[0, 0, :, :] *= mask
-
-        # Now check the border precisely
-        mask = Image.new('L', (data.shape[2], data.shape[3]), 0)
-        ImageDraw.Draw(mask).polygon(verts, outline=1, fill=0)
-        masked_ind = np.where(np.array(mask).transpose())
-        points = [Point(xm, ym) for xm, ym in zip(masked_ind[0], masked_ind[1])]
-        outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
-        for outside_point in outside_points:
-            data[0, 0, int(outside_point.y), int(outside_point.x)] = 0
+        # Transpose the array (since FITS standard is [0, 0, y, x]), rasterize the poly,
+        # the transpose back
+        data_rasertize = data[0, 0, :, :].T
+        data_rasertize = misc.rasterize(verts, data_rasertize)
+        data[0, 0, :, :] = data_rasertize.T
 
         hdu[0].data = data
         hdu.writeto(output_image, overwrite=True)

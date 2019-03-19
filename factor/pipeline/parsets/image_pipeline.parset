@@ -40,25 +40,6 @@ expand_h5parm_map.control.mapfile_to_match = create_sector_files_map.output.mapf
 expand_h5parm_map.control.mapfile_dir      = input.output.mapfile_dir
 expand_h5parm_map.control.filename         = expand_h5parms.mapfile
 
-# reweight the data based on the calibration quality, length = nobs
-{% if reweight %}
-reweight.control.type        = reweight
-reweight.control.mapfiles_in = [create_sector_files_map.output.mapfile,expand_h5parm_map.output.mapfile]
-reweight.control.inputkeys   = [filename,gainfile]
-reweight.argument.colname    = WEIGHT_SPECTRUM
-reweight.argument.gainfile   = gainfile
-reweight.argument.dirname    = [{{ central_patch }}]
-reweight.argument.uvcut_min  = {{ min_uv_lambda }}
-reweight.argument.uvcut_max  = {{ max_uv_lambda }}
-{% if apply_slowgains %}
-# disable amplitude-dependent reweighting for now
-reweight.argument.phaseonly  = True
-{% else %}
-reweight.argument.phaseonly  = True
-{% endif %}
-reweight.argument.flags      = [filename,{{ target_fast_timestep }},{{ target_slow_freqstep }}]
-{% endif %}
-
 # phase shift, apply the direction-dependent solutions, and average, length = nobs
 # note: the apply steps will not be necessary once we can use screens in WSClean
 prepare_imaging_data.control.type                                 = dppp
@@ -73,36 +54,48 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 {% endif %}
 
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
+# flagging
 
-{% if mode == 'tecandphase' %}
-{% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,amp,phase,flagzero,interp,avg]
-{% else %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,scphase,flagzero,interp,avg]
-{% endif %}
-{% else %}
+{% if use_tec_screens %}
+
 {% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,interp,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,interp,avg]
 {% endif %}
-{% endif %}
 
 {% else %}
 
-{% if mode == 'tecandphase' %}
 {% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [tec,scphase,amp,phase,shift,flagzero,interp,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,amp,phase,flagzero,interp,avg]
 {% else %}
-prepare_imaging_data.argument.steps                               = [tec,scphase,shift,flagzero,interp,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,flagzero,interp,avg]
 {% endif %}
+
+{% endif %}
+
+
 {% else %}
+# no flagging
+
+{% if use_tec_screens %}
+
 {% if apply_slowgains %}
 prepare_imaging_data.argument.steps                               = [tec,amp,phase,shift,flagzero,interp,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [tec,shift,flagzero,interp,avg]
 {% endif %}
+
+{% else %}
+
+{% if apply_slowgains %}
+prepare_imaging_data.argument.steps                               = [amp,phase,shift,flagzero,interp,avg]
+{% else %}
+prepare_imaging_data.argument.steps                               = [shift,flagzero,interp,avg]
 {% endif %}
+
+{% endif %}
+
 
 {% endif %}
 
@@ -121,24 +114,20 @@ prepare_imaging_data.argument.flag.flag_freqrange.freqrange       = {{ flag_freq
 {% endif %}
 prepare_imaging_data.argument.shift.type                          = phaseshifter
 prepare_imaging_data.argument.shift.phasecenter                   = [{{ ra }}deg, {{ dec }}deg]
+{% if use_tec_screens %}
 prepare_imaging_data.argument.tec.type                            = applycal
 prepare_imaging_data.argument.tec.parmdb                          = h5parm
-prepare_imaging_data.argument.tec.correction                      = screentec000
+prepare_imaging_data.argument.tec.correction                      = tec000
 prepare_imaging_data.argument.tec.direction                       = [{{ central_patch }}]
-{% if mode == 'tecandphase' %}
-prepare_imaging_data.argument.scphase.type                        = applycal
-prepare_imaging_data.argument.scphase.parmdb                      = h5parm
-prepare_imaging_data.argument.scphase.correction                  = screenphase000
-prepare_imaging_data.argument.scphase.direction                   = [{{ central_patch }}]
 {% endif %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.amp.type                            = applycal
 prepare_imaging_data.argument.amp.parmdb                          = h5parm
-prepare_imaging_data.argument.amp.correction                      = screenamplitude000
+prepare_imaging_data.argument.amp.correction                      = amplitude000
 prepare_imaging_data.argument.amp.direction                       = [{{ central_patch }}]
 prepare_imaging_data.argument.phase.type                          = applycal
 prepare_imaging_data.argument.phase.parmdb                        = h5parm
-prepare_imaging_data.argument.phase.correction                    = screenphase000
+prepare_imaging_data.argument.phase.correction                    = phase000
 prepare_imaging_data.argument.phase.direction                     = [{{ central_patch }}]
 {% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
@@ -169,6 +158,19 @@ premask.argument.reference_dec_deg     = {{ dec }}
 premask.argument.cellsize_deg          = {{ cellsize_deg }}
 premask.argument.region_file           = {{ region_file }}
 premask.argument.make_blank_image      = True
+
+# if screens are to be used during imaging, make the aterm-config file, length = 1
+make_aterm_config.control.type        = make_aterm_config
+make_aterm_config.control.mapfile_in  = create_compressed_mapfile.output.mapfile
+make_aterm_config.control.skip_infile = True
+make_aterm_config.control.outputkey   = outfile
+make_aterm_config.argument.flags      = [outfile]
+{% if use_tec_screens %}
+make_aterm_config.argument.tec_image  = {{ tec_image }}
+{% endif %}
+{% if use_gain_screens %}
+make_aterm_config.argument.gain_image = {{ gain_image }}
+{% endif %}
 
 # do the imaging, length = 1
 image.control.type                   = wsclean

@@ -412,10 +412,10 @@ def remove_soltabs(solset, soltabnames):
             pass
 
 
-def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
-    ampsoltabname='amplitude000', phsoltabname='phase000', outsoltabroot='_screensols',
-    ref_id=0, fit_screens=False, calculate_weights=False, smooth_amplitudes=False,
-    smooth_phases=False, normalize=False):
+def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
+         phsoltabname='phase000', outsoltabroot='_screensols', ref_id=0,
+         fit_screens=False, calculate_weights=False, smooth_amplitudes=False,
+         smooth_phases=False, normalize=False):
     """
     Fit screens to gain solutions
 
@@ -423,18 +423,12 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
     ----------
     h5parmfile : str
         Filename of h5parm
-    starttime : str, optional
-        Start time in casacore MVTime format (NYI)
-    ntimes : int, optional
-        Number of times to fit (NYI)
     solsetname : str, optional
         Name of solset
-    tecsoltabname : str, optional
+    ampsoltabname : str, optional
         Name of TEC soltab
-    errsoltabname : str, optional
+    phsoltabname : str, optional
         Name of error soltab
-    scphsoltabname : str, optional
-        Name of scalarphase soltab
     outsoltabroot : str, optional
         Root name for output soltabs
     ref_id : int, optional
@@ -459,32 +453,29 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
 
     if smooth_amplitudes:
         amp, damp = smooth(ampsoltab, normalize=normalize)
+        ampsoltab.rename('origampiltude000', overwrite=True)
+        solset.makeSoltab('amplitude', 'amplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
+                          axesVals=[ampsoltab.time[:], ampsoltab.freq[:], ampsoltab.ant[:],
+                          ampsoltab.dir[:], ampsoltab.pol[:]], vals=amp, weights=damp)
 
     if smooth_phases:
         ph, dph = smooth(phsoltab)
-
-    remove_soltabs(solset, ['screenamplitude000'])
-    solset.makeSoltab('amplitude', 'screenamplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
-                      axesVals=[ampsoltab.time[:], ampsoltab.freq[:], ampsoltab.ant[:],
-                      ampsoltab.dir[:], ampsoltab.pol[:]], vals=amp, weights=damp)
-
-    remove_soltabs(solset, ['screenphase000'])
-    solset.makeSoltab('phase', 'screenphase000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
-                      axesVals=[phsoltab.time[:], phsoltab.freq[:], phsoltab.ant[:],
-                      phsoltab.dir[:], phsoltab.pol[:]], vals=ph, weights=dph)
+        ampsoltab.rename('origphase000', overwrite=True)
+        solset.makeSoltab('phase', 'phase000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
+                          axesVals=[phsoltab.time[:], phsoltab.freq[:], phsoltab.ant[:],
+                          phsoltab.dir[:], phsoltab.pol[:]], vals=ph, weights=dph)
 
     if fit_screens:
         # Rename smoothed soltabs
         if smooth_amplitudes:
-            soltaba = solset.getSoltab('screenamplitude000')
-            soltaba.rename('smoothedamplitude000')
+            soltaba = solset.getSoltab('amplitude000')
         if smooth_phases:
-            soltabp = solset.getSoltab('screenphase000')
-            soltabp.rename('smoothedphase000')
+            soltabp = solset.getSoltab('phase000')
 
         # Find weights
         if calculate_weights:
-            operations.reweight.run(soltab, 'window', nmedian=3, nstddev=501)
+            operations.reweight.run(soltaba, 'window', nmedian=3, nstddev=501)
+            operations.reweight.run(soltabp, 'window', nmedian=3, nstddev=501)
 
         # Fit screens
         remove_soltabs(solset, ['amplitudescreen000', 'amplitudescreen000resid'])
@@ -493,18 +484,5 @@ def main(h5parmfile, starttime=None, ntimes=None, solsetname='sol000',
         remove_soltabs(solset, ['phasescreen000', 'phasescreen000resid'])
         operations.stationscreen.run(soltabp, 'phasescreen000', niter=1, nsigma=5,
             refAnt=ref_id, order=20, scale_order=False)
-
-        # Calculate values from screens
-        remove_soltabs(solset, ['screenamplitude000'])
-        soltab = solset.getSoltab('amplitudescreen000')
-        source_dict = solset.getSou()
-        operations.screenvalues.run(soltab, source_dict, outsoltabroot)
-        soltab = solset.getSoltab('amplitude{}'.format(outsoltabroot))
-        soltab.rename('screenamplitude000')
-        soltab = solset.getSoltab('phasescreen000')
-        source_dict = solset.getSou()
-        operations.screenvalues.run(soltab, source_dict, outsoltabroot)
-        soltab = solset.getSoltab('phase{}'.format(outsoltabroot))
-        soltab.rename('screenphase000')
 
     H.close()

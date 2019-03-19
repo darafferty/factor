@@ -89,6 +89,8 @@ class Sector(object):
         self.use_idg = self.field.parset['imaging_specific']['use_idg']
         self.idg_mode = self.field.parset['imaging_specific']['idg_mode']
         self.reweight = self.field.parset['imaging_specific']['reweight']
+        self.use_tec_screens = self.field.parset['imaging_specific']['use_tec_screens']
+        self.use_gain_screens = self.field.parset['imaging_specific']['use_gain_screens']
         self.use_beam = self.field.parset['imaging_specific']['use_beam']
         self.flag_abstime = self.field.parset['flag_abstime']
         self.flag_baseline = self.field.parset['flag_baseline']

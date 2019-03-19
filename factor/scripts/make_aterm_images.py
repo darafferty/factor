@@ -1,0 +1,590 @@
+#! /usr/bin/env python
+"""
+Script to make a-term images from solutions
+"""
+from losoto.h5parm import h5parm
+from losoto.operations.directionscreen import _calc_piercepoint
+from losoto.operations.plotscreen import _calculate_screen
+from numpy import kron, concatenate, newaxis
+from numpy.linalg import pinv, norm
+import os
+import numpy as np
+from scipy.spatial import Delaunay
+from .lib import miscellaneous as misc
+
+
+def save_frame(screen, fitted_phase1, residuals,  x, y, k, sindx,
+    root_dir, prestr, midRA, midDec, order, outQueue):
+    """
+    Saves screen images as FITS files
+
+    Parameters
+    ----------
+    screen : array
+        Image of screen values
+    fitted_phase1 : array
+        Array of fitted phase values
+    residuals : array
+        Array of phase residuals at the piercepoints
+    weights : array
+        Array of weights at the piercepoints
+    x : array
+        Array of piercepoint x locations
+    y : array
+        Array of piercepoint y locations
+    k : int
+        Time index
+    order : int
+        order of screen
+    is_phase : bool
+        True if screens are phase screens
+
+    """
+    if not 'matplotlib' in sys.modules:
+        import matplotlib as mpl
+        mpl.rc('figure.subplot',left=0.05, bottom=0.05, right=0.95, top=0.95,wspace=0.22, hspace=0.22 )
+        mpl.use("Agg")
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt # after setting "Agg" to speed up
+    from losoto.operations.stationscreen import _makeWCS, _circ_chi2
+    import numpy as np
+    try:
+        try:
+            from astropy.visualization.wcsaxes import WCSAxes
+            hasWCSaxes = True
+        except:
+            from wcsaxes import WCSAxes
+            hasWCSaxes = True
+    except:
+        hasWCSaxes = False
+    from matplotlib.colors import LinearSegmentedColormap
+
+
+    fig = plt.figure(figsize=(6,6))
+
+    # Set colormap
+    if is_phase:
+        cmap = _phase_cm()
+    else:
+        cmap = plt.cm.jet
+    sm = plt.cm.ScalarMappable(cmap=cmap,
+        norm=mpl.colors.Normalize(vmin=vmin, vmax=vmax))
+    sm._A = []
+
+    if is_image_plane and hasWCSaxes:
+        wcs = _makeWCS(midRA, midDec)
+        ax = fig.add_axes([0.15, 0.1, 0.8, 0.8], projection=wcs)
+    else:
+        plt.gca().set_aspect('equal')
+        ax = plt.gca()
+
+    s = []
+    c = []
+    xf = []
+    yf = []
+    weights = np.array(weights, dtype=float)
+    nonflagged = np.where(weights > 0.0)
+    for j in range(fitted_phase1.shape[0]):
+        if weights[j] > 0.0:
+            s.append(max(20, 200*np.sqrt(weights[j]/np.median(weights[nonflagged]))))
+        else:
+            s.append(120)
+            xf.append(x[j])
+            yf.append(y[j])
+        c.append(sm.to_rgba(fitted_phase1[j]))
+
+    if is_image_plane:
+        min_x = np.min(x)
+        max_x = np.max(x)
+        min_y = np.min(y)
+        max_y = np.max(y)
+        extent_x = max_x - min_x
+        extent_y = max_y - min_y
+        lower = [min_x - 0.1 * extent_x, min_y - 0.1 * extent_y]
+        upper = [max_x + 0.1 * extent_x, max_y + 0.1 * extent_y]
+        Nx = screen.shape[0]
+        pix_per_m = Nx / (upper[0] - lower[0])
+        m_per_pix = 1.0 / pix_per_m
+        xr = np.arange(lower[0], upper[0], m_per_pix)
+        yr = np.arange(lower[1], upper[1], m_per_pix)
+        lower = np.array([xr[0], yr[0]])
+        upper = np.array([xr[-1], yr[-1]])
+    else:
+        # convert from m to km
+        lower /= 1000.0
+        upper /= 1000.0
+
+    im = ax.imshow(screen.transpose([1, 0])[:, :],
+        cmap = cmap,
+        origin = 'lower',
+        interpolation = 'nearest',
+        extent = (lower[0], upper[0], lower[1], upper[1]),
+        vmin=vmin, vmax=vmax)
+
+    cbar = plt.colorbar(im)
+    cbar.set_label('Value', rotation=270)
+
+    ax.scatter(np.array(x), np.array(y), s=np.array(s), c=np.array(c), alpha=0.7, cmap=cmap, vmin=vmin, vmax=vmax, edgecolor='black')
+    if len(xf) > 0:
+        ax.scatter(xf, yf, s=120, c='k', marker='x')
+    if show_source_names:
+        labels = source_names
+        for label, xl, yl in zip(labels, x, y):
+            plt.annotate(
+                label,
+                xy = (xl, yl), xytext = (-2, 2),
+                textcoords = 'offset points', ha = 'right', va = 'bottom')
+
+    nsrcs = np.where(weights > 0.0)[0].size
+    if is_phase:
+        redchi2 =  _circ_chi2(residuals, weights) / (nsrcs-order)
+    else:
+        redchi2 =  np.sum(np.square(residuals) * weights) / (nsrcs-order)
+    if sindx >= 0:
+        plt.title('Station {0}, Time {1} (red. chi2 = {2:0.3f})'.format(station_names[sindx], k, redchi2))
+    else:
+        plt.title('Time {0}'.format(k))
+    if is_image_plane:
+        ax.set_xlim(lower[0], upper[0])
+        ax.set_ylim(lower[1], upper[1])
+        ax.set_aspect('equal')
+        if hasWCSaxes:
+            RAAxis = ax.coords['ra']
+            RAAxis.set_axislabel('RA', minpad=0.75)
+            RAAxis.set_major_formatter('hh:mm:ss')
+            DecAxis = ax.coords['dec']
+            DecAxis.set_axislabel('Dec', minpad=0.75)
+            DecAxis.set_major_formatter('dd:mm:ss')
+            ax.coords.grid(color='black', alpha=0.5, linestyle='solid')
+            plt.xlabel("RA")
+            plt.ylabel("Dec")
+        else:
+            plt.xlabel("RA (arb. units)")
+            plt.ylabel("Dec (arb. units)")
+    else:
+        # Reverse the axis so that RA coord increases to left
+        plt.xlim(upper[0], lower[0])
+        plt.ylim(lower[1], upper[1])
+        plt.xlabel('Projected Distance East-West (km)')
+        plt.ylabel('Projected Distance North-South (km)')
+    if sindx >= 0:
+        plt.savefig(root_dir + '/' + prestr + '_station%0.4i' % sindx + '_frame%0.4i.png' % k, bbox_inches='tight')
+    else:
+        plt.savefig(root_dir + '/' + prestr + '_frame%0.4i.png' % k, bbox_inches='tight')
+    plt.close(fig)
+
+
+def make_screen_images(pp, inscreen, inresiduals, weights, station_names,
+    station_positions, source_names, times, height, station_order, beta_val,
+    r_0, prefix='frame_', remove_gradient=True, show_source_names=False,
+    min_val=None, max_val=None, is_phase=False, midRA=0.0, midDec=0.0, ncpu=0):
+    """
+    Makes a-term images of screens
+
+    Parameters
+    ----------
+    pp : array
+        Array of piercepoint locations
+    inscreen : array
+        Array of screen values at the piercepoints with order [dir, time, ant]
+    residuals : array
+        Array of screen residuals at the piercepoints with order [dir, time, ant]
+    weights : array
+        Array of weights for each piercepoint with order [dir, time, ant]
+    source_names: array
+        Array of source names
+    times : array
+        Array of times
+    height : float
+        Height of screen (m)
+    station_order : list
+        List of order of screens per station (e.g., number of KL base vectors to keep)
+    r_0 : float
+        Scale size of phase fluctuations
+    beta_val : float
+        Power-law index for phase structure function
+    prefix : str
+        Prefix for output file names
+    remove_gradient : bool
+        Fit and remove a gradient from each screen
+    show_source_names : bool
+        Label sources on screen plots
+    min_val : float
+        Minimum value for plot range
+    max_val : float
+        Maximum value for plot range
+    is_phase : bool
+        Input screen is a phase screen
+    midRA : float
+        RA for WCS reference in degrees
+    midDec : float
+        Dec for WCS reference in degrees
+    ncpu : int
+        Number of CPUs to use
+
+    """
+    # input check
+    root_dir = os.path.dirname(prefix)
+    if root_dir == '':
+        root_dir = './'
+    prestr = os.path.basename(prefix) + 'screen'
+    try:
+        os.makedirs(root_dir)
+    except OSError:
+        pass
+
+    N_stations = 1 # screens are single-station screens
+    N_sources = len(source_names)
+    N_times = len(times)
+    N_piercepoints = N_sources * N_stations
+    xp, yp, zp = station_positions[0, :] # use first station
+    east = np.array([-yp, xp, 0])
+    east = east / norm(east)
+
+    north = np.array([-xp, -yp, (xp*xp + yp*yp)/zp])
+    north = north / norm(north)
+
+    up = np.array([xp, yp, zp])
+    up = up / norm(up)
+
+    T = concatenate([east[:, newaxis], north[:, newaxis]], axis=1)
+
+    is_image_plane = True # pierce points are image plane coords
+    pp1_0 = pp[:, 0:2]
+    pp1_1 = pp[:, 0:2]
+
+    max_xy = np.amax(pp1_0, axis=0) - np.amin(pp1_0, axis=0)
+    max_xy_1 = np.amax(pp1_1, axis=0) - np.amin(pp1_1, axis=0)
+    if max_xy_1[0] > max_xy[0]:
+        max_xy[0] = max_xy_1[0]
+    if max_xy_1[1] > max_xy[1]:
+        max_xy[1] = max_xy_1[1]
+
+    min_xy = np.array([0.0, 0.0])
+    extent = max_xy - min_xy
+    lower = min_xy - 0.1 * extent
+    upper = max_xy + 0.1 * extent
+    im_extent_m = upper - lower
+    fitted_phase1 = np.zeros((N_piercepoints, N_times))
+
+    Nx = 60 # set approximate number of pixels in screen
+    pix_per_m = Nx / im_extent_m[0]
+    m_per_pix = 1.0 / pix_per_m
+    xr = np.arange(lower[0], upper[0], m_per_pix)
+    yr = np.arange(lower[1], upper[1], m_per_pix)
+    Nx = len(xr)
+    Ny = len(yr)
+    lower = np.array([xr[0], yr[0]])
+    upper = np.array([xr[-1], yr[-1]])
+
+    x = np.zeros((N_times, N_piercepoints)) # plot x pos of piercepoints
+    y = np.zeros((N_times, N_piercepoints)) # plot y pos of piercepoints
+    screen = np.zeros((Nx, Ny, N_times))
+
+    for sindx in range(station_positions.shape[0]):
+        logging.info('Calculating screen images...')
+        residuals = inresiduals[:, :, sindx, newaxis].transpose([0, 2, 1]).reshape(N_piercepoints, N_times)
+        mpm = multiprocManager(ncpu, _calculate_screen)
+        for k in range(N_times):
+            mpm.put([inscreen[:, k, sindx], residuals[:, k], pp,
+                N_piercepoints, k, east, north, up, T, Nx, Ny, sindx, height,
+                beta_val, r_0, is_phase])
+        mpm.wait()
+        for (k, ft, scr, xa, ya) in mpm.get():
+            screen[:, :, k] = scr
+            fitted_phase1[:, k] = ft
+            if is_image_plane:
+                x[k, :] = xa
+                y[k, :] = ya
+            else:
+                x[k, :] = xa - np.amin(xa) # remove offsets for each time slot
+                y[k, :] = ya - np.amin(ya)
+
+        # Normalize piercepoint locations to extent calculated above
+        if not is_image_plane:
+            x *= extent[0]
+            y *= extent[1]
+
+        if min_val is None:
+            vmin = np.min([np.amin(screen), np.amin(fitted_phase1)])
+        else:
+            vmin = min_val
+        if max_val is None:
+            vmax = np.max([np.amax(screen), np.amax(fitted_phase1)])
+        else:
+            vmax = max_val
+
+    logging.info('Save screen images...')
+    for sindx in range(station_positions.shape[0]):
+        for k in range(N_times):
+            mpm.put([screen[:, :, k], fitted_phase1[:, k], residuals[:, k],
+            weights[:, k, sindx], x[k, :], y[k, :], k, lower, upper, vmin, vmax,
+            source_names, show_source_names, station_names, sindx, root_dir,
+            prestr, is_image_plane, midRA, midDec, station_order[0, k, sindx], is_phase])
+
+
+def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
+         ressoltabname='', padding_fraction=None, cellsize_deg=0.02):
+    """
+    Make a-term FITS images
+
+    Parameters
+    ----------
+    h5parmfile : str
+        Filename of h5parm
+    soltabname : str
+        Soltab containing solutions or screen fit
+    outfile : str
+        Filename of output FITS file
+    bounds_deg : tuple
+        Tuple of (minRA, minDec, maxRA, maxDec) for image bounds
+    solsetname : str, optional
+        Name of solset
+    ressoltabname : str, optional
+        Soltab containing the screen residuals
+    padding_fraction : float
+        Fraction of total size to pad with (e.g., 0.2 => 20% padding all around)
+    cellsize_deg : float
+        Cellsize of output image
+    """
+    # Read in solutions
+    H = h5parm(h5parmfile)
+    solset = H.getSolset(solsetname)
+    soltab = solset.getSoltab(soltabname)
+
+    if type(bounds_deg) is str:
+        bounds_deg = [f.strip() for f in bounds_deg.strip('()').split(',')]
+    if padding_fraction is not None:
+        padding_ra = (bounds_deg[0] - bounds_deg[2]) * padding_fraction
+        padding_dec = (bounds_deg[1] - bounds_deg[3]) * padding_fraction
+        bounds_deg[0] -= padding_ra
+        bounds_deg[1] -= padding_dec
+        bounds_deg[2] += padding_ra
+        bounds_deg[3] += padding_dec
+    cellsize_deg = float(cellsize_deg)
+
+    if 'screen' in soltab.getType():
+        # Handle screen solutions
+        screen_type = soltab.getType()
+        logging.info('Using input {0} soltab {1}'.format(screen_type, soltab.name))
+
+        # Get values from soltabs
+        solset = soltab.getSolset()
+        if resSoltab is '':
+            try:
+                # Look for residual soltab assuming standard naming conventions
+                ressoltab = solset.getSoltab(soltab.name+'resid')
+            except:
+                logging.error('Could not find the soltab with associated screen residuals. '
+                    'Please specify it with the "resSoltab" argument.')
+                return 1
+        else:
+            ressoltab = solset.getSoltab(resSoltab)
+        logging.info('Using input screen residual soltab: {}'.format(ressoltab.name))
+        screen = np.array(soltab.val)
+        weights = np.array(soltab.weight)
+        residuals = np.array(ressoltab.val)
+        times = np.array(soltab.time)
+        orders = np.array(ressoltab.weight)
+        axis_names = soltab.getAxesNames()
+        if len(screen.shape) > 3:
+            # remove degenerate freq and pol axes
+            if 'freq' in axis_names:
+                freq_ind = axis_names.index('freq')
+                screen = np.squeeze(screen, axis=freq_ind)
+                weights = np.squeeze(weights, axis=freq_ind)
+                residuals = np.squeeze(residuals, axis=freq_ind)
+                orders = np.squeeze(orders, axis=freq_ind)
+                axis_names.remove('freq')
+            if 'pol' in axis_names:
+                pol_ind = axis_names.index('pol')
+                screen = np.squeeze(screen, axis=pol_ind)
+                weights = np.squeeze(weights, axis=pol_ind)
+                residuals = np.squeeze(residuals, axis=pol_ind)
+                orders = np.squeeze(orders, axis=pol_ind)
+                axis_names.remove('pol')
+
+        # Rearrange to get order [dir, time, ant]
+        dir_ind = axis_names.index('dir')
+        time_ind = axis_names.index('time')
+        ant_ind = axis_names.index('ant')
+        screen = screen.transpose([dir_ind, time_ind, ant_ind])
+        weights = weights.transpose([dir_ind, time_ind, ant_ind])
+        residuals = residuals.transpose([dir_ind, time_ind, ant_ind])
+        orders = orders.transpose([dir_ind, time_ind, ant_ind])
+
+        # Collect station and source names and positions and times, making sure
+        # that they are ordered correctly.
+        source_names = soltab.dir[:]
+        source_dict = solset.getSou()
+        source_positions = []
+        for source in source_names:
+            source_positions.append(source_dict[source])
+        station_names = soltab.ant
+        station_dict = solset.getAnt()
+        station_positions = []
+        for station in station_names:
+            station_positions.append(station_dict[station])
+        height = soltab.obj._v_attrs['height']
+        beta_val = soltab.obj._v_attrs['beta']
+        r_0 = soltab.obj._v_attrs['r_0']
+        pp = soltab.obj.piercepoint[:]
+        if height == 0.0:
+            midRA = soltab.obj._v_attrs['midra']
+            midDec = soltab.obj._v_attrs['middec']
+        else:
+            midRA = 0.0
+            midDec = 0.0
+
+        if (minZ == 0 and maxZ == 0):
+            min_val = None
+            max_val = None
+        else:
+            min_val = minZ
+            max_val = maxZ
+
+        _make_screen_plots(pp, screen, residuals, weights, np.array(station_names),
+            np.array(station_positions), np.array(source_names), times,
+            height, orders, beta_val, r_0, prefix=prefix,
+            remove_gradient=remove_gradient, show_source_names=show_source_names, min_val=min_val,
+            max_val=max_val, is_phase=is_phase, midRA=midRA, midDec=midDec, ncpu=ncpu)
+
+    elif 'tec' in soltab.getType():
+        # Handle non-screen TEC solutions using Voronoi tessellation
+        vals = np.array(soltab.val)
+        weights = np.array(soltab.weight)
+        times = np.array(soltab.time)
+        axis_names = soltab.getAxesNames()
+        if len(screen.shape) > 3:
+            # remove degenerate freq and pol axes
+            if 'freq' in axis_names:
+                freq_ind = axis_names.index('freq')
+                vals = np.squeeze(vals, axis=freq_ind)
+                weights = np.squeeze(weights, axis=freq_ind)
+                axis_names.remove('freq')
+            if 'pol' in axis_names:
+                pol_ind = axis_names.index('pol')
+                vals = np.squeeze(vals, axis=pol_ind)
+                weights = np.squeeze(weights, axis=pol_ind)
+                axis_names.remove('pol')
+
+        # Rearrange to get order [dir, time, ant]
+        dir_ind = axis_names.index('dir')
+        time_ind = axis_names.index('time')
+        ant_ind = axis_names.index('ant')
+        vals = vals.transpose([dir_ind, time_ind, ant_ind])
+        weights = weights.transpose([dir_ind, time_ind, ant_ind])
+
+        # Make blank output FITS file
+        temp_image = output_image + '.tmp'
+        imsize = max(field_maxxy[0]-field_minxy[0], field_maxxy[1]-field_minxy[1]) * 0.0005  # deg
+        imsize = int(imsize / cellsize_deg)  # pix
+        misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
+                            yimsize=imsize, cellsize_deg=cellsize_deg, soltab=soltab)
+        hdu = pyfits.open(temp_image, memmap=False)
+        data = hdu[0].data
+        w = wcs.WCS(hdu[0].header)
+        RAind = w.axis_type_names.index('RA')
+        Decind = w.axis_type_names.index('DEC')
+
+        # Get x, y coords for directions in pixels
+        source_positions = []
+        for source in source_names:
+            source_positions.append(source_dict[source])
+        ra_deg = source_positions.T[0] * 180.0 / np.pi
+        dec_deg = source_positions.T[1] * 180.0 / np.pi
+        xy = []
+        for RAvert, Decvert in zip(ra_deg, dec_deg):
+            ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
+            ra_dec[0][RAind] = RAvert
+            ra_dec[0][Decind] = Decvert
+            xy.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
+
+        # Get boundary for imaging region in pixels
+        ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
+        ra_dec[0][RAind] = bounds_deg[0]
+        ra_dec[0][Decind] = bounds_deg[1]
+        field_minxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
+        ra_dec[0][RAind] = bounds_deg[2]
+        ra_dec[0][Decind] = bounds_deg[3]
+        field_maxxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
+        field_poly = Polygon([field_minxy[0], field_maxxy[0]],
+                             [field_minxy[0], field_maxxy[1]],
+                             [field_maxxy[0], field_maxxy[1]],
+                             [field_maxxy[0], field_minxy[1]])
+
+        # Generate array of outer points used to constrain the facets
+        nouter = 64
+        means = np.ones((nouter, 2)) * points.mean(axis=0)
+        offsets = []
+        angles = [np.pi/(nouter/2.0)*i for i in range(0, nouter)]
+        for ang in angles:
+            offsets.append([np.cos(ang), np.sin(ang)])
+        radius = 2.0*np.sqrt( (field_maxxy[0]-field_minxy[0])**2 + (field_maxxy[1]-field_minxy[1])**2 )
+        scale_offsets = radius * np.array(offsets)
+        outer_box = means + scale_offsets
+
+        # Tessellate and clip
+        points_all = np.vstack([points, outer_box])
+        vor = Voronoi(points_all)
+        lines = [
+            shapely.geometry.LineString(vor.vertices[line])
+            for line in vor.ridge_vertices
+            if -1 not in line
+        ]
+        polygons = [poly for poly in shapely.ops.polygonize(lines)]
+
+        # Make sure direction and polygon list have the same order
+        ind = []
+        for i, xypos in enumerate(xy):
+            for poly in polygons:
+                if poly.contains(Point(xypos)):
+                    ind.append(i)
+        polygons = polygons[tuple(ind)]
+
+
+        if soltab.getType() == 'tec':
+            # data is [RA, DEC, ANTENNA, FREQ, TIME].T
+            # Rasterize the polygons to an array, with the value being equal to the
+            # polygon's index+1
+            data_rasertize_template = data[0, 0, 0, :, :].T
+            for p, poly in enumerate(polygons):
+                data_rasertize_template += misc.rasterize(poly, data[0, 0, 0, :, :].T) * (p + 1)
+
+            # Now loop over stations, frequencies, and times and fill in the correct
+            # values
+            for t, time in enumerate(times):
+                for f, freq in enumerate(freqs):
+                    for s, stat in enumerate(stats):
+                        for p, poly in enumerate(polygons):
+                            ind = np.where(data_rasertize_template.T == p+1)
+                            data[t, f, s, ind[0], ind[1]] = vals[p, t, s]
+
+        else:
+            # data is [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
+            # Rasterize the polygons to an array, with the value being equal to the
+            # polygon's index+1
+            data_rasertize_template = data[0, 0, 0, 0, :, :].T
+            for p, poly in enumerate(polygons):
+                data_rasertize_template += misc.rasterize(poly, data[0, 0, 0, 0, :, :].T) * (p + 1)
+
+            # Now loop over stations, frequencies, and times and fill in the correct
+            # matrix values (matrix dimension has 4 elements: real XX, imaginary XX,
+            # real YY and imaginary YY)
+            freqs = [freq0]  # freq axis not yet supported by IDG
+            for t, time in enumerate(times):
+                for f, freq in enumerate(freqs):
+                    for s, stat in enumerate(stats):
+                        for p, poly in enumerate(polygons):
+                            ind = np.where(data_rasertize_template.T == p+1)
+                            data[t, f, s, 0, ind[0], ind[1]] = val_amp_xx * np.cos(val_phase_xx)
+                            data[t, f, s, 2, ind[0], ind[1]] = val_amp_yy * np.cos(val_phase_yy)
+                            data[t, f, s, 1, ind[0], ind[1]] = val_amp_xx * np.sin(val_phase_xx)
+                            data[t, f, s, 3, ind[0], ind[1]] = val_amp_yy * np.sin(val_phase_yy)
+
+        # Write FITS file
+        hdu[0].data = data
+        hdu.writeto(output_image, overwrite=True)
+
+    else:
+        pass
