@@ -434,6 +434,7 @@ class Field(object):
 
         # Finally, make a list of all sectors
         self.sectors = self.imaging_sectors[:] + self.outlier_sectors
+        self.nsectors = len(self.sectors)
 
     def find_intersecting_sources(self):
         """
