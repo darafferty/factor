@@ -5,7 +5,7 @@ a clean mask
 """
 import argparse
 from argparse import RawTextHelpFormatter
-from .lib import miscellaneous as misc
+from factor.lib import miscellaneous as misc
 import numpy as np
 import sys
 from astropy.io import fits as pyfits
