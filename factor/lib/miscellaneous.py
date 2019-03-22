@@ -64,7 +64,7 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
         shape_out = [1, 1, yimsize, ximsize]
         ref_freq = 150e6
 
-    hdu = pyfits.PrimaryHDU(np.ones(shape_out, dtype=np.float32))
+    hdu = pyfits.PrimaryHDU(np.zeros(shape_out, dtype=np.float32))
     hdulist = pyfits.HDUList([hdu])
     header = hdulist[0].header
 
@@ -149,7 +149,8 @@ def rasterize(verts, data):
     poly = Polygon(verts)
     prepared_polygon = prep(poly)
 
-    # Mask everything outside of the polygon plus its border (outline)
+    # Mask everything outside of the polygon plus its border (outline) with zeros
+    # (inside polygon plus border are ones)
     mask = Image.new('L', (data.shape[0], data.shape[1]), 0)
     ImageDraw.Draw(mask).polygon(verts, outline=1, fill=1)
     data *= mask
@@ -159,8 +160,8 @@ def rasterize(verts, data):
     ImageDraw.Draw(mask).polygon(verts, outline=1, fill=0)
     masked_ind = np.where(np.array(mask).transpose())
     points = [Point(xm, ym) for xm, ym in zip(masked_ind[0], masked_ind[1])]
-    outside_points = filter(lambda v: not prepared_polygon.contains(v), points)
+    outside_points = filter(lambda v: prepared_polygon.disjoint(v), points)
     for outside_point in outside_points:
-        data[int(outside_point.x), int(outside_point.y)] = 0
+        data[int(outside_point.y), int(outside_point.x)] = 0
 
     return data

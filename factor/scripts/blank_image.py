@@ -90,9 +90,9 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
 
         # Transpose the array (since FITS standard is [0, 0, y, x]), rasterize the poly,
         # the transpose back
-        data_rasertize = data[0, 0, :, :].T
+        data_rasertize = data[0, 0, :, :]
         data_rasertize = misc.rasterize(verts, data_rasertize)
-        data[0, 0, :, :] = data_rasertize.T
+        data[0, 0, :, :] = data_rasertize
 
         hdu[0].data = data
         hdu.writeto(output_image, overwrite=True)

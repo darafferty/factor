@@ -69,6 +69,10 @@ class Calibrate(Operation):
         else:
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
                                                      'combine_fast_h5parms_output.mapfile')
+        self.field.fast_aterms_mapfile = os.path.join(self.pipeline_mapfile_dir,
+                                                      'fast_aterms_output.mapfile')
+        self.field.slow_aterms_mapfile = os.path.join(self.pipeline_mapfile_dir,
+                                                      'slow_aterms_output.mapfile')
 
         # Save the solutions
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))
@@ -77,4 +81,14 @@ class Calibrate(Operation):
         if os.path.exists(dst):
             os.remove(dst)
         sol_map = DataMap.load(self.field.h5parm_mapfile)
+        os.system('cp {0} {1}'.format(sol_map[0].file, dst))
+        dst = os.path.join(dst_dir, 'fast_aterms.fits')
+        if os.path.exists(dst):
+            os.remove(dst)
+        sol_map = DataMap.load(self.field.fast_aterms_mapfile)
+        os.system('cp {0} {1}'.format(sol_map[0].file, dst))
+        dst = os.path.join(dst_dir, 'slow_aterms.fits')
+        if os.path.exists(dst):
+            os.remove(dst)
+        sol_map = DataMap.load(self.field.slow_aterms_mapfile)
         os.system('cp {0} {1}'.format(sol_map[0].file, dst))

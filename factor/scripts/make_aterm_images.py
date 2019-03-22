@@ -9,8 +9,14 @@ from numpy import kron, concatenate, newaxis
 from numpy.linalg import pinv, norm
 import os
 import numpy as np
-from scipy.spatial import Delaunay
-from .lib import miscellaneous as misc
+from factor.lib import miscellaneous as misc
+from astropy.io import fits as pyfits
+from astropy import wcs
+from shapely.geometry import Point, Polygon
+from scipy.spatial import Voronoi
+import shapely.geometry
+import shapely.ops
+import scipy.ndimage as ndimage
 
 
 def save_frame(screen, fitted_phase1, residuals,  x, y, k, sindx,
@@ -323,8 +329,8 @@ def make_screen_images(pp, inscreen, inresiduals, weights, station_names,
             prestr, is_image_plane, midRA, midDec, station_order[0, k, sindx], is_phase])
 
 
-def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
-         ressoltabname='', padding_fraction=None, cellsize_deg=0.02):
+def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname='sol000',
+         ressoltabname='', padding_fraction=1.2, cellsize_deg=0.02, smooth=0):
     """
     Make a-term FITS images
 
@@ -336,8 +342,10 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
         Soltab containing solutions or screen fit
     outfile : str
         Filename of output FITS file
-    bounds_deg : tuple
-        Tuple of (minRA, minDec, maxRA, maxDec) for image bounds
+    bounds_deg : list
+        List of [minRA, minDec, maxRA, maxDec] for image bounds
+    bounds_mid_deg : list
+        List of [RA, Dec] for midpoint of image bounds
     solsetname : str, optional
         Name of solset
     ressoltabname : str, optional
@@ -346,6 +354,8 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
         Fraction of total size to pad with (e.g., 0.2 => 20% padding all around)
     cellsize_deg : float
         Cellsize of output image
+    smooth : float
+        Size of smoothing kernel to apply (in units of output pixels)
     """
     # Read in solutions
     H = h5parm(h5parmfile)
@@ -354,9 +364,11 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
 
     if type(bounds_deg) is str:
         bounds_deg = [f.strip() for f in bounds_deg.strip('()').split(',')]
+    if type(bounds_mid_deg) is str:
+        bounds_mid_deg = [f.strip() for f in bounds_mid_deg.strip('()').split(',')]
     if padding_fraction is not None:
-        padding_ra = (bounds_deg[0] - bounds_deg[2]) * padding_fraction
-        padding_dec = (bounds_deg[1] - bounds_deg[3]) * padding_fraction
+        padding_ra = (bounds_deg[2] - bounds_deg[0]) * (padding_fraction - 1.0)
+        padding_dec = (bounds_deg[3] - bounds_deg[1]) * (padding_fraction - 1.0)
         bounds_deg[0] -= padding_ra
         bounds_deg[1] -= padding_dec
         bounds_deg[2] += padding_ra
@@ -451,11 +463,13 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
 
     elif 'tec' in soltab.getType():
         # Handle non-screen TEC solutions using Voronoi tessellation
-        vals = np.array(soltab.val)
-        weights = np.array(soltab.weight)
-        times = np.array(soltab.time)
+        vals = soltab.val
+        weights = soltab.weight
+        times = soltab.time
+        freqs = soltab.freq
+        ants = soltab.ant
         axis_names = soltab.getAxesNames()
-        if len(screen.shape) > 3:
+        if len(vals.shape) > 3:
             # remove degenerate freq and pol axes
             if 'freq' in axis_names:
                 freq_ind = axis_names.index('freq')
@@ -474,10 +488,14 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
         ant_ind = axis_names.index('ant')
         vals = vals.transpose([dir_ind, time_ind, ant_ind])
         weights = weights.transpose([dir_ind, time_ind, ant_ind])
+        source_names = soltab.dir[:]
+        source_dict = solset.getSou()
 
         # Make blank output FITS file
-        temp_image = output_image + '.tmp'
-        imsize = max(field_maxxy[0]-field_minxy[0], field_maxxy[1]-field_minxy[1]) * 0.0005  # deg
+        midRA = bounds_mid_deg[0]
+        midDec = bounds_mid_deg[1]
+        temp_image = outfile + '.tmp'
+        imsize = (bounds_deg[3] - bounds_deg[1])  # deg
         imsize = int(imsize / cellsize_deg)  # pix
         misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
                             yimsize=imsize, cellsize_deg=cellsize_deg, soltab=soltab)
@@ -491,31 +509,33 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
         source_positions = []
         for source in source_names:
             source_positions.append(source_dict[source])
+        source_positions = np.array(source_positions)
         ra_deg = source_positions.T[0] * 180.0 / np.pi
         dec_deg = source_positions.T[1] * 180.0 / np.pi
         xy = []
         for RAvert, Decvert in zip(ra_deg, dec_deg):
-            ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
+            print(RAvert, Decvert)
+            ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
             ra_dec[0][RAind] = RAvert
             ra_dec[0][Decind] = Decvert
             xy.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
 
         # Get boundary for imaging region in pixels
-        ra_dec = np.array([[0.0, 0.0, 0.0, 0.0]])
+        ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
         ra_dec[0][RAind] = bounds_deg[0]
         ra_dec[0][Decind] = bounds_deg[1]
         field_minxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
         ra_dec[0][RAind] = bounds_deg[2]
         ra_dec[0][Decind] = bounds_deg[3]
         field_maxxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
-        field_poly = Polygon([field_minxy[0], field_maxxy[0]],
+        field_poly = Polygon([[field_minxy[0], field_maxxy[0]],
                              [field_minxy[0], field_maxxy[1]],
                              [field_maxxy[0], field_maxxy[1]],
-                             [field_maxxy[0], field_minxy[1]])
+                             [field_maxxy[0], field_minxy[1]]])
 
         # Generate array of outer points used to constrain the facets
         nouter = 64
-        means = np.ones((nouter, 2)) * points.mean(axis=0)
+        means = np.ones((nouter, 2)) * np.array(xy).mean(axis=0)
         offsets = []
         angles = [np.pi/(nouter/2.0)*i for i in range(0, nouter)]
         for ang in angles:
@@ -525,7 +545,7 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
         outer_box = means + scale_offsets
 
         # Tessellate and clip
-        points_all = np.vstack([points, outer_box])
+        points_all = np.vstack([xy, outer_box])
         vor = Voronoi(points_all)
         lines = [
             shapely.geometry.LineString(vor.vertices[line])
@@ -534,39 +554,56 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
         ]
         polygons = [poly for poly in shapely.ops.polygonize(lines)]
 
-        # Make sure direction and polygon list have the same order
+        # Index polygons to directions
         ind = []
         for i, xypos in enumerate(xy):
             for poly in polygons:
                 if poly.contains(Point(xypos)):
-                    ind.append(i)
-        polygons = polygons[tuple(ind)]
-
+                    poly.index = i
+        for poly in polygons:
+            print(poly.index)
 
         if soltab.getType() == 'tec':
             # data is [RA, DEC, ANTENNA, FREQ, TIME].T
             # Rasterize the polygons to an array, with the value being equal to the
             # polygon's index+1
-            data_rasertize_template = data[0, 0, 0, :, :].T
-            for p, poly in enumerate(polygons):
-                data_rasertize_template += misc.rasterize(poly, data[0, 0, 0, :, :].T) * (p + 1)
+            data_template = np.ones(data[0, 0, 0, :, :].shape)
+            data_rasertize_template = np.zeros(data[0, 0, 0, :, :].shape)
+            for poly in polygons:
+                verts_xy = poly.exterior.xy
+                verts = []
+                for x, y in zip(verts_xy[0], verts_xy[1]):
+                    verts.append((x, y))
+                poly_raster = misc.rasterize(verts, data_template.copy()) * (poly.index+1)
+                filled = np.where(poly_raster > 0)
+                data_rasertize_template[filled] = poly_raster[filled]
 
             # Now loop over stations, frequencies, and times and fill in the correct
             # values
             for t, time in enumerate(times):
                 for f, freq in enumerate(freqs):
-                    for s, stat in enumerate(stats):
-                        for p, poly in enumerate(polygons):
-                            ind = np.where(data_rasertize_template.T == p+1)
-                            data[t, f, s, ind[0], ind[1]] = vals[p, t, s]
+                    for s, stat in enumerate(ants):
+                        for poly in polygons:
+                            ind = np.where(data_rasertize_template == poly.index+1)
+                            data[t, f, s, ind[0], ind[1]] = vals[poly.index, t, s]
 
+                        # Smooth if desired
+                        if smooth > 0:
+                            data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :], sigma=(smooth, smooth), order=0)
         else:
             # data is [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
             # Rasterize the polygons to an array, with the value being equal to the
             # polygon's index+1
-            data_rasertize_template = data[0, 0, 0, 0, :, :].T
-            for p, poly in enumerate(polygons):
-                data_rasertize_template += misc.rasterize(poly, data[0, 0, 0, 0, :, :].T) * (p + 1)
+            data_template = np.ones(data[0, 0, 0, 0, :, :].shape)
+            data_rasertize_template = np.zeros(data[0, 0, 0, 0, :, :].shape)
+            for poly in polygons:
+                verts_xy = poly.exterior.xy
+                verts = []
+                for x, y in zip(verts_xy[0], verts_xy[1]):
+                    verts.append((x, y))
+                poly_raster = misc.rasterize(verts, data_template.copy()) * (poly.index+1)
+                filled = np.where(poly_raster > 0)
+                data_rasertize_template[filled] = poly_raster[filled]
 
             # Now loop over stations, frequencies, and times and fill in the correct
             # matrix values (matrix dimension has 4 elements: real XX, imaginary XX,
@@ -574,17 +611,21 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, solsetname='sol000',
             freqs = [freq0]  # freq axis not yet supported by IDG
             for t, time in enumerate(times):
                 for f, freq in enumerate(freqs):
-                    for s, stat in enumerate(stats):
+                    for s, stat in enumerate(ants):
                         for p, poly in enumerate(polygons):
-                            ind = np.where(data_rasertize_template.T == p+1)
+                            ind = np.where(data_rasertize_template == poly.index+1)
                             data[t, f, s, 0, ind[0], ind[1]] = val_amp_xx * np.cos(val_phase_xx)
                             data[t, f, s, 2, ind[0], ind[1]] = val_amp_yy * np.cos(val_phase_yy)
                             data[t, f, s, 1, ind[0], ind[1]] = val_amp_xx * np.sin(val_phase_xx)
                             data[t, f, s, 3, ind[0], ind[1]] = val_amp_yy * np.sin(val_phase_yy)
 
+                        # Smooth if desired
+                        if smooth > 0:
+                            data[t, f, s, :, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :, :], sigma=(0, smooth, smooth), order=0)
+
         # Write FITS file
         hdu[0].data = data
-        hdu.writeto(output_image, overwrite=True)
+        hdu.writeto(outfile, overwrite=True)
 
     else:
         pass

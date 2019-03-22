@@ -403,9 +403,11 @@ class Field(object):
         # Compute bounding box for all imaging sectors and store as a
         # (minx, miny, maxx, maxy) tuple and a (minRA, minDec, maxRA, maxDec) tuple
         all_sectors = MultiPolygon([sector.poly for sector in self.imaging_sectors])
-        self.bounds_xy = all_sectors.bounds
-        self.bounds_deg = (self.xy2radec(self.bounds_xy[0], self.bounds_xy[1]),
-                           self.xy2radec(self.bounds_xy[2], self.bounds_xy[3]))
+        self.sector_bounds_xy = all_sectors.bounds
+        self.sector_bounds_deg = (self.xy2radec(self.bounds_xy[0], self.bounds_xy[1]),
+                                  self.xy2radec(self.bounds_xy[2], self.bounds_xy[3]))
+        self.sector_bounds_mid_deg = (self.xy2radec((self.bounds_xy[0]+self.bounds_xy[2])/2.0,
+                                                    (self.bounds_xy[1]+self.bounds_xy[1])/2.0))
 
         # Make outlier sectors containing any remaining calibration sources (not
         # included in any sector sky model). These sectors are not imaged; they are only

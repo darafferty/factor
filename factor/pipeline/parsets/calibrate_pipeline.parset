@@ -1,5 +1,5 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_slow_starttime_map, create_slow_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, {% if apply_previous_slowgains %} create_prev_slow_h5parms_map, {% endif %} create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, create_slow_output_map, combine_slow_gains, fit_slow_screens, create_combined_output_map, combine_h5parms]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_slow_starttime_map, create_slow_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, {% if apply_previous_slowgains %} create_prev_slow_h5parms_map, {% endif %} create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens, create_fast_aterms_output_map, make_fast_aterms, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, create_slow_output_map, combine_slow_gains, fit_slow_screens, create_combined_output_map, combine_h5parms]
 {% else %}
 pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens]
 {% endif %}
@@ -250,13 +250,21 @@ fit_fast_screens.control.inputkey     = infile
 fit_fast_screens.argument.flags       = [infile]
 fit_fast_screens.argument.order       = {{ tecscreenorder }}
 
+# create a mapfile for output of a-term step, length = 1
+create_fast_aterms_output_map.control.kind        = plugin
+create_fast_aterms_output_map.control.type        = addListMapfile
+create_fast_aterms_output_map.control.hosts       = {{ hosts }}
+create_fast_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/fast_aterms.fits]
+create_fast_aterms_output_map.control.mapfile_dir = input.output.mapfile_dir
+create_fast_aterms_output_map.control.filename    = fast_aterms_output.mapfile
+
 # make a-term images for IDG, length = 1
 # TODO: split h5parm and process in parallel
-make_fast_aterms.control.type         = make_aterm_images
-make_fast_aterms.control.mapfile_in   = combine_fast_phases.output.mapfile
-make_fast_aterms.control.inputkey     = infile
-make_fast_aterms.argument.flags       = [infile]
-make_fast_aterms.argument.bounds_deg  = {{ bounds_deg }}
+make_fast_aterms.control.type             = make_aterm_images
+make_fast_aterms.control.mapfile_in       = fit_fast_screens.output.mapfile
+make_fast_aterms.control.inputkey         = infile
+make_fast_aterms.argument.flags           = [infile,origtec000,{{ tec_image }},{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
+make_fast_aterms.argument.smooth          = 0
 
 {% if do_slowgain_solve %}
 # expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks*nobs
@@ -339,6 +347,22 @@ fit_slow_screens.control.type         = fit_gain_screens
 fit_slow_screens.control.mapfile_in   = combine_slow_gains.output.mapfile
 fit_slow_screens.control.inputkey     = infile
 fit_slow_screens.argument.flags       = [infile]
+
+# create a mapfile for output of a-term step, length = 1
+# create_slow_aterms_output_map.control.kind        = plugin
+# create_slow_aterms_output_map.control.type        = addListMapfile
+# create_slow_aterms_output_map.control.hosts       = {{ hosts }}
+# create_slow_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/slow_aterms.fits]
+# create_slow_aterms_output_map.control.mapfile_dir = input.output.mapfile_dir
+# create_slow_aterms_output_map.control.filename    = slow_aterms_output.mapfile
+
+# make a-term images for IDG, length = 1
+# TODO: split h5parm and process in parallel
+# make_slow_aterms.control.type             = make_aterm_images
+# make_slow_aterms.control.mapfile_in       = fit_slow_screens.output.mapfile
+# make_slow_aterms.control.inputkey         = infile
+# make_slow_aterms.argument.flags           = [infile,phase000,{{ tec_image }},{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
+# make_slow_aterms.argument.smooth          = 0
 
 # create a mapfile for output of combine step, length = 1
 create_combined_output_map.control.kind        = plugin

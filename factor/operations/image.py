@@ -32,6 +32,8 @@ class Image(Operation):
 
         self.parms_dict.update({'obs_filename': obs_filename,
                                 'h5parm_mapfile': field.h5parm_mapfile,
+                                'fast_aterms_mapfile': field.fast_aterms_mapfile,
+                                'slow_aterms_mapfile': field.slow_aterms_mapfile,
                                 'image_freqstep': image_freqstep,
                                 'image_timestep': image_timestep})
 

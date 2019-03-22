@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, {% if reweight %} reweight, {% endif %} prepare_imaging_data, create_compressed_mapfile, premask, image, filter]
+pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, {% if reweight %} reweight, {% endif %} prepare_imaging_data, create_compressed_mapfile, premask, make_aterm_config, image, filter]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -59,7 +59,8 @@ prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir
 {% if use_tec_screens %}
 
 {% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,interp,avg]
+# prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,interp,avg]
+prepare_imaging_data.argument.steps                               = [flag,shift,amp,phase,flagzero,interp,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,interp,avg]
 {% endif %}
@@ -81,7 +82,8 @@ prepare_imaging_data.argument.steps                               = [flag,shift,
 {% if use_tec_screens %}
 
 {% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [tec,amp,phase,shift,flagzero,interp,avg]
+# prepare_imaging_data.argument.steps                               = [tec,amp,phase,shift,flagzero,interp,avg]
+prepare_imaging_data.argument.steps                               = [amp,phase,shift,flagzero,interp,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [tec,shift,flagzero,interp,avg]
 {% endif %}
@@ -161,21 +163,21 @@ premask.argument.make_blank_image      = True
 
 # if screens are to be used during imaging, make the aterm-config file, length = 1
 make_aterm_config.control.type        = make_aterm_config
-make_aterm_config.control.mapfile_in  = create_compressed_mapfile.output.mapfile
-make_aterm_config.control.skip_infile = True
+make_aterm_config.control.mapfile_in  = {{ fast_aterms_mapfile }}
+make_aterm_config.control.inputkey    = infile
 make_aterm_config.control.outputkey   = outfile
 make_aterm_config.argument.flags      = [outfile]
-{% if use_tec_screens %}
-make_aterm_config.argument.tec_image  = {{ tec_image }}
-{% endif %}
-{% if use_gain_screens %}
-make_aterm_config.argument.gain_image = {{ gain_image }}
-{% endif %}
+# {% if use_tec_screens %}
+make_aterm_config.argument.tec_image  = infile
+# {% endif %}
+# {% if use_gain_screens %}
+# make_aterm_config.argument.gain_image = {{ gain_image }}
+# {% endif %}
 
 # do the imaging, length = 1
 image.control.type                   = wsclean
-image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile]
-image.control.inputkeys              = [msfile,fitsmask]
+image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
+image.control.inputkeys              = [msfile,fitsmask,atermconfig]
 {% if use_idg %}
 {% if use_beam %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-grid-with-beam,-use-differential-lofar-beam,msfile]
@@ -225,6 +227,7 @@ image.argument.local-rms-method      = rms-with-min
 {% if use_idg %}
 image.argument.idg-mode              = {{ idg_mode }}
 {% endif %}
+image.argument.aterm-config          = atermconfig
 
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel
