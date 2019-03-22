@@ -86,7 +86,6 @@ class Sector(object):
         self.taper_arcsec = self.field.parset['imaging_specific']['taper_arcsec']
         self.min_uv_lambda = self.field.parset['imaging_specific']['min_uv_lambda']
         self.max_uv_lambda = self.field.parset['imaging_specific']['max_uv_lambda']
-        self.use_idg = self.field.parset['imaging_specific']['use_idg']
         self.idg_mode = self.field.parset['imaging_specific']['idg_mode']
         self.reweight = self.field.parset['imaging_specific']['reweight']
         self.use_tec_screens = self.field.parset['imaging_specific']['use_tec_screens']
@@ -106,12 +105,12 @@ class Sector(object):
         self.width_dec = (ymax - ymin) * self.field.wcs_pixel_scale  # deg
         self.imsize = [int(self.width_ra / self.cellsize_deg * 1.1),
                        int(self.width_dec / self.cellsize_deg * 1.1)]
-        if self.use_idg:
-            # IDG does not yet support rectangular images
-            self.imsize = [max(self.imsize), max(self.imsize)]
 
-            # IDG has problems with small images
-            self.imsize = [max(1500, self.imsize[0]), max(1500, self.imsize[0])]
+        # IDG does not yet support rectangular images
+        self.imsize = [max(self.imsize), max(self.imsize)]
+
+        # IDG has problems with small images
+        self.imsize = [max(1500, self.imsize[0]), max(1500, self.imsize[0])]
 
         self.wsclean_imsize = '{0} {1}'.format(self.imsize[0], self.imsize[1])
         self.log.debug('Image size is {0} x {1} pixels'.format(

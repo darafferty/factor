@@ -178,14 +178,10 @@ make_aterm_config.argument.tec_image  = infile
 image.control.type                   = wsclean
 image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
 image.control.inputkeys              = [msfile,fitsmask,atermconfig]
-{% if use_idg %}
 {% if use_beam %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-grid-with-beam,-use-differential-lofar-beam,msfile]
 {% else %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
-{% endif %}
-{% else %}
-image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,msfile]
 {% endif %}
 image.argument.channels-out          = {{ wsclean_nchannels }}
 image.argument.fits-mask             = fitsmask
@@ -213,9 +209,6 @@ image.argument.weighting-rank-filter = 3
 {% if taper_arcsec > 0.0 %}
 image.argument.taper-gaussian        = {{ taper_arcsec }}
 {% endif %}
-{% if wsclean_nwavelengths > 0.0 and not use_idg %}
-image.argument.baseline-averaging    = {{ wsclean_nwavelengths }}
-{% endif %}
 {% if region_file != "[]" %}
 image.argument.auto-mask             = 2
 {% else %}
@@ -224,9 +217,7 @@ image.argument.auto-mask             = 3
 image.argument.auto-threshold        = 0.3
 image.argument.local-rms-window      = 50
 image.argument.local-rms-method      = rms-with-min
-{% if use_idg %}
 image.argument.idg-mode              = {{ idg_mode }}
-{% endif %}
 image.argument.aterm-config          = atermconfig
 
 # filter the sky model using PyBDSF, length = 1

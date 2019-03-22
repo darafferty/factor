@@ -553,7 +553,7 @@ def get_imaging_options(parset):
                        'wsclean_image_padding', 'min_uv_lambda', 'max_uv_lambda',
                        'robust', 'sector_center_ra_list', 'sector_center_dec_list',
                        'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
-                       'use_idg', 'idg_mode', 'sector_do_multiscale_list', 'target_ra',
+                       'idg_mode', 'sector_do_multiscale_list', 'target_ra',
                        'target_dec', 'target_radius_arcmin','use_beam']
     for option in given_options:
         if option not in allowed_options:
