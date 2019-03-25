@@ -254,7 +254,7 @@ fit_fast_screens.argument.order       = {{ tecscreenorder }}
 create_fast_aterms_output_map.control.kind        = plugin
 create_fast_aterms_output_map.control.type        = addListMapfile
 create_fast_aterms_output_map.control.hosts       = {{ hosts }}
-create_fast_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/fast_aterms.fits]
+create_fast_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/fast_aterms]
 create_fast_aterms_output_map.control.mapfile_dir = input.output.mapfile_dir
 create_fast_aterms_output_map.control.filename    = fast_aterms_output.mapfile
 
@@ -264,8 +264,8 @@ make_fast_aterms.control.type             = make_aterm_images
 make_fast_aterms.control.mapfile_in       = fit_fast_screens.output.mapfile
 make_fast_aterms.control.inputkey         = infile
 make_fast_aterms.control.mapfile_out      = create_fast_aterms_output_map.output.mapfile
-make_fast_aterms.control.outputkey        = outfile
-make_fast_aterms.argument.flags           = [infile,origtec000,outfile,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
+make_fast_aterms.control.outputkey        = outroot
+make_fast_aterms.argument.flags           = [infile,origtec000,outroot,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
 make_fast_aterms.argument.smooth          = 0
 
 {% if do_slowgain_solve %}

@@ -21,7 +21,8 @@ def read_vertices(filename):
 
 
 def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
-    ximsize=512, yimsize=512, cellsize_deg=0.000417, soltab=None):
+    ximsize=512, yimsize=512, cellsize_deg=0.000417, freqs=None, times=None,
+    antennas=None, aterm_type='tec'):
     """
     Make a blank image and save it to disk
 
@@ -37,27 +38,32 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
         Size of output image
     cellsize_deg : float, optional
         Size of a pixel in degrees
-    soltab : losoto soltab
-        Soltab to use to construct extra axes (for IDG a-term images)
-
+    freqs : list
+        Frequencies to use to construct extra axes (for IDG a-term images)
+    times : list
+        Times to use to construct extra axes (for IDG a-term images)
+    antennas : list
+        Antennas to use to construct extra axes (for IDG a-term images)
+    aterm_type : str
+        One of 'tec' or 'gain'
     """
-    if soltab is not None:
-        if 'tec' in soltab.getType():
+    if freqs is not None and times is not None and antennas is not None:
+        if aterm_type == 'tec':
             # TEC solutions
             # data is [RA, DEC, ANTENNA, FREQ, TIME].T
-            nants = len(soltab.ant)
-            ntimes = len(soltab.time)
-            nfreqs = 1
+            nants = len(antennas)
+            ntimes = len(times)
+            nfreqs = len(freqs)
             shape_out = [ntimes, nfreqs, nants, yimsize, ximsize]
-            ref_freq = soltab.freq[0]
+            ref_freq = freqs[0]
         else:
             # Gain solutions
             # data is [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
-            nants = len(soltab.ant)
-            ntimes = len(soltab.time)
+            nants = len(antennas)
+            ntimes = len(times)
             nfreqs = 1  # IDG does not support freq yet for gains
             shape_out = [ntimes, nfreqs, nants, 4, yimsize, ximsize]
-            ref_freq = np.mean(soltab.freq)
+            ref_freq = np.mean(freqs)
     else:
         # Normal FITS image
         # data is [STOKES, FREQ, DEC, RA]
@@ -81,7 +87,7 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
     header['CTYPE2'] = 'DEC--SIN'
 
     # Add STOKES info or ANTENNA info
-    if soltab is None:
+    if antennas is None:
         header['CRVAL3'] = 1.0
         header['CDELT3'] = 1.0
         header['CRPIX3'] = 1.0
@@ -103,10 +109,10 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
     header['CTYPE4'] = 'FREQ'
 
     # Add time info
-    if soltab is not None:
-        ref_time = soltab.time[0]
+    if times is not None:
+        ref_time = times[0]
         if ntimes > 1:
-            deltas = soltab.time[1:] - soltab.time[:-1]
+            deltas = times[1:] - times[:-1]
             del_time = np.min(deltas)
         else:
             del_time = 1.0
@@ -117,7 +123,7 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
         header['CTYPE5'] = 'TIME'
 
     # Add matrix info
-    if soltab is not None and 'tec' not in soltab.getType():
+    if aterm_type == 'gain':
         header['CRVAL6'] = 1.0
         header['CDELT6'] = 1.0
         header['CRPIX6'] = 1.0

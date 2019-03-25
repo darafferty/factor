@@ -329,7 +329,7 @@ def make_screen_images(pp, inscreen, inresiduals, weights, station_names,
             prestr, is_image_plane, midRA, midDec, station_order[0, k, sindx], is_phase])
 
 
-def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname='sol000',
+def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname='sol000',
          ressoltabname='', padding_fraction=1.2, cellsize_deg=0.02, smooth=0):
     """
     Make a-term FITS images
@@ -340,8 +340,8 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
         Filename of h5parm
     soltabname : str
         Soltab containing solutions or screen fit
-    outfile : str
-        Filename of output FITS file
+    outroot : str
+        Root of filename of output FITS file (root+'_0.fits')
     bounds_deg : list
         List of [minRA, minDec, maxRA, maxDec] for image bounds
     bounds_mid_deg : list
@@ -356,6 +356,11 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
         Cellsize of output image
     smooth : float
         Size of smoothing kernel to apply (in units of output pixels)
+
+    Returns
+    -------
+    result : dict
+        Dict with list of FITS files
     """
     # Read in solutions
     H = h5parm(h5parmfile)
@@ -363,9 +368,9 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
     soltab = solset.getSoltab(soltabname)
 
     if type(bounds_deg) is str:
-        bounds_deg = [f.strip() for f in bounds_deg.strip('[]').split(';')]
+        bounds_deg = [float(f.strip()) for f in bounds_deg.strip('[]').split(';')]
     if type(bounds_mid_deg) is str:
-        bounds_mid_deg = [f.strip() for f in bounds_mid_deg.strip('[]').split(';')]
+        bounds_mid_deg = [float(f.strip()) for f in bounds_mid_deg.strip('[]').split(';')]
     if padding_fraction is not None:
         padding_ra = (bounds_deg[2] - bounds_deg[0]) * (padding_fraction - 1.0)
         padding_dec = (bounds_deg[3] - bounds_deg[1]) * (padding_fraction - 1.0)
@@ -461,8 +466,8 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
             remove_gradient=remove_gradient, show_source_names=show_source_names, min_val=min_val,
             max_val=max_val, is_phase=is_phase, midRA=midRA, midDec=midDec, ncpu=ncpu)
 
-    elif 'tec' in soltab.getType():
-        # Handle non-screen TEC solutions using Voronoi tessellation
+    else:
+        # Handle non-screen solutions using Voronoi tessellation
         vals = soltab.val
         weights = soltab.weight
         times = soltab.time
@@ -494,11 +499,12 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
         # Make blank output FITS file
         midRA = bounds_mid_deg[0]
         midDec = bounds_mid_deg[1]
-        temp_image = outfile + '.tmp'
+        temp_image = outroot + '.tmp'
         imsize = (bounds_deg[3] - bounds_deg[1])  # deg
         imsize = int(imsize / cellsize_deg)  # pix
         misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
-                            yimsize=imsize, cellsize_deg=cellsize_deg, soltab=soltab)
+                            yimsize=imsize, cellsize_deg=cellsize_deg, soltab=soltab,
+                            ntimes=1)
         hdu = pyfits.open(temp_image, memmap=False)
         data = hdu[0].data
         w = wcs.WCS(hdu[0].header)
@@ -514,7 +520,6 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
         dec_deg = source_positions.T[1] * 180.0 / np.pi
         xy = []
         for RAvert, Decvert in zip(ra_deg, dec_deg):
-            print(RAvert, Decvert)
             ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
             ra_dec[0][RAind] = RAvert
             ra_dec[0][Decind] = Decvert
@@ -560,10 +565,16 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
             for poly in polygons:
                 if poly.contains(Point(xypos)):
                     poly.index = i
-        for poly in polygons:
-            print(poly.index)
 
+        # Identify any gaps in time (frequency gaps are not allowed), as we need to
+        # output a separate FITS file for each time chunk
+        delta_times = times[1:] - times[:-1]
+        timewidth = np.min(delta_times)
+        gaps = np.where(delta_times > timewidth)
+        gaps_ind = gaps[0] + 1
+        gaps_ind = np.append(gaps_ind, np.array([len(times)]))
         if soltab.getType() == 'tec':
+            # TEC solutions
             # data is [RA, DEC, ANTENNA, FREQ, TIME].T
             # Rasterize the polygons to an array, with the value being equal to the
             # polygon's index+1
@@ -580,17 +591,39 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
 
             # Now loop over stations, frequencies, and times and fill in the correct
             # values
-            for t, time in enumerate(times):
-                for f, freq in enumerate(freqs):
-                    for s, stat in enumerate(ants):
-                        for poly in polygons:
-                            ind = np.where(data_rasertize_template == poly.index+1)
-                            data[t, f, s, ind[0], ind[1]] = vals[poly.index, t, s]
+            outfiles = []
+            g_start = 0
+            for gnum, g_stop in enumerate(gaps_ind):
+                outfile = '{0}_{1}.fits'.format(outroot, gnum)
+                misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
+                                         yimsize=imsize, cellsize_deg=cellsize_deg,
+                                         soltab=soltab, times=times[g_start:g_stop],
+                                         freqs=freqs, antennas=soltab.ant,
+                                         aterm_type='tec')
+                hdu = pyfits.open(temp_image, memmap=False)
+                data = hdu[0].data
+                w = wcs.WCS(hdu[0].header)
+                for t, time in enumerate(times[g_start:g_stop]):
+                    for f, freq in enumerate(freqs):
+                        for s, stat in enumerate(ants):
+                            for poly in polygons:
+                                ind = np.where(data_rasertize_template == poly.index+1)
+                                data[t, f, s, ind[0], ind[1]] = vals[poly.index, t, s]
 
-                        # Smooth if desired
-                        if smooth > 0:
-                            data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :], sigma=(smooth, smooth), order=0)
+                            # Smooth if desired
+                            if smooth > 0:
+                                data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :], sigma=(smooth, smooth), order=0)
+
+                # Write FITS file
+                hdu[0].data = data
+                hdu.writeto(outfile, overwrite=True)
+                outfiles.append(outfile)
+
+            return {'aterm_images': ','.join(outfiles)}
+
         else:
+
+            # Gain solutions
             # data is [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
             # Rasterize the polygons to an array, with the value being equal to the
             # polygon's index+1
@@ -623,9 +656,6 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
                         if smooth > 0:
                             data[t, f, s, :, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :, :], sigma=(0, smooth, smooth), order=0)
 
-        # Write FITS file
-        hdu[0].data = data
-        hdu.writeto(outfile, overwrite=True)
-
-    else:
-        pass
+            # Write FITS file
+            hdu[0].data = data
+            hdu.writeto(outfile, overwrite=True)
