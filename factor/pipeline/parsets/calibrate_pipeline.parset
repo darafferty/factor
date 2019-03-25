@@ -263,7 +263,9 @@ create_fast_aterms_output_map.control.filename    = fast_aterms_output.mapfile
 make_fast_aterms.control.type             = make_aterm_images
 make_fast_aterms.control.mapfile_in       = fit_fast_screens.output.mapfile
 make_fast_aterms.control.inputkey         = infile
-make_fast_aterms.argument.flags           = [infile,origtec000,{{ tec_image }},{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
+make_fast_aterms.control.mapfile_out      = create_fast_aterms_output_map.output.mapfile
+make_fast_aterms.control.outputkey        = outfile
+make_fast_aterms.argument.flags           = [infile,origtec000,outfile,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
 make_fast_aterms.argument.smooth          = 0
 
 {% if do_slowgain_solve %}
@@ -361,7 +363,9 @@ fit_slow_screens.argument.flags       = [infile]
 # make_slow_aterms.control.type             = make_aterm_images
 # make_slow_aterms.control.mapfile_in       = fit_slow_screens.output.mapfile
 # make_slow_aterms.control.inputkey         = infile
-# make_slow_aterms.argument.flags           = [infile,phase000,{{ tec_image }},{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
+# make_slow_aterms.control.mapfile_out      = create_slow_aterms_output_map.output.mapfile
+# make_slow_aterms.control.outputkey        = outfile
+# make_slow_aterms.argument.flags           = [infile,phase000,outfile,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
 # make_slow_aterms.argument.smooth          = 0
 
 # create a mapfile for output of combine step, length = 1

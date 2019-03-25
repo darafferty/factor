@@ -269,7 +269,7 @@ def remove_soltabs(solset, soltabnames):
 
 def main(h5parmfile, solsetname='sol000', tecsoltabname='tec000',
          errsoltabname='error000', outsoltabroot='_screensols', ref_id=0,
-         fit_screens=True, calculate_weights=True, remove_jumps=False,
+         fit_screens=False, calculate_weights=True, remove_jumps=False,
          flag_on_err=False, order=20):
     """
     Fit screens to TEC solutions
