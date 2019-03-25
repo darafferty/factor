@@ -401,15 +401,17 @@ class Field(object):
             sector.set_imaging_parameters(do_multiscale)
 
         # Compute bounding box for all imaging sectors and store as a
-        # a [minRA, minDec, maxRA, maxDec] list. Also store the midpoint
+        # a semi-colon-separated list of [minRA; minDec; maxRA; maxDec] (we use semi-
+        # colons, as otherwise the pipeline parset parser will split the list). Also
+        # store the midpoint as [midRA; midDec]
         all_sectors = MultiPolygon([sector.poly for sector in self.imaging_sectors])
         self.sector_bounds_xy = all_sectors.bounds
         minRA, minDec = self.xy2radec([self.sector_bounds_xy[0]], [self.sector_bounds_xy[1]])
         maxRA, maxDec = self.xy2radec([self.sector_bounds_xy[2]], [self.sector_bounds_xy[3]])
         midRA, midDec = self.xy2radec([(self.sector_bounds_xy[0]+self.sector_bounds_xy[2])/2.0],
                                       [(self.sector_bounds_xy[1]+self.sector_bounds_xy[3])/2.0])
-        self.sector_bounds_deg = [minRA[0], minDec[0], maxRA[0], maxDec[0]]
-        self.sector_bounds_mid_deg = [midRA[0], midDec[0]]
+        self.sector_bounds_deg = '[{0:.6f};{1:.6f};{2:.6f};{3:.6f}]'.format(minRA[0], minDec[0], maxRA[0], maxDec[0])
+        self.sector_bounds_mid_deg = '[{0:.6f};{1:.6f}]'.format(midRA[0], midDec[0])
 
         # Make outlier sectors containing any remaining calibration sources (not
         # included in any sector sky model). These sectors are not imaged; they are only
