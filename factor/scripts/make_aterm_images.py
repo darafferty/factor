@@ -363,9 +363,9 @@ def main(h5parmfile, soltabname, outfile, bounds_deg, bounds_mid_deg, solsetname
     soltab = solset.getSoltab(soltabname)
 
     if type(bounds_deg) is str:
-        bounds_deg = [f.strip() for f in bounds_deg.strip('()').split(',')]
+        bounds_deg = [f.strip() for f in bounds_deg.strip('[]').split(';')]
     if type(bounds_mid_deg) is str:
-        bounds_mid_deg = [f.strip() for f in bounds_mid_deg.strip('()').split(',')]
+        bounds_mid_deg = [f.strip() for f in bounds_mid_deg.strip('[]').split(';')]
     if padding_fraction is not None:
         padding_ra = (bounds_deg[2] - bounds_deg[0]) * (padding_fraction - 1.0)
         padding_dec = (bounds_deg[3] - bounds_deg[1]) * (padding_fraction - 1.0)
