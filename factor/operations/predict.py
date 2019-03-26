@@ -50,8 +50,8 @@ class Predict(Operation):
             # Set observation-specific parameters
             obs_filename.append(obs.ms_filename)
             obs_starttime.append(obs.starttime)
-            obs_solint_sec.append(obs.parameters['solint_fast_timestep'][0]) * obs.timepersample
-            obs_solint_hz.appedn(obs.parameters['solint_slow_freqstep'][0]) * obs.channelwidth
+            obs_solint_sec.append(obs.parameters['solint_fast_timestep'][0] * obs.timepersample)
+            obs_solint_hz.append(obs.parameters['solint_slow_freqstep'][0] * obs.channelwidth)
         nr_outliers = len(field.outlier_sectors)
         peel_outliers = field.peel_outliers
         min_uv_lambda = field.parset['imaging_specific']['min_uv_lambda']
