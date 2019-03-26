@@ -46,6 +46,7 @@ class Predict(Operation):
             solint_hz.extend(sector.get_obs_parameters('predict_solint_hz'))
         sector_patches = '[{}]'.format(';'.join(sector_patches))  # convert to ;-separated list
         obs_filename = []
+        obs_starttime = []
         for obs in field.observations:
             obs_filename.append(obs.ms_filename)
             obs_starttime.append(obs.starttime)
@@ -66,5 +67,6 @@ class Predict(Operation):
                                 'min_uv_lambda': min_uv_lambda,
                                 'max_uv_lambda': max_uv_lambda,
                                 'obs_filename': obs_filename,
+                                'obs_starttime': obs_starttime,
                                 'nr_outliers': nr_outliers,
                                 'peel_outliers': peel_outliers})
