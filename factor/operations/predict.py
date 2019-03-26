@@ -49,7 +49,7 @@ class Predict(Operation):
         for obs in field.observations:
             # Set observation-specific parameters
             obs_filename.append(obs.ms_filename)
-            obs_starttime.append(obs.starttime)
+            obs_starttime.append(obs.convert_mjd(obs.starttime))
             obs_solint_sec.append(obs.parameters['solint_fast_timestep'][0] * obs.timepersample)
             obs_solint_hz.append(obs.parameters['solint_slow_freqstep'][0] * obs.channelwidth)
         nr_outliers = len(field.outlier_sectors)
