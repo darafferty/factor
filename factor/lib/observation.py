@@ -209,7 +209,7 @@ class Observation(object):
         self.parameters['solint_slow_timestep'] = [solint_slow_timestep] * self.nfreqchunks
         self.parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
 
-    def set_prediction_parameters(self, sector_name, patch_names, solint_sec, solint_hz):
+    def set_prediction_parameters(self, sector_name, patch_names):
         """
         Sets the prediction parameters
 
@@ -219,10 +219,6 @@ class Observation(object):
             Name of sector for which predict is to be done
         patch_names : list
             List of patch names to predict
-        solint_sec : float
-            Solution interval in seconds used during solve (required for reweighting)
-        solint_hz : float
-            Solution interval in Hz used during solve (required for reweighting)
         """
         self.parameters['ms_filename'] = self.ms_filename
 
@@ -250,12 +246,6 @@ class Observation(object):
         # associated MS file)
         self.parameters['predict_starttime'] = self.convert_mjd(self.starttime)
         self.parameters['predict_ntimes'] = self.numsamples
-
-        # The solution intervals (needed for reweighting)
-        if solint_sec is not None:
-            self.parameters['predict_solint_sec'] = solint_sec
-        if solint_hz is not None:
-            self.parameters['predict_solint_hz'] = solint_hz
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
                                width_ra, width_dec):

@@ -129,7 +129,7 @@ create_obs_starttime_map.control.filename    = obs_files.mapfile
 create_solint_sec_map.control.kind        = plugin
 create_solint_sec_map.control.type        = addListMapfile
 create_solint_sec_map.control.hosts       = {{ hosts }}
-create_solint_sec_map.control.files       = {{ solint_sec }}
+create_solint_sec_map.control.files       = {{ obs_solint_sec }}
 create_solint_sec_map.control.mapfile_dir = input.output.mapfile_dir
 create_solint_sec_map.control.filename    = solint_sec.mapfile
 
@@ -137,7 +137,7 @@ create_solint_sec_map.control.filename    = solint_sec.mapfile
 create_solint_hz_map.control.kind        = plugin
 create_solint_hz_map.control.type        = addListMapfile
 create_solint_hz_map.control.hosts       = {{ hosts }}
-create_solint_hz_map.control.files       = {{ solint_hz }}
+create_solint_hz_map.control.files       = {{ obs_solint_hz }}
 create_solint_hz_map.control.mapfile_dir = input.output.mapfile_dir
 create_solint_hz_map.control.filename    = solint_hz.mapfile
 
