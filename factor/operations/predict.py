@@ -35,6 +35,7 @@ class Predict(Operation):
         solint_sec = []
         solint_hz = []
         for sector in field.sectors[start_sector:]:
+            sector.set_prediction_parameters()
             sector_skymodel.append(sector.predict_skymodel_file)  # just one per sector
             sector_filename.extend(sector.get_obs_parameters('ms_filename'))
             sector_model_filename.extend(sector.get_obs_parameters('ms_model_filename'))

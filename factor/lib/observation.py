@@ -248,8 +248,10 @@ class Observation(object):
         self.parameters['predict_ntimes'] = self.numsamples
 
         # The solution intervals (needed for reweighting)
-        self.parameters['predict_solint_sec'] = self.parameters['solint_fast_timestep'][0]
-        self.parameters['predict_solint_hz'] = self.parameters['solint_slow_freqstep'][0]
+        if 'solint_fast_timestep' in self.parameters:
+            self.parameters['predict_solint_sec'] = self.parameters['solint_fast_timestep'][0]
+        if 'solint_slow_freqstep' in self.parameters:
+            self.parameters['predict_solint_hz'] = self.parameters['solint_slow_freqstep'][0]
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
                                width_ra, width_dec):
