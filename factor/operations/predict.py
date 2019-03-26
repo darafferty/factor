@@ -32,6 +32,8 @@ class Predict(Operation):
         sector_ntimes = []
         sector_model_filename = []
         sector_patches = []
+        solint_sec = []
+        solint_hz = []
         for sector in field.sectors[start_sector:]:
             sector_skymodel.append(sector.predict_skymodel_file)  # just one per sector
             sector_filename.extend(sector.get_obs_parameters('ms_filename'))
@@ -39,19 +41,29 @@ class Predict(Operation):
             sector_patches.extend(sector.get_obs_parameters('patch_names'))
             sector_starttime.extend(sector.get_obs_parameters('predict_starttime'))
             sector_ntimes.extend(sector.get_obs_parameters('predict_ntimes'))
+            solint_sec.extend(sector.get_obs_parameters('predict_solint_sec'))
+            solint_hz.extend(sector.get_obs_parameters('predict_solint_hz'))
         sector_patches = '[{}]'.format(';'.join(sector_patches))  # convert to ;-separated list
         obs_filename = []
         for obs in field.observations:
             obs_filename.append(obs.ms_filename)
+            obs_starttime.append(obs.starttime)
         nr_outliers = len(field.outlier_sectors)
         peel_outliers = field.peel_outliers
+        min_uv_lambda = field.parset['imaging_specific']['min_uv_lambda']
+        max_uv_lambda = field.parset['imaging_specific']['max_uv_lambda']
 
         self.parms_dict.update({'sector_filename': sector_filename,
-                                'starttime': sector_starttime,
-                                'ntimes': sector_ntimes,
+                                'sector_starttime': sector_starttime,
+                                'sector_ntimes': sector_ntimes,
                                 'sector_model_filename': sector_model_filename,
                                 'sector_skymodel': sector_skymodel,
                                 'sector_patches': sector_patches,
+                                'obs_starttime': sector_starttime,
+                                'solint_sec': solint_sec,
+                                'solint_hz': solint_hz,
+                                'min_uv_lambda': min_uv_lambda,
+                                'max_uv_lambda': max_uv_lambda,
                                 'obs_filename': obs_filename,
                                 'nr_outliers': nr_outliers,
                                 'peel_outliers': peel_outliers})

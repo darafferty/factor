@@ -71,8 +71,6 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         If True, use Dysco compression
     peel_outliers : bool, optional
         If True, outliers are peeled before sector models are subtracted
-    make_residual_col : bool, optional
-        If True, make a RESIDUAL_DATA column by subtracting all sources
     starttime : str, optional
         Start time in JD seconds
     """
@@ -86,11 +84,6 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             peel_outliers = True
         else:
             peel_outliers = False
-    if isinstance(make_residual_col, basestring):
-        if make_residual_col.lower() == 'true':
-            make_residual_col = True
-        else:
-            make_residual_col = False
     nr_outliers = int(nr_outliers)
     solint_sec = float(solint_sec)
     solint_hz = float(solint_hz)

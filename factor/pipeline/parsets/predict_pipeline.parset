@@ -1,4 +1,4 @@
-pipeline.steps = [create_sector_files_map, create_starttime_map, create_ntimes_map, create_sector_skymodels_map, create_sector_sourcedbs, expand_sourcedbs_map, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, subtract_models]
+pipeline.steps = [create_sector_files_map, create_starttime_map, create_ntimes_map, create_sector_skymodels_map, create_sector_sourcedbs, expand_sourcedbs_map, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, create_obs_starttime_map, create_solint_sec_map, create_solint_hz_map, subtract_models]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -14,7 +14,7 @@ create_sector_files_map.control.filename    = sector_files.mapfile
 create_starttime_map.control.kind        = plugin
 create_starttime_map.control.type        = addListMapfile
 create_starttime_map.control.hosts       = {{ hosts }}
-create_starttime_map.control.files       = {{ starttime }}
+create_starttime_map.control.files       = {{ sector_starttime }}
 create_starttime_map.control.mapfile_dir = input.output.mapfile_dir
 create_starttime_map.control.filename    = starttime.mapfile
 
@@ -22,7 +22,7 @@ create_starttime_map.control.filename    = starttime.mapfile
 create_ntimes_map.control.kind        = plugin
 create_ntimes_map.control.type        = addListMapfile
 create_ntimes_map.control.hosts       = {{ hosts }}
-create_ntimes_map.control.files       = {{ ntimes }}
+create_ntimes_map.control.files       = {{ sector_ntimes }}
 create_ntimes_map.control.mapfile_dir = input.output.mapfile_dir
 create_ntimes_map.control.filename    = ntimes.mapfile
 
@@ -117,12 +117,36 @@ create_obs_files_map.control.files       = {{ obs_filename }}
 create_obs_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_obs_files_map.control.filename    = obs_files.mapfile
 
-# for each obs, loop over sectors and subtract the model visibilities of all other sectors, length = nsectors*nobs
+# create a mapfile with the start times for each obs, length = nobs
+create_obs_starttime_map.control.kind        = plugin
+create_obs_starttime_map.control.type        = addListMapfile
+create_obs_starttime_map.control.hosts       = {{ hosts }}
+create_obs_starttime_map.control.files       = {{ obs_starttime }}
+create_obs_starttime_map.control.mapfile_dir = input.output.mapfile_dir
+create_obs_starttime_map.control.filename    = obs_files.mapfile
+
+# create a mapfile with each observation's solint_sec value, length = nobs
+create_solint_sec_map.control.kind        = plugin
+create_solint_sec_map.control.type        = addListMapfile
+create_solint_sec_map.control.hosts       = {{ hosts }}
+create_solint_sec_map.control.files       = {{ solint_sec }}
+create_solint_sec_map.control.mapfile_dir = input.output.mapfile_dir
+create_solint_sec_map.control.filename    = solint_sec.mapfile
+
+# create a mapfile with each observation's solint_hz value, length = nobs
+create_solint_hz_map.control.kind        = plugin
+create_solint_hz_map.control.type        = addListMapfile
+create_solint_hz_map.control.hosts       = {{ hosts }}
+create_solint_hz_map.control.files       = {{ solint_hz }}
+create_solint_hz_map.control.mapfile_dir = input.output.mapfile_dir
+create_solint_hz_map.control.filename    = solint_hz.mapfile
+
+# for each obs, loop over sectors and subtract the model visibilities of all other sectors, length = nobs
 # also create residual data (just needed once, since they are the same
 # for every sector) for reweighting
 subtract_models.control.type             = subtract_sector_models
-subtract_models.control.mapfiles_in      = [create_obs_files_map.output.mapfile,create_starttime_map.output.mapfile]
-subtract_models.control.inputkeys        = [infile,starttime]
+subtract_models.control.mapfiles_in      = [create_obs_files_map.output.mapfile,create_obs_starttime_map.output.mapfile,create_solint_sec_map.output.mapfile,create_solint_hz_map.output.mapfile]
+subtract_models.control.inputkeys        = [infile,starttime,solint_sec,solint_hz]
 subtract_models.argument.flags           = [infile,{{ mapfile_dir }},sector_files_output_map.mapfile]
 subtract_models.argument.nr_outliers     = {{ nr_outliers }}
 subtract_models.argument.peel_outliers   = {{ peel_outliers }}
@@ -132,5 +156,5 @@ subtract_models.argument.weights_colname = WEIGHT_SPECTRUM
 subtract_models.argument.uvcut_min       = {{ min_uv_lambda }}
 subtract_models.argument.uvcut_max       = {{ max_uv_lambda }}
 subtract_models.argument.phaseonly       = True
-subtract_models.argument.solint_sec      = {{ target_fast_timestep }}
-subtract_models.argument.solint_hz       = {{ target_slow_freqstep }}
+subtract_models.argument.solint_sec      = solint_sec
+subtract_models.argument.solint_hz       = solint_hz
