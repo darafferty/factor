@@ -132,5 +132,5 @@ subtract_models.argument.weight_colname = WEIGHT_SPECTRUM
 subtract_models.argument.uvcut_min      = {{ min_uv_lambda }}
 subtract_models.argument.uvcut_max      = {{ max_uv_lambda }}
 subtract_models.argument.phaseonly      = True
-subtract_models.argument.fast_timestep  = {{ target_fast_timestep }}
-subtract_models.argument.slow_freqstep  = {{ target_slow_freqstep }}
+subtract_models.argument.solint_sec     = {{ target_fast_timestep }}
+subtract_models.argument.solint_hz      = {{ target_slow_freqstep }}

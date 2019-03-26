@@ -503,8 +503,8 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         imsize = (bounds_deg[3] - bounds_deg[1])  # deg
         imsize = int(imsize / cellsize_deg)  # pix
         misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
-                            yimsize=imsize, cellsize_deg=cellsize_deg, soltab=soltab,
-                            ntimes=1)
+                            yimsize=imsize, cellsize_deg=cellsize_deg, freqs=freqs,
+                            times=[0.0], antennas=soltab.ant, aterm_type='tec')
         hdu = pyfits.open(temp_image, memmap=False)
         data = hdu[0].data
         w = wcs.WCS(hdu[0].header)
@@ -570,7 +570,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         # output a separate FITS file for each time chunk
         delta_times = times[1:] - times[:-1]
         timewidth = np.min(delta_times)
-        gaps = np.where(delta_times > timewidth)
+        gaps = np.where(delta_times > timewidth*1.2)
         gaps_ind = gaps[0] + 1
         gaps_ind = np.append(gaps_ind, np.array([len(times)]))
         if soltab.getType() == 'tec':
@@ -597,7 +597,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                 outfile = '{0}_{1}.fits'.format(outroot, gnum)
                 misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
                                          yimsize=imsize, cellsize_deg=cellsize_deg,
-                                         soltab=soltab, times=times[g_start:g_stop],
+                                         times=times[g_start:g_stop],
                                          freqs=freqs, antennas=soltab.ant,
                                          aterm_type='tec')
                 hdu = pyfits.open(temp_image, memmap=False)
@@ -613,6 +613,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                             # Smooth if desired
                             if smooth > 0:
                                 data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :], sigma=(smooth, smooth), order=0)
+                g_start = g_stop
 
                 # Write FITS file
                 hdu[0].data = data
