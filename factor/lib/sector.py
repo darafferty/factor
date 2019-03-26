@@ -67,8 +67,18 @@ class Sector(object):
         """
         Sets the predict parameters
         """
-        for obs in self.observations:
-            obs.set_prediction_parameters(self.name, self.patches)
+        for obs, fobs in zip(self.observations, self.field.observations):
+            # Get some required info from the field version of the observations
+            if 'solint_fast_timestep' in fobs.parameters:
+                solint_sec = self.parameters['solint_fast_timestep'][0]
+            else:
+                solint_sec = None
+            if 'solint_slow_freqstep' in fobs.parameters:
+                solint_hz = self.parameters['solint_slow_freqstep'][0]
+            else:
+                solint_hz = None
+
+            obs.set_prediction_parameters(self.name, self.patches, solint_sec, solint_hz)
 
     def set_imaging_parameters(self, do_multiscale=None):
         """
