@@ -123,7 +123,7 @@ create_obs_starttime_map.control.type        = addListMapfile
 create_obs_starttime_map.control.hosts       = {{ hosts }}
 create_obs_starttime_map.control.files       = {{ obs_starttime }}
 create_obs_starttime_map.control.mapfile_dir = input.output.mapfile_dir
-create_obs_starttime_map.control.filename    = obs_files.mapfile
+create_obs_starttime_map.control.filename    = obs_starttime.mapfile
 
 # create a mapfile with each observation's solint_sec value, length = nobs
 create_solint_sec_map.control.kind        = plugin
