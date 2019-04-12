@@ -22,7 +22,7 @@ def read_vertices(filename):
 
 def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
     ximsize=512, yimsize=512, cellsize_deg=0.000417, freqs=None, times=None,
-    antennas=None, aterm_type='tec'):
+    antennas=None, aterm_type='tec', fill_val=0):
     """
     Make a blank image and save it to disk
 
@@ -46,6 +46,8 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
         Antennas to use to construct extra axes (for IDG a-term images)
     aterm_type : str
         One of 'tec' or 'gain'
+    fill_val : int
+        Value with which to fill the data
     """
     if freqs is not None and times is not None and antennas is not None:
         if aterm_type == 'tec':
@@ -70,7 +72,7 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
         shape_out = [1, 1, yimsize, ximsize]
         ref_freq = 150e6
 
-    hdu = pyfits.PrimaryHDU(np.zeros(shape_out, dtype=np.float32))
+    hdu = pyfits.PrimaryHDU(np.ones(shape_out, dtype=np.float32)*fill_val)
     hdulist = pyfits.HDUList([hdu])
     header = hdulist[0].header
 

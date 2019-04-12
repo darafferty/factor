@@ -31,7 +31,7 @@ def main(h5file, soltype, root=None, refstat=None):
         ref = st.ant[0]
         ncol = 1
         color = ''
-        minmax = [0, 0]
+        minmax = [-0.3, 0.3]
     if soltype == 'tecerror':
         st = ss.getSoltab('error000')
         ref = ''

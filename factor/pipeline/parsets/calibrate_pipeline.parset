@@ -201,7 +201,7 @@ solve_fast_phases.argument.solve.nchan              = freqstep
 {% if mode == 'tec' %}
 solve_fast_phases.argument.solve.approximatetec     = {{ approximatetec }}
 solve_fast_phases.argument.solve.maxapproxiter      = {{ maxapproxiter }}
-solve_fast_phases.argument.solve.approxchunksize    = 5
+# solve_fast_phases.argument.solve.approxchunksize    = 5
 {% endif %}
 {% if apply_previous_slowgains %}
 solve_fast_phases.argument.solve.applycal.parmdb           = slow_h5parm
@@ -266,7 +266,7 @@ make_fast_aterms.control.inputkey         = infile
 make_fast_aterms.control.mapfile_out      = create_fast_aterms_output_map.output.mapfile
 make_fast_aterms.control.outputkey        = outroot
 make_fast_aterms.argument.flags           = [infile,origtec000,outroot,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
-make_fast_aterms.argument.smooth          = 0
+make_fast_aterms.argument.smooth          = 3
 
 {% if do_slowgain_solve %}
 # expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks*nobs

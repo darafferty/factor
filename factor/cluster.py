@@ -313,6 +313,7 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
     if mem_gb / gb_per_solint < 1.0:
         old_solint_slow_timestep = solint_slow_timestep
         solint_slow_timestep *= mem_gb / gb_per_solint
+        solint_slow_timestep = max(1, int(round(solint_slow_timestep)))
         log.warn('Not enough memory available for slow-gain solve. Reducing solution '
                  'time interval from {0} to {1}'.format(old_solint_slow_timestep,
                                                         solint_slow_timestep))

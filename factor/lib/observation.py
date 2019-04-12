@@ -176,14 +176,10 @@ class Observation(object):
         smoothnesscontraint_freqstep = max(1, self.get_nearest_frequstep(target_smoothnessconstraint /
                                                                          channelwidth))
         min_freqstep = max(smoothnesscontraint_freqstep, solint_slow_freqstep)
-        target_freq_chunksize, target_slow_timestep = get_frequency_chunksize(
+        target_freq_chunksize, solint_slow_timestep = get_frequency_chunksize(
                                                           parset['cluster_specific'], channelwidth,
                                                           min_freqstep, solint_slow_timestep,
                                                           self.antenna, ndir)
-
-        # Find new solint_slow_timestep, in case it was changed to allow the solve to fit
-        # in memory
-        solint_slow_timestep = max(1, int(round(target_slow_timestep / timepersample)))
 
         # Now define chunks
         channelsperchunk = int(round(target_freq_chunksize / channelwidth))

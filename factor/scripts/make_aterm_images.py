@@ -570,6 +570,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         # output a separate FITS file for each time chunk
         delta_times = times[1:] - times[:-1]
         timewidth = np.min(delta_times)
+        times -= timewidth / 2.0  # go from center of solution interval to start
         gaps = np.where(delta_times > timewidth*1.2)
         gaps_ind = gaps[0] + 1
         gaps_ind = np.append(gaps_ind, np.array([len(times)]))

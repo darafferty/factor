@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, {% if reweight %} reweight, {% endif %} prepare_imaging_data, create_compressed_mapfile, premask, make_aterm_config, image, filter]
+pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, prepare_imaging_data, create_compressed_mapfile, premask, make_aterm_config, image, filter]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -79,23 +79,11 @@ prepare_imaging_data.argument.steps                               = [flag,shift,
 {% else %}
 # no flagging
 
-{% if use_tec_screens %}
-
 {% if apply_slowgains %}
 # prepare_imaging_data.argument.steps                               = [tec,amp,phase,shift,flagzero,interp,avg]
 prepare_imaging_data.argument.steps                               = [amp,phase,shift,flagzero,interp,avg]
 {% else %}
 prepare_imaging_data.argument.steps                               = [tec,shift,flagzero,interp,avg]
-{% endif %}
-
-{% else %}
-
-{% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [amp,phase,shift,flagzero,interp,avg]
-{% else %}
-prepare_imaging_data.argument.steps                               = [shift,flagzero,interp,avg]
-{% endif %}
-
 {% endif %}
 
 
@@ -116,12 +104,10 @@ prepare_imaging_data.argument.flag.flag_freqrange.freqrange       = {{ flag_freq
 {% endif %}
 prepare_imaging_data.argument.shift.type                          = phaseshifter
 prepare_imaging_data.argument.shift.phasecenter                   = [{{ ra }}deg, {{ dec }}deg]
-{% if use_tec_screens %}
 prepare_imaging_data.argument.tec.type                            = applycal
 prepare_imaging_data.argument.tec.parmdb                          = h5parm
-prepare_imaging_data.argument.tec.correction                      = tec000
+prepare_imaging_data.argument.tec.correction                      = origtec000
 prepare_imaging_data.argument.tec.direction                       = [{{ central_patch }}]
-{% endif %}
 {% if apply_slowgains %}
 prepare_imaging_data.argument.amp.type                            = applycal
 prepare_imaging_data.argument.amp.parmdb                          = h5parm
@@ -137,7 +123,7 @@ prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20
 prepare_imaging_data.argument.interp.type                         = interpolate
 prepare_imaging_data.argument.avg.type                            = squash
 prepare_imaging_data.argument.avg.freqstep                        = freqstep
-prepare_imaging_data.argument.avg.timestep                        = timestep
+# prepare_imaging_data.argument.avg.timestep                        = timestep
 prepare_imaging_data.argument.msout.storagemanager                = "Dysco"
 
 # make the compressed mapfile, length = 1
@@ -162,28 +148,23 @@ premask.argument.region_file           = {{ region_file }}
 premask.argument.make_blank_image      = True
 
 # if screens are to be used during imaging, make the aterm-config file, length = 1
-make_aterm_config.control.type        = make_aterm_config
-make_aterm_config.control.mapfile_in  = {{ fast_aterms_mapfile }}
-make_aterm_config.control.inputkey    = infile
-make_aterm_config.control.outputkey   = outfile
-make_aterm_config.argument.flags      = [outfile]
-# {% if use_tec_screens %}
-make_aterm_config.argument.tec_image  = infile
-# {% endif %}
-# {% if use_gain_screens %}
-# make_aterm_config.argument.gain_image = {{ gain_image }}
-# {% endif %}
+make_aterm_config.control.type         = make_aterm_config
+make_aterm_config.control.mapfile_in   = create_compressed_mapfile.output.mapfile
+make_aterm_config.control.outputkey    = outfile
+make_aterm_config.argument.flags       = [outfile]
+make_aterm_config.argument.tec_mapfile = {{ fast_aterms_mapfile }}
 
 # do the imaging, length = 1
 image.control.type                   = wsclean
-image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
-image.control.inputkeys              = [msfile,fitsmask,atermconfig]
+image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile]
+image.control.inputkeys              = [msfile,fitsmask]
+# image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
+# image.control.inputkeys              = [msfile,fitsmask,atermconfig]
 {% if use_beam %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-grid-with-beam,-use-differential-lofar-beam,msfile]
 {% else %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
 {% endif %}
-image.argument.channels-out          = {{ wsclean_nchannels }}
 image.argument.fits-mask             = fitsmask
 image.argument.size                  = {{ wsclean_imsize }}
 image.argument.niter                 = {{ wsclean_niter }}
@@ -199,11 +180,9 @@ image.argument.multiscale-scales     = {{ multiscale_scales_pixel }}
 {% if local_dir is not none %}
 image.argument.temp-dir              = {{ local_dir_parent }}
 {% endif %}
-{% if wsclean_nchannels > 3 %}
+image.argument.deconvolution-channels = 4
 image.argument.fit-spectral-pol      = 3
-{% elif wsclean_nchannels > 1 %}
-image.argument.fit-spectral-pol      = {{ wsclean_nchannels - 1 }}
-{% endif %}
+image.argument.channels-out = 12
 image.argument.multiscale-shape      = gaussian
 image.argument.weighting-rank-filter = 3
 {% if taper_arcsec > 0.0 %}
@@ -218,7 +197,8 @@ image.argument.auto-threshold        = 0.3
 image.argument.local-rms-window      = 50
 image.argument.local-rms-method      = rms-with-min
 image.argument.idg-mode              = {{ idg_mode }}
-image.argument.aterm-config          = atermconfig
+# image.argument.aterm-config          = atermconfig
+# image.argument.aterm-kernel-size     = 16
 
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel

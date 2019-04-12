@@ -9,9 +9,27 @@ import os
 import subprocess
 from lofarpipe.support.data_map import DataMap
 from astropy.time import Time
+import losoto
 
 
 def get_nchunks(msin, nsectors, fraction=1.0):
+    """
+    Determines number of chunks for available memory of node
+
+    Parameters
+    ----------
+    msin : str
+        Input MS file name
+    nsectors : int
+        Number of imaging sectors
+    fraction : float
+        Fraction of total memory to use
+
+    Returns
+    -------
+    nchunks : int
+        Number of chunks
+    """
     tot_m, used_m, free_m = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
     msin_m = float(subprocess.check_output(['du', '-sh', msin]).split()[0][:-1]) * 1000.0 * fraction
     tot_required_m = msin_m * nsectors * 2.0
@@ -133,6 +151,9 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
 
     # If starttime is given, figure out startrow and nrows for input MS file
     tin = pt.table(msin, readonly=True, ack=False)
+    tarray = tin.getcol("TIME")
+    nbl = np.where(tarray == tarray[0])[0].size
+    tarray = None
     if starttime is not None:
         times = [convert_mjd(t) for t in tin.getcol('TIME')]
         startrow_in = times.index(starttime)
@@ -150,6 +171,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout = pt.table(msout, readonly=False, ack=False)
 
+        # Define chunks based on available memory
         fraction = float(nrows_in) / float(tin.nrows())
         nchunks = get_nchunks(msin, nr_outliers, fraction)
         nrows_per_chunk = nrows_in / nchunks
@@ -209,10 +231,17 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout_list.append(pt.table(msout, readonly=False, ack=False))
 
-    # Define chunks based on available memory
+    # Define chunks based on available memory, making sure each chunk gives a full
+    # timeslot (needed for reweighting)
     fraction = float(nrows_in) / float(tin.nrows())
     nchunks = get_nchunks(msin, nsectors, fraction)
-    nrows_per_chunk = nrows_in / nchunks
+    nrows_per_chunk = int(nrows_in / nchunks)
+    while nrows_per_chunk % nbl > 0.0:
+        nrows_per_chunk -= 1
+        if nrows_per_chunk < nbl:
+            nrows_per_chunk = nbl
+            break
+    nchunks = int(np.ceil(nrows_in / nrows_per_chunk))
     startrows = [startrow_in]
     nrows = [nrows_per_chunk]
     for i in range(1, nchunks):
@@ -227,6 +256,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
         # For each chunk, load data
         datain = tin.getcol(msin_column, startrow=startrow, nrow=nrow)
+        flags = tin.getcol('FLAG', startrow=startrow, nrow=nrow)
         datamod_list = []
         for i, msmodel in enumerate(model_list):
             tmod = pt.table(msmodel, readonly=True, ack=False)
@@ -249,11 +279,11 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                 # Also subtract sector's model to make residual data for reweighting
                 if weights is None:
                     datamod_all += datamod_list[i]
-                    covweights = CovWeights(MSName=msname, solint_sec=solint_sec, solint_hz=solint_hz,
+                    covweights = CovWeights(model_list[0], solint_sec, solint_hz, startrow, nrow,
                                             gainfile=gainfile, uvcut=uvcut, phaseonly=phaseonly,
                                             dirname=dirname, quiet=quiet)
                     coefficients = covweights.FindWeights(datain-datamod_all, flags)
-                    weights = covweights.getWeights(coefficients, colname=colname)
+                    weights = covweights.calcWeights(coefficients)
                 tout.putcol(weights_colname, weights, startrow=startrow, nrow=nrow)
             tout.flush()
     for tout in tout_list:
@@ -267,17 +297,17 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
 
 
 class CovWeights:
-    def __init__(self, MSName, solint_sec, solint_hz, uvcut=[0, 2000], gainfile=None,
-                 phaseonly=False, dirname=None, quiet=True):
+    def __init__(self, MSName, solint_sec, solint_hz, startrow, nrow, uvcut=[0, 2000],
+                 gainfile=None, phaseonly=False, dirname=None, quiet=True):
         if MSName[-1] == "/":
             self.MSName = MSName[0:-1]
         else:
             self.MSName = MSName
-        tab = table(self.MSName, ack=False)
+        tab = pt.table(self.MSName, ack=False)
         self.timepersample = tab.getcell('EXPOSURE', 0)
         self.ntSol = max(1, int(round(solint_sec / self.timepersample)))
         tab.close()
-        sw = table(self.MSName+'::SPECTRAL_WINDOW', ack=False)
+        sw = pt.table(self.MSName+'::SPECTRAL_WINDOW', ack=False)
         self.referencefreq = sw.col('REF_FREQUENCY')[0]
         self.channelwidth = sw.col('CHAN_WIDTH')[0][0]
         self.numchannels = sw.col('NUM_CHAN')[0]
@@ -288,23 +318,21 @@ class CovWeights:
         self.phaseonly = phaseonly
         self.dirname = dirname
         self.quiet = quiet
+        self.startrow = startrow
+        self.nrow = nrow
 
     def FindWeights(self, residualdata, flags):
-        ms = table(self.MSName, ack=False)
-        ants = table(ms.getkeyword("ANTENNA"), ack=False)
+        ms = pt.table(self.MSName, ack=False)
+        ants = pt.table(ms.getkeyword("ANTENNA"), ack=False)
         antnames = ants.getcol("NAME")
         ants.close()
         nAnt = len(antnames)
 
-        u, v, _ = ms.getcol("UVW").T
-        A0 = ms.getcol("ANTENNA1")
-        A1 = ms.getcol("ANTENNA2")
-        tarray = ms.getcol("TIME")
+        u, v, _ = ms.getcol("UVW", startrow=self.startrow, nrow=self.nrow).T
+        A0 = ms.getcol("ANTENNA1", startrow=self.startrow, nrow=self.nrow)
+        A1 = ms.getcol("ANTENNA2", startrow=self.startrow, nrow=self.nrow)
+        tarray = ms.getcol("TIME", startrow=self.startrow, nrow=self.nrow)
         nbl = np.where(tarray == tarray[0])[0].size
-        warnings.filterwarnings("ignore")
-        warnings.filterwarnings("default")
-#         residualdata = ms.getcol("RESIDUAL_DATA")
-#         flags = ms.getcol("FLAG")
         ms.close()
 
         # apply uvcut
@@ -334,8 +362,6 @@ class CovWeights:
         # start calculating the weights
         CoeffArray = np.zeros((nt, nChan, nAnt))
         ant1 = np.arange(nAnt)
-        num_sols_time = int(np.ceil(float(nt) / self.ntSol))
-        num_sols_freq = int(np.ceil(float(nChan) / self.nchanSol))
         tcellsize = self.ntSol
         for t_i in range(0, nt, self.ntSol):
             if (t_i == nt - self.ntSol) and (nt % self.ntSol > 0):
@@ -365,8 +391,6 @@ class CovWeights:
                                       rmsarray[t_i:t_e, set2, f_i:f_e, :])
                             )
                         )
-            if not self.quiet:
-                PrintProgress(t_i, nt)
 
         # get rid of NaNs and low values
         CoeffArray[np.isnan(CoeffArray)] = np.inf
@@ -376,26 +400,23 @@ class CovWeights:
             CoeffArray[:, :, i][tempars < thres] = thres
         return CoeffArray
 
-    def calcWeights(self, CoeffArray, colname=None):
-        ms = table(self.MSName, readonly=False, ack=False)
-        ants = table(ms.getkeyword("ANTENNA"), ack=False)
+    def calcWeights(self, CoeffArray):
+        ms = pt.table(self.MSName, readonly=False, ack=False)
+        ants = pt.table(ms.getkeyword("ANTENNA"), ack=False)
         antnames = ants.getcol("NAME")
         nAnt = len(antnames)
-        tarray = ms.getcol("TIME")
-        darray = ms.getcol("DATA")
+        tarray = ms.getcol("TIME", startrow=self.startrow, nrow=self.nrow)
+        darray = ms.getcol("DATA", startrow=self.startrow, nrow=self.nrow)
         tvalues = np.array(sorted(list(set(tarray))))
         nt = tvalues.shape[0]
         nbl = tarray.shape[0]/nt
         nchan = darray.shape[1]
         npol = darray.shape[2]
-        A0 = np.array(ms.getcol("ANTENNA1").reshape((nt, nbl)))
-        A1 = np.array(ms.getcol("ANTENNA2").reshape((nt, nbl)))
-        warnings.filterwarnings("ignore")
-        warnings.filterwarnings("default")
+        A0 = np.array(ms.getcol("ANTENNA1", startrow=self.startrow, nrow=self.nrow).reshape((nt, nbl)))
+        A1 = np.array(ms.getcol("ANTENNA2", startrow=self.startrow, nrow=self.nrow).reshape((nt, nbl)))
 
         # initialize weight array
         w = np.zeros((nt, nbl, nchan, npol))
-        print "Fill weights array"
         A0ind = A0[0, :]
         A1ind = A1[0, :]
 
@@ -412,8 +433,6 @@ class CovWeights:
                                            CoeffArray[t, j, A1ind[i]] * ant2gainarray[t, i, j] +
                                            CoeffArray[t, j, A0ind[i]] * CoeffArray[t, j, A1ind[i]] +
                                            0.1)
-            if not self.quiet:
-                PrintProgress(t, nt)
 
         # normalize
         w = w.reshape(nt*nbl, nchan, npol)
@@ -422,13 +441,6 @@ class CovWeights:
         w[np.isnan(w)] = 0
 
         return w
-
-        # save in weights column
-#         if colname is not None:
-#             ms.putcol(colname, w)
-#         ants.close()
-#         ms.close()
-
 
     def get_nearest_frequstep(self, freqstep):
         """
@@ -456,3 +468,56 @@ class CovWeights:
         idx = np.argmin(np.abs(self.freq_divisors - freqstep))
 
         return self.freq_divisors[idx]
+
+
+def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, dirname):
+    if phaseonly:
+        print "Assume amplitude gain values of 1 everywhere"
+        ant1gainarray1 = np.ones((nt*nbl, nchan))
+        ant2gainarray1 = np.ones((nt*nbl, nchan))
+    else:
+        import losoto.h5parm
+        solsetName = "sol000"
+        soltabName = "screenamplitude000"
+        try:
+            gfile = losoto.h5parm.openSoltab(gainfile, solsetName=solsetName, soltabName=soltabName)
+        except:
+            print "Could not find amplitude gains in h5parm. Assuming gains of 1 everywhere."
+            ant1gainarray1 = np.ones((nt*nbl, nchan))
+            ant2gainarray1 = np.ones((nt*nbl, nchan))
+            return ant1gainarray1, ant2gainarray1
+
+        freqs = pt.table(msname+"/SPECTRAL_WINDOW").getcol("CHAN_FREQ")
+        gains = gfile.val  # axes: times, freqs, ants, dirs, pols
+        flagged = np.where(gains == 0.0)
+        gains[flagged] = np.nan
+        gfreqs = gfile.freq
+        times = gfile.time
+        dindx = gfile.dir.tolist().index(dirname)
+        ant1gainarray = np.zeros((nt*nbl, nchan))
+        ant2gainarray = np.zeros((nt*nbl, nchan))
+        A0arr = ms.getcol("ANTENNA1", startrow=self.startrow, nrow=self.nrow)
+        A1arr = ms.getcol("ANTENNA2", startrow=self.startrow, nrow=self.nrow)
+        deltime = (times[1] - times[0]) / 2.0
+        delfreq = (gfreqs[1] - gfreqs[0]) / 2.0
+        for i in range(len(times)):
+            timemask = (tarray >= times[i]-deltime) * (tarray < times[i]+deltime)
+            if np.all(~timemask):
+                continue
+            for j in range(nAnt):
+                mask1 = timemask * (A0arr == j)
+                mask2 = timemask * (A1arr == j)
+                for k in range(nchan):
+                    chan_freq = freqs[0, k]
+                    freqmask = np.logical_and(gfreqs >= chan_freq-delfreq,
+                                              gfreqs < chan_freq+delfreq)
+                    if chan_freq < gfreqs[0]:
+                        freqmask[0] = True
+                    if chan_freq > gfreqs[-1]:
+                        freqmask[-1] = True
+                    ant1gainarray[mask1, k] = np.nanmean(gains[i, freqmask, j, dindx, :], axis=(0, 1))
+                    ant2gainarray[mask2, k] = np.nanmean(gains[i, freqmask, j, dindx, :], axis=(0, 1))
+        ant1gainarray1 = ant1gainarray**2
+        ant2gainarray1 = ant2gainarray**2
+
+    return ant1gainarray1, ant2gainarray1

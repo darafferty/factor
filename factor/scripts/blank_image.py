@@ -58,7 +58,7 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
             yimsize = int(imsize.split(' ')[1])
             misc.make_template_image(temp_image, reference_ra_deg, reference_dec_deg,
                                      ximsize=ximsize, yimsize=yimsize,
-                                     cellsize_deg=float(cellsize_deg))
+                                     cellsize_deg=float(cellsize_deg), fill_val=1)
         else:
             print('ERROR: a reference position must be given to make an empty template image')
             sys.exit(1)
