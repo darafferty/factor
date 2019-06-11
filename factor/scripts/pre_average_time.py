@@ -326,7 +326,7 @@ def BLavg_multi(sorted_ms_dict, baseline_dict, input_colname, output_data_colnam
             ms.putcol('FLAG', all_flags_list[msindex]) # this saves flags of nans, which is always good
             ms.putcol(output_weights_colname, all_weights_list[msindex])
             ms.close()
-        print "BLavg_multi: Finished one group of measurement sets."
+        print("BLavg_multi: Finished one group of measurement sets.")
 
 
 def unwrap_fft(phase, iterations=3):

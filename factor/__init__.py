@@ -1,1 +1,1 @@
-import _logging
+from . import _logging
