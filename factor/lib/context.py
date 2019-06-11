@@ -30,10 +30,7 @@ class Timer(object):
 
     def __exit__(self, type, value, tb):
         if type is not None:
-            if sys.version_info < (3,):
-                raise type, value, tb
-            else:
-                raise type(value).with_traceback(tb)
+            raise type(value).with_traceback(tb)
 
         elapsed = time.time() - self.start
         self.log.debug('Time for {0}: {1:0>8}'.format(self.type,
