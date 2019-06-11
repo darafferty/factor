@@ -44,7 +44,7 @@ setup(
         ],
     install_requires=['numpy', 'scipy', 'astropy', 'jinja2', 'aplpy>=1.0', 'LSMTool>=1.2', ],
     dependency_links=['https://github.com/darafferty/LSMTool'],
-    scripts=['bin/runfactor', 'bin/checkfactor', 'bin/archivefactor', 'bin/unarchivefactor'],
+    scripts=['bin/runfactor', 'bin/resetfactor', 'bin/plotfactor'],
     packages=['factor', 'factor.operations', 'factor.lib'],
     package_data={'factor': [
         'parsets/*',
