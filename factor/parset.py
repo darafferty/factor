@@ -5,7 +5,7 @@ import sys
 import os
 import glob
 import logging
-import configParser
+import configparser
 from factor._logging import set_log_file
 from factor.cluster import find_executables, get_compute_nodes
 from astropy.coordinates import Angle
