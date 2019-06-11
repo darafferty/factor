@@ -67,7 +67,7 @@ def main(ms_input, input_colname, output_data_colname, output_weights_colname,
     ionfactors = []
     if verbose:
         print('Determining ionfactors...')
-    for msind in xrange(len(ms_list)):
+    for msind in range(len(ms_list)):
         tab = pt.table(ms_list[msind], ack=False)
         start_time = tab[0]['TIME']
         end_time = tab[-1]['TIME']
@@ -94,7 +94,7 @@ def main(ms_input, input_colname, output_data_colname, output_weights_colname,
             else:
                 ionfactors = [ionfactor]
 
-    sorted_ms_tuples = sorted(zip(start_times,end_times,range(len(ms_list)),ms_list))
+    sorted_ms_tuples = sorted(zip(start_times,end_times, list(range(len(ms_list))), ms_list))
     sorted_ms_dict = { 'msnames' :[ms for starttime,endtime,index,ms in sorted_ms_tuples],
                        'starttimes' : [starttime for starttime,endtime,index,ms in sorted_ms_tuples],
                        'endtimes' : [endtime for starttime,endtime,index,ms in sorted_ms_tuples] }
@@ -117,7 +117,7 @@ def find_ionfactor(parmdb_file, baseline_dict, t1, t2, target_rms_rad=0.2):
 
     # Filter any stations not in both the instrument table and the ms
     stations_pbd = set([s.split(':')[-1] for s in pdb_in.getNames()])
-    stations_ms = set([s for s in baseline_dict.itervalues() if type(s) is str])
+    stations_ms = set([s for s in baseline_dict.values() if type(s) is str])
     stations = sorted(list(stations_pbd.intersection(stations_ms)))
 
     # Select long baselines only (BL > 10 km), as they will set the ionfactor scaling
@@ -125,7 +125,7 @@ def find_ionfactor(parmdb_file, baseline_dict, t1, t2, target_rms_rad=0.2):
     ant2 = []
     dist = []
     min_length = 10.0
-    for k, v in baseline_dict.iteritems():
+    for k, v in baseline_dict.items():
         if type(v) is not str and '-' in k:
             if v > min_length:
                 s1 = k.split('-')[0]
@@ -193,7 +193,7 @@ def BLavg_multi(sorted_ms_dict, baseline_dict, input_colname, output_data_colnam
     nfiles = len(sorted_ms_dict['msnames'])
     ms_groups = []
     newgroup = []
-    for msindex in xrange(nfiles):
+    for msindex in range(nfiles):
         if msindex+1 == nfiles or sorted_ms_dict['starttimes'][msindex+1] > sorted_ms_dict['endtimes'][msindex] + maxgap_sec:
             newgroup.append(sorted_ms_dict['msnames'][msindex])
             ms_groups.append(newgroup)
@@ -201,7 +201,7 @@ def BLavg_multi(sorted_ms_dict, baseline_dict, input_colname, output_data_colnam
         else:
             newgroup.append(sorted_ms_dict['msnames'][msindex])
 
-    print "BLavg_multi: Working on",len(ms_groups),"groups of measurement sets."
+    print("BLavg_multi: Working on",len(ms_groups),"groups of measurement sets.")
     #### loop over all groups
     msindex = 0
     for ms_names in ms_groups:
@@ -258,7 +258,7 @@ def BLavg_multi(sorted_ms_dict, baseline_dict, input_colname, output_data_colnam
             weights_list = []
             data_list = []
             # select data from all MSs
-            for msindex in xrange(len(ms_names)):
+            for msindex in range(len(ms_names)):
                 sel1 = np.where(ant1_list[msindex] == ant[0])[0]
                 sel2 = np.where(ant2_list[msindex] == ant[1])[0]
                 sel_list.append( sorted(list(frozenset(sel1).intersection(sel2))) )
@@ -272,7 +272,7 @@ def BLavg_multi(sorted_ms_dict, baseline_dict, input_colname, output_data_colnam
             fillshape = list(data.shape)
             startidx = [0]
             endidx = [data.shape[0]]
-            for msindex in xrange(1,len(ms_names)):
+            for msindex in range(1,len(ms_names)):
                 #pad gap between obs
                 filltimes = np.arange(np.max(all_time_list[msindex-1]),np.min(all_time_list[msindex]),timepersample)
                 fillshape[0] = len(filltimes)
@@ -305,12 +305,12 @@ def BLavg_multi(sorted_ms_dict, baseline_dict, input_colname, output_data_colnam
             # re-create data
             data = (dataR + 1j * dataI)
             data[(weights != 0)] /= weights[(weights != 0)] # avoid divbyzero
-            for msindex in xrange(len(ms_names)):
+            for msindex in range(len(ms_names)):
                 all_data_list[msindex][sel_list[msindex],:,:] = data[startidx[msindex]:endidx[msindex],:,:]
                 all_weights_list[msindex][sel_list[msindex],:,:] = weights[startidx[msindex]:endidx[msindex],:,:]
 
         ### write the data back to the files
-        for msindex in xrange(len(ms_names)):
+        for msindex in range(len(ms_names)):
             ms = pt.table(ms_names[msindex], readonly=False, ack=False)
             # Add the output columns if needed
             if output_data_colname not in ms.colnames():

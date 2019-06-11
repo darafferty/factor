@@ -225,7 +225,7 @@ class Field(object):
                                   'Exiting!'.format(totflux, flux))
                 sys.exit(1)
             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(flux))
-            source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='mid', byPatch=True)
+            source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='wmean', byPatch=True)
 
             # If any patch falls below the target flux, merge it with the nearest patch
             # and recalculate patch positions
@@ -242,7 +242,7 @@ class Field(object):
                         patch_names.pop(i)
                         nearest_patch = patch_names[np.argmin(sep)]
                         source_skymodel.merge([nearest_patch, pn])
-                        source_skymodel.setPatchPositions()
+                        source_skymodel.setPatchPositions(method='wmean')
                         check_flux = True
                         break
             calibration_skymodel = source_skymodel
@@ -430,7 +430,7 @@ class Field(object):
                     endind = nsources
                 else:
                     endind = startind + int(nsources/nnodes)
-                outlier_sector.predict_skymodel.select(np.array(range(startind, endind)))
+                outlier_sector.predict_skymodel.select(np.array(list(range(startind, endind))))
                 outlier_sector.make_skymodel()
                 self.outlier_sectors.append(outlier_sector)
 

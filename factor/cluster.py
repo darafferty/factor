@@ -89,7 +89,7 @@ def expand_range(prefix, range_):
     width = len(s_low)
 
     results = []
-    for i in xrange(low, high+1):
+    for i in range(low, high+1):
         results.append("%s%0*d" % (prefix, width, i))
     return results
 
@@ -204,7 +204,7 @@ def find_executables(cluster_parset):
     executables = {'genericpipeline_executable': ['genericpipeline.py'],
                    'wsclean_executable': ['wsclean25'],
                    'h5collector_executable': ['H5parm_collector.py']}
-    for key, names in executables.iteritems():
+    for key, names in executables.items():
         for name in names:
             path = spawn.find_executable(name)
             if path is not None:
@@ -249,7 +249,7 @@ def get_total_memory():
     """
     Returns the total memory in GB
     """
-    tot_gb, used_gb, free_gb = map(int, os.popen('free -t -g').readlines()[-1].split()[1:])
+    tot_gb, used_gb, free_gb = list(map(int, os.popen('free -t -g').readlines()[-1].split()[1:]))
 
     return tot_gb
 

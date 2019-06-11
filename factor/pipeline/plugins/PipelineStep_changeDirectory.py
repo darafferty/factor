@@ -74,16 +74,3 @@ def plugin_main(args, **kwargs):
     result = {'mapfile': fileid}
 
     return result
-
-
-def string2bool(instring):
-    if not isinstance(instring, basestring):
-        raise ValueError('string2bool: Input is not a basic string!')
-    if instring.upper() == 'TRUE' or instring == '1':
-        return True
-    elif instring.upper() == 'FALSE' or instring == '0':
-        return False
-    else:
-        raise ValueError('string2bool: Cannot convert string "'+instring+'" to boolean!')
-
-

@@ -10,6 +10,7 @@ import subprocess
 from lofarpipe.support.data_map import DataMap
 from astropy.time import Time
 import losoto
+from factor.lib import miscellaneous as misc
 
 
 def get_nchunks(msin, nsectors, fraction=1.0):
@@ -30,7 +31,7 @@ def get_nchunks(msin, nsectors, fraction=1.0):
     nchunks : int
         Number of chunks
     """
-    tot_m, used_m, free_m = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
+    tot_m, used_m, free_m = list(map(int, os.popen('free -t -m').readlines()[-1].split()[1:]))
     msin_m = float(subprocess.check_output(['du', '-sh', msin]).split()[0][:-1]) * 1000.0 * fraction
     tot_required_m = msin_m * nsectors * 2.0
     nchunks = max(1, int(np.ceil(tot_required_m / free_m)))
@@ -92,27 +93,15 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     starttime : str, optional
         Start time in JD seconds
     """
-    if isinstance(use_compression, basestring):
-        if use_compression.lower() == 'true':
-            use_compression = True
-        else:
-            use_compression = False
-    if isinstance(peel_outliers, basestring):
-        if peel_outliers.lower() == 'true':
-            peel_outliers = True
-        else:
-            peel_outliers = False
+    use_compression = misc.string2bool(use_compression)
+    peel_outliers = misc.string2bool(peel_outliers)
     nr_outliers = int(nr_outliers)
     solint_sec = float(solint_sec)
     solint_hz = float(solint_hz)
     uvcut_min = float(uvcut_min)
     uvcut_max = float(uvcut_max)
     uvcut = [uvcut_min, uvcut_max]
-    if isinstance(phaseonly, basestring):
-        if phaseonly.lower() == 'true':
-            phaseonly = True
-        else:
-            phaseonly = False
+    phaseonly = misc.string2bool(phaseonly)
 
     # Get the model data filenames. We only use files that contain the root of
     # msin, so that models for other observations are not picked up (starttime
@@ -472,7 +461,6 @@ class CovWeights:
 
 def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, dirname):
     if phaseonly:
-        print "Assume amplitude gain values of 1 everywhere"
         ant1gainarray1 = np.ones((nt*nbl, nchan))
         ant2gainarray1 = np.ones((nt*nbl, nchan))
     else:
@@ -482,7 +470,7 @@ def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, 
         try:
             gfile = losoto.h5parm.openSoltab(gainfile, solsetName=solsetName, soltabName=soltabName)
         except:
-            print "Could not find amplitude gains in h5parm. Assuming gains of 1 everywhere."
+            print("Could not find amplitude gains in h5parm. Assuming gains of 1 everywhere.")
             ant1gainarray1 = np.ones((nt*nbl, nchan))
             ant2gainarray1 = np.ones((nt*nbl, nchan))
             return ant1gainarray1, ant2gainarray1

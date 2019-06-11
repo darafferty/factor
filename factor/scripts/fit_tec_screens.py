@@ -6,6 +6,9 @@ import losoto.operations as operations
 from losoto.h5parm import h5parm
 import numpy as np
 import itertools
+import sys
+if sys.version_info < (3,):
+    from itertools import izip as zip
 import multiprocessing
 
 
@@ -331,8 +334,8 @@ def main(h5parmfile, solsetname='sol000', tecsoltabname='tec000',
             for s in range(nstat):
                 pool = multiprocessing.Pool()
                 tec_pool = [tec[:, s, d, ch] for d in range(ndir)]
-                results = pool.map(remove_jumps_pool, itertools.izip(tec_pool,
-                                   itertools.repeat(jump_val), itertools.repeat(31)))
+                results = pool.map(remove_jumps_pool, list(zip(tec_pool,
+                                   itertools.repeat(jump_val), itertools.repeat(31))))
                 pool.close()
                 pool.join()
 

@@ -196,7 +196,7 @@ class Observation(object):
         self.parameters['startchan'] = [channelsperchunk * i for i in range(nchunks)]
         self.parameters['nchan'] = [channelsperchunk] * nchunks
         self.parameters['nchan'][-1] = 0  # set last entry to extend until end
-        self.parameters['slow_starttime'] = [self.convert_mjd(self.starttime)]  * nchunks
+        self.parameters['slow_starttime'] = [self.convert_mjd(self.starttime)] * nchunks
         self.parameters['slow_ntimes'] = [self.numsamples] * nchunks
 
         # Set solution intervals (same for every calibration chunk)
@@ -226,13 +226,13 @@ class Observation(object):
             # Include starttime to avoid naming conflicts
             infix = "mjd{}_".format(self.starttime)
         ms_model_filename = '{0}.{1}{2}_modeldata'.format(self.ms_filename, infix,
-                                                           sector_name)
+                                                          sector_name)
         self.parameters['ms_model_filename'] = ms_model_filename
 
         # The filename of the sector's data with all non-sector sources peeled off (i.e.,
         # the data used for imaging)
         ms_subtracted_filename = '{0}.{1}{2}'.format(self.ms_filename, infix,
-                                                      sector_name)
+                                                     sector_name)
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
 
         # The sky model patch names

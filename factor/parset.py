@@ -5,7 +5,7 @@ import sys
 import os
 import glob
 import logging
-import ConfigParser
+import configParser
 from factor._logging import set_log_file
 from factor.cluster import find_executables, get_compute_nodes
 from astropy.coordinates import Angle
@@ -34,7 +34,7 @@ def parset_read(parset_file, use_log_file=True, skip_cluster=False):
         sys.exit(1)
 
     log.info("Reading parset file: {}".format(parset_file))
-    parset = ConfigParser.RawConfigParser()
+    parset = configParser.RawConfigParser()
     parset.read(parset_file)
 
     # Handle global parameters
@@ -88,7 +88,7 @@ def parset_read(parset_file, use_log_file=True, skip_cluster=False):
         sys.exit(1)
 
     # Check for invalid sections
-    given_sections = parset._sections.keys()
+    given_sections = list(parset._sections.keys())
     allowed_sections = ['global', 'calibration', 'imaging', 'cluster']
     for section in given_sections:
         if section not in allowed_sections:
@@ -205,7 +205,7 @@ def get_calibration_options(parset):
         Dictionary with all calibration options
 
     """
-    if 'calibration' in parset._sections.keys():
+    if 'calibration' in list(parset._sections.keys()):
         parset_dict = parset._sections['calibration']
         given_options = parset.options('calibration')
     else:
@@ -335,7 +335,7 @@ def get_imaging_options(parset):
         Dictionary with all imaging options
 
     """
-    if 'imaging' in parset._sections.keys():
+    if 'imaging' in list(parset._sections.keys()):
         parset_dict = parset._sections['imaging']
         given_options = parset.options('imaging')
     else:
@@ -578,7 +578,7 @@ def get_cluster_options(parset):
         Dictionary with all cluster options
 
     """
-    if 'cluster' in parset._sections.keys():
+    if 'cluster' in list(parset._sections.keys()):
         parset_dict = parset._sections['cluster']
         given_options = parset.options('cluster')
     else:

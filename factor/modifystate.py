@@ -80,7 +80,10 @@ def run(parset_file):
                 print('    {0}) {1}'.format(i, p))
         try:
             while(True):
-                p_number_raw = raw_input('Enter number of pipeline to reset or press "q" to quit: ')
+                if sys.version_info < (3,):
+                    p_number_raw = raw_input('Enter number of pipeline to reset or press "q" to quit: ')
+                else:
+                    p_number_raw = input('Enter number of pipeline to reset or press "q" to quit: ')
                 if p_number_raw.lower() == "q":
                     sys.exit(0)
                 elif int(p_number_raw) > 0 and int(p_number_raw) <= i:
@@ -94,7 +97,10 @@ def run(parset_file):
         # Ask for confirmation
         try:
             while(True):
-                answer = raw_input('Reset all pipelines from {} onwards (y/n)? '.format(pipeline))
+                if sys.version_info < (3,):
+                    answer = raw_input('Reset all pipelines from {} onwards (y/n)? '.format(pipeline))
+                else:
+                    answer = input('Reset all pipelines from {} onwards (y/n)? '.format(pipeline))
                 if (answer.lower() == "n" or answer.lower() == "no" or
                     answer.lower() == "y" or answer.lower() == "yes"):
                     break

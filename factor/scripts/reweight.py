@@ -8,12 +8,7 @@ from casacore.tables import table
 import numpy as np
 import sys
 import warnings
-# if not 'matplotlib' in sys.modules:
-#     import matplotlib as mpl
-#     mpl.rcParams['xtick.labelsize'] = 20
-#     mpl.rcParams['font.size'] = 20
-#     mpl.use("Agg")
-# import matplotlib.pyplot as plt # after setting "Agg" to speed up
+from factor.lib import miscellaneous as misc
 
 
 class CovWeights:
@@ -165,7 +160,6 @@ class CovWeights:
 
         # initialize weight array
         w = np.zeros((nt, nbl, nchan, npol))
-        print "Fill weights array"
         A0ind = A0[0, :]
         A1ind = A1[0, :]
 
@@ -228,7 +222,6 @@ class CovWeights:
 
 def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, dirname):
     if phaseonly:
-        print "Assume amplitude gain values of 1 everywhere"
         ant1gainarray1 = np.ones((nt*nbl, nchan))
         ant2gainarray1 = np.ones((nt*nbl, nchan))
     else:
@@ -238,7 +231,7 @@ def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, 
         try:
             gfile = losoto.h5parm.openSoltab(gainfile, solsetName=solsetName, soltabName=soltabName)
         except:
-            print "Could not find amplitude gains in h5parm. Assuming gains of 1 everywhere."
+            print("Could not find amplitude gains in h5parm. Assuming gains of 1 everywhere.")
             ant1gainarray1 = np.ones((nt*nbl, nchan))
             ant2gainarray1 = np.ones((nt*nbl, nchan))
             return ant1gainarray1, ant2gainarray1
@@ -321,11 +314,7 @@ def main(msname, solint_sec, solint_hz, colname="CAL_WEIGHT", gainfile="", uvcut
     uvcut_min = float(uvcut_min)
     uvcut_max = float(uvcut_max)
     uvcut = [uvcut_min, uvcut_max]
-    if isinstance(phaseonly, basestring):
-        if phaseonly.lower() == 'true':
-            phaseonly = True
-        else:
-            phaseonly = False
+    phaseonly = misc.string2bool(phaseonly)
 
     covweights = CovWeights(MSName=msname, solint_sec=solint_sec, solint_hz=solint_hz,
                             gainfile=gainfile, uvcut=uvcut, phaseonly=phaseonly,

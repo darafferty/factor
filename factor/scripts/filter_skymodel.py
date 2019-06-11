@@ -18,6 +18,7 @@ try:
     import bdsf
 except ImportError:
     from lofar import bdsm as bdsf
+from factor.lib import miscellaneous as misc
 
 
 def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=5.0,
@@ -51,23 +52,12 @@ def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=
         If adaptive_rmsbox is True, this value sets the threshold above
         which a source will use the small rms box
     """
-    if rmsbox is not None and isinstance(rmsbox, basestring):
+    if rmsbox is not None and isinstance(rmsbox, str):
         rmsbox = eval(rmsbox)
-
-    if isinstance(rmsbox_bright, basestring):
+    if isinstance(rmsbox_bright, str):
         rmsbox_bright = eval(rmsbox_bright)
-
-    if isinstance(adaptive_rmsbox, basestring):
-        if adaptive_rmsbox.lower() == 'true':
-            adaptive_rmsbox = True
-        else:
-            adaptive_rmsbox = False
-
-    if isinstance(use_adaptive_threshold, basestring):
-        if use_adaptive_threshold.lower() == 'true':
-            use_adaptive_threshold = True
-        else:
-            use_adaptive_threshold = False
+    adaptive_rmsbox = misc.string2bool(adaptive_rmsbox)
+    use_adaptive_threshold = misc.string2bool(use_adaptive_threshold)
 
     if use_adaptive_threshold:
         # Get an estimate of the rms

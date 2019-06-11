@@ -9,6 +9,9 @@ from casacore import quanta
 import numpy as np
 from astropy.io import fits as pyfits
 import itertools
+import sys
+if sys.version_info < (3,):
+    from itertools import izip as zip
 import multiprocessing
 from factor.cluster import get_total_memory
 #from reproject import reproject_interp
@@ -119,8 +122,8 @@ def main(images, outfits, maxwidth=0):
         val = dircoords.get_referencevalue()
         if val[1]<0:
             val[1]+=2*np.pi
-        ra_axis = (range(nx)-ref[1])*inc[1]+val[1]
-        dec_axis = (range(ny)-ref[0])*inc[0]+val[0]
+        ra_axis = (list(range(nx))-ref[1])*inc[1]+val[1]
+        dec_axis = (list(range(ny))-ref[0])*inc[0]+val[0]
         rainc.append(inc[1])
         decinc.append(inc[0])
         declims.append(min(dec_axis))
@@ -156,9 +159,9 @@ def main(images, outfits, maxwidth=0):
     ind = [2, 3]
     outshape = (int(nc), int(ns), len(master_dec), len(master_ra))
     pool = multiprocessing.Pool(nimg_simul)
-    results = pool.map(regrid_star, itertools.izip(images, itertools.repeat(ind),
+    results = pool.map(regrid_star, list(zip(images, itertools.repeat(ind),
                                                    itertools.repeat(ma),
-                                                   itertools.repeat(outshape)))
+                                                   itertools.repeat(outshape))))
     pool.close()
     pool.join()
     for imdata in results:

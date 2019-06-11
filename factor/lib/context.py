@@ -4,6 +4,7 @@ Definition of context manager classes
 import time
 import datetime
 import logging
+import sys
 
 
 class Timer(object):
@@ -29,7 +30,10 @@ class Timer(object):
 
     def __exit__(self, type, value, tb):
         if type is not None:
-            raise type, value, tb
+            if sys.version_info < (3,):
+                raise type, value, tb
+            else:
+                raise type(value).with_traceback(tb)
 
         elapsed = time.time() - self.start
         self.log.debug('Time for {0}: {1:0>8}'.format(self.type,
@@ -48,19 +52,16 @@ class RedirectStdStreams(object):
         stderr stream
     """
     def __init__(self, stdout=None, stderr=None):
-        import sys
         self._stdout = stdout or sys.stdout
         self._stderr = stderr or sys.stderr
 
     def __enter__(self):
-        import sys
         self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
         self.old_stdout.flush()
         self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
     def __exit__(self, exc_type, exc_value, traceback):
-        import sys
         self._stdout.flush()
         self._stderr.flush()
         sys.stdout = self.old_stdout

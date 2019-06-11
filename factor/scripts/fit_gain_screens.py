@@ -55,7 +55,7 @@ def std(inputData, Zero=False, axis=None, dtype=None):
         good = np.where( u2 <= 1.0 )
         good = good[0]
         if len(good) < 3:
-            print "WARNING:  Distribution is too strange to compute standard deviation"
+            print("WARNING:  Distribution is too strange to compute standard deviation")
             sigma = -1.0
             return sigma
 
@@ -358,7 +358,7 @@ def smooth(soltab, normalize=True):
             # First find the normalization factor from unflagged solutions
             amplist = []
             norm_factor = 1.0/(np.nanmean(parms[initial_unflagged_indx]))
-            print "smooth_amps_spline.py: Normalization-Factor is:", norm_factor
+            print("smooth_amps_spline.py: Normalization-Factor is:", norm_factor)
             parms *= norm_factor
 
             # Clip extremely low amplitude solutions to prevent very high
