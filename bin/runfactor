@@ -23,8 +23,8 @@ import sys
 
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser(usage='%prog parset',
-            version='%%prog %s' % (version))
+    parser = optparse.OptionParser(usage='%prog <parset>',
+            version='%%prog v%s' % (version))
     parser.add_option('-q', help='enable quiet mode', action='store_true', default=False)
     parser.add_option('-e', '--export', help='comma-separated list of sectors for which '
         'to export visibilities (e.g., "-r sector_1,sector_3")', type=str, default=None)
