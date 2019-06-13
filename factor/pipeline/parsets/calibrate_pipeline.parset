@@ -1,5 +1,5 @@
 {% if do_slowgain_solve %}
-pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_slow_starttime_map, create_slow_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, {% if apply_previous_slowgains %} create_prev_slow_h5parms_map, {% endif %} create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens, create_fast_aterms_output_map, make_fast_aterms, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, create_slow_output_map, combine_slow_gains, fit_slow_screens, create_combined_output_map, combine_h5parms]
+pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_freqchunk_files_map, create_starttime_map, create_ntimes_map, create_slow_starttime_map, create_slow_ntimes_map, create_startchan_map, create_nchan_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_slow_freqstep_map, create_fast_h5parms_map, create_slow_h5parms_map, {% if apply_previous_slowgains %} create_prev_slow_h5parms_map, {% endif %} create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens, create_fast_aterms_output_map, make_fast_aterms, expand_fast_phases_mapfile, solve_slow_gains, create_compressed_mapfile_slow, create_slow_output_map, combine_slow_gains, fit_slow_screens, create_slow_aterms_output_map, make_slow_aterms, create_combined_output_map, combine_h5parms]
 {% else %}
 pipeline.steps = [update_mapfile_hosts, create_timechunk_files_map, create_starttime_map, create_ntimes_map, create_fast_timestep_map, create_slow_timestep_map, create_fast_freqstep_map, create_fast_h5parms_map, create_skymodel_map, make_sourcedb, expand_sourcedb_mapfile_time, expand_sourcedb_mapfile_freq, solve_fast_phases, create_compressed_mapfile_fast, create_fast_output_map, combine_fast_phases, fit_fast_screens]
 {% endif %}
@@ -260,15 +260,17 @@ create_fast_aterms_output_map.control.filename    = fast_aterms_output.mapfile
 
 # make a-term images for IDG, length = 1
 # TODO: split h5parm and process in parallel
-make_fast_aterms.control.type             = make_aterm_images
-make_fast_aterms.control.mapfile_in       = fit_fast_screens.output.mapfile
-make_fast_aterms.control.inputkey         = infile
-make_fast_aterms.control.mapfile_out      = create_fast_aterms_output_map.output.mapfile
-make_fast_aterms.control.outputkey        = outroot
-make_fast_aterms.argument.flags           = [infile,origtec000,outroot,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
-make_fast_aterms.argument.smooth          = 3
+make_fast_aterms.control.type        = make_aterm_images
+make_fast_aterms.control.mapfile_in  = fit_fast_screens.output.mapfile
+make_fast_aterms.control.inputkey    = infile
+make_fast_aterms.control.mapfile_out = create_fast_aterms_output_map.output.mapfile
+make_fast_aterms.control.outputkey   = outroot
+make_fast_aterms.argument.flags      = [infile,origtec000,outroot,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
+make_fast_aterms.argument.smooth     = 3
+make_fast_aterms.argument.gsize      = 5
 
 {% if do_slowgain_solve %}
+
 # expand the fast-phase mapfile so that there is one entry for every frequency chunk, length = nfreqchunks*nobs
 expand_fast_phases_mapfile.control.kind             = plugin
 expand_fast_phases_mapfile.control.type             = expandMapfile
@@ -278,46 +280,36 @@ expand_fast_phases_mapfile.control.mapfile_dir      = input.output.mapfile_dir
 expand_fast_phases_mapfile.control.filename         = expand_fastphase_freq.mapfile
 
 # solve for slow gains, length = nfreqchunks*nobs
-{% if nsectors == 1 %}
-solve_slow_gains.control.type                             = dppp
-{% else %}
-solve_slow_gains.control.type                             = dppp_inplace
-{% endif %}
-solve_slow_gains.control.mapfiles_in                      = [create_freqchunk_files_map.output.mapfile,create_slow_starttime_map.output.mapfile,create_slow_ntimes_map.output.mapfile,expand_fast_phases_mapfile.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile,expand_sourcedb_mapfile_freq.output.mapfile]
-solve_slow_gains.control.inputkeys                        = [msin,starttime,ntimes,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep,sourcedb]
-solve_slow_gains.control.max_per_node                     = 1
-solve_slow_gains.argument.numthreads                      = {{ max_proc_per_node }}
-solve_slow_gains.argument.msin.datacolumn                 = {{ data_colname }}
-solve_slow_gains.argument.msin.starttime                  = starttime
-solve_slow_gains.argument.msin.ntimes                     = ntimes
-solve_slow_gains.argument.msin.startchan                  = startchan
-solve_slow_gains.argument.msin.nchan                      = nchan
-{% if nsectors > 1 %}
-solve_slow_gains.argument.msout                           = .
-{% endif %}
-solve_slow_gains.argument.steps                           = [solve]
-solve_slow_gains.argument.solve.type                      = ddecal
-solve_slow_gains.argument.solve.mode                      = complexgain
-solve_slow_gains.argument.solve.h5parm                    = slow_h5parm
-solve_slow_gains.argument.solve.sourcedb                  = sourcedb
-solve_slow_gains.argument.solve.solint                    = timestep
-solve_slow_gains.argument.solve.nchan                     = freqstep
-solve_slow_gains.argument.solve.propagatesolutions        = {{ propagatesolutions }}
-solve_slow_gains.argument.solve.applycal.parmdb           = fast_h5parm
-solve_slow_gains.argument.solve.applycal.steps            = [tec]
-solve_slow_gains.argument.solve.applycal.tec.correction   = origtec000
+solve_slow_gains.control.type                           = dppp_inplace
+solve_slow_gains.control.mapfiles_in                    = [create_freqchunk_files_map.output.mapfile,create_slow_starttime_map.output.mapfile,create_slow_ntimes_map.output.mapfile,expand_fast_phases_mapfile.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile,expand_sourcedb_mapfile_freq.output.mapfile]
+solve_slow_gains.control.inputkeys                      = [msin,starttime,ntimes,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep,sourcedb]
+solve_slow_gains.control.max_per_node                   = 1
+solve_slow_gains.argument.numthreads                    = {{ max_proc_per_node }}
+solve_slow_gains.argument.msin.datacolumn               = {{ data_colname }}
+solve_slow_gains.argument.msin.starttime                = starttime
+solve_slow_gains.argument.msin.ntimes                   = ntimes
+solve_slow_gains.argument.msin.startchan                = startchan
+solve_slow_gains.argument.msin.nchan                    = nchan
+solve_slow_gains.argument.msout                         = .
+solve_slow_gains.argument.steps                         = [solve]
+solve_slow_gains.argument.solve.type                    = ddecal
+solve_slow_gains.argument.solve.mode                    = complexgain
+solve_slow_gains.argument.solve.h5parm                  = slow_h5parm
+solve_slow_gains.argument.solve.sourcedb                = sourcedb
+solve_slow_gains.argument.solve.solint                  = timestep
+solve_slow_gains.argument.solve.nchan                   = freqstep
+solve_slow_gains.argument.solve.propagatesolutions      = {{ propagatesolutions }}
+solve_slow_gains.argument.solve.applycal.parmdb         = fast_h5parm
+solve_slow_gains.argument.solve.applycal.steps          = [tec]
+solve_slow_gains.argument.solve.applycal.tec.correction = origtec000
 {% if use_beam %}
-solve_slow_gains.argument.solve.usebeammodel              = True
+solve_slow_gains.argument.solve.usebeammodel            = True
 {% endif %}
-solve_slow_gains.argument.solve.uvlambdamin               = {{ solve_min_uv_lambda }}
-solve_slow_gains.argument.solve.smoothnessconstraint      = {{ smoothnessconstraint }}
-solve_slow_gains.argument.solve.maxiter                   = {{ maxiter }}
-solve_slow_gains.argument.solve.tolerance                 = {{ tolerance }}
-{% if nsectors == 1 %}
-# create residual column for reweight step below
-solve_slow_gains.argument.solve.subtract                  = True
-solve_slow_gains.argument.msout.storagemanager            = "Dysco"
-{% endif %}
+solve_slow_gains.argument.solve.uvlambdamin             = {{ solve_min_uv_lambda }}
+solve_slow_gains.argument.solve.smoothnessconstraint    = {{ smoothnessconstraint }}
+solve_slow_gains.argument.solve.maxiter                 = {{ maxiter }}
+solve_slow_gains.argument.solve.tolerance               = {{ tolerance }}
+solve_slow_gains.argument.msout.storagemanager          = "Dysco"
 
 # compress slow-gain mapfile so that all files are in one group, length = 1
 create_compressed_mapfile_slow.control.kind        = plugin
@@ -351,22 +343,23 @@ fit_slow_screens.control.inputkey     = infile
 fit_slow_screens.argument.flags       = [infile]
 
 # create a mapfile for output of a-term step, length = 1
-# create_slow_aterms_output_map.control.kind        = plugin
-# create_slow_aterms_output_map.control.type        = addListMapfile
-# create_slow_aterms_output_map.control.hosts       = {{ hosts }}
-# create_slow_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/slow_aterms.fits]
-# create_slow_aterms_output_map.control.mapfile_dir = input.output.mapfile_dir
-# create_slow_aterms_output_map.control.filename    = slow_aterms_output.mapfile
+create_slow_aterms_output_map.control.kind        = plugin
+create_slow_aterms_output_map.control.type        = addListMapfile
+create_slow_aterms_output_map.control.hosts       = {{ hosts }}
+create_slow_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/slow_aterms.fits]
+create_slow_aterms_output_map.control.mapfile_dir = input.output.mapfile_dir
+create_slow_aterms_output_map.control.filename    = slow_aterms_output.mapfile
 
 # make a-term images for IDG, length = 1
 # TODO: split h5parm and process in parallel
-# make_slow_aterms.control.type             = make_aterm_images
-# make_slow_aterms.control.mapfile_in       = fit_slow_screens.output.mapfile
-# make_slow_aterms.control.inputkey         = infile
-# make_slow_aterms.control.mapfile_out      = create_slow_aterms_output_map.output.mapfile
-# make_slow_aterms.control.outputkey        = outfile
-# make_slow_aterms.argument.flags           = [infile,phase000,outfile,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
-# make_slow_aterms.argument.smooth          = 0
+make_slow_aterms.control.type        = make_aterm_images
+make_slow_aterms.control.mapfile_in  = fit_slow_screens.output.mapfile
+make_slow_aterms.control.inputkey    = infile
+make_slow_aterms.control.mapfile_out = create_slow_aterms_output_map.output.mapfile
+make_slow_aterms.control.outputkey   = outfile
+make_slow_aterms.argument.flags      = [infile,gain000,outfile,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
+make_slow_aterms.argument.smooth     = 3
+make_slow_aterms.argument.gsize      = 5
 
 # create a mapfile for output of combine step, length = 1
 create_combined_output_map.control.kind        = plugin
@@ -383,21 +376,6 @@ combine_h5parms.control.inputkeys   = [h1,h2]
 combine_h5parms.control.mapfile_out = create_combined_output_map.output.mapfile
 combine_h5parms.control.outputkey   = outfile
 combine_h5parms.argument.flags      = [h1,h2,outfile]
-
-# reweight the data based on the residuals, length = nfreqchunks*nobs
-# only do this is a single sector is used, as otherwise reweighting is
-# done in the predict pipeline
-{% if nsectors == 1 %}
-reweight.control.type            = reweight
-reweight.control.mapfiles_in     = [solve_slow_gains.output.mapfile]
-reweight.control.inputkeys       = [filename]
-reweight.argument.resid_colname  = DATA
-reweight.argument.weight_colname = WEIGHT_SPECTRUM
-reweight.argument.uvcut_min      = {{ min_uv_lambda }}
-reweight.argument.uvcut_max      = {{ max_uv_lambda }}
-reweight.argument.phaseonly      = True
-reweight.argument.flags          = [filename,{{ target_fast_timestep }},{{ target_slow_freqstep }}]
-{% endif %}
 
 {% endif %}
 

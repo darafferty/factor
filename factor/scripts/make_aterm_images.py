@@ -329,8 +329,56 @@ def make_screen_images(pp, inscreen, inresiduals, weights, station_names,
             prestr, is_image_plane, midRA, midDec, station_order[0, k, sindx], is_phase])
 
 
+def gaussian_fcn(g, x1, x2):
+    """Evaluate Gaussian on the given grid.
+
+    Parameters
+    ----------
+    x1, x2: grid (as produced by numpy.mgrid f.e.)
+    g: Gaussian object or list of Gaussian paramters
+    """
+    from math import radians, sin, cos
+
+    A, C1, C2, S1, S2, Th = g
+    fwsig=2.35482
+    S1 = S1/fwsig
+    S2 = S2/fwsig
+    Th = Th + 90.0 # Define theta = 0 on x-axis
+
+    th = radians(Th)
+    cs = cos(th)
+    sn = sin(th)
+
+    f1 = ((x1-C1)*cs + (x2-C2)*sn)/S1
+    f2 = (-(x1-C1)*sn + (x2-C2)*cs)/S2
+
+    return A*np.exp(-(f1*f1 + f2*f2)/2)
+
+
+def guassian_image(A, x, y, xsize, ysize, gsize):
+    """Makes an image of a Gaussian
+
+    Parameters
+    ----------
+    A : peak value
+    x, y : pixel coords of Gaussian center
+    xsize, ysize : size of image in pixels
+    gsize : size as FWHM in pixels
+    """
+    im = np.zeros((ysize, xsize))
+    g = [A, y, x, gsize, gsize, 0.0]
+    bbox = np.s_[0:ysize, 0:xsize]
+    x_ax, y_ax = np.mgrid[bbox]
+    gimg = gaussian_fcn(g, x_ax, y_ax)
+    ind = np.where(np.abs(gimg) > abs(A)/3.0)
+    if len(ind[0]) > 0:
+        im[ind[0], ind[1]] += gimg[ind]
+
+    return im
+
+
 def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname='sol000',
-         ressoltabname='', padding_fraction=1.2, cellsize_deg=0.02, smooth=0):
+         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.02, smooth=0, gsize=0):
     """
     Make a-term FITS images
 
@@ -356,6 +404,9 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         Cellsize of output image
     smooth : float
         Size of smoothing kernel to apply (in units of output pixels)
+    gsize : float
+        FWHM of Gaussian to add at patch locations (to enforce that solutions at these
+        locations are exactly equal to those in the h5parm)
 
     Returns
     -------
@@ -365,7 +416,11 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
     # Read in solutions
     H = h5parm(h5parmfile)
     solset = H.getSolset(solsetname)
-    soltab = solset.getSoltab(soltabname)
+    if 'gain' in soltabname:
+        soltab = solset.getSoltab(soltabname.replace('gain', 'amplitude'))
+        soltab_ph = solset.getSoltab(soltabname.replace('gain', 'phase'))
+    else:
+        soltab = solset.getSoltab(soltabname)
 
     if type(bounds_deg) is str:
         bounds_deg = [float(f.strip()) for f in bounds_deg.strip('[]').split(';')]
@@ -467,36 +522,18 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
             max_val=max_val, is_phase=is_phase, midRA=midRA, midDec=midDec, ncpu=ncpu)
 
     else:
-        # Handle non-screen solutions using Voronoi tessellation
+        # Handle non-screen solutions using Voronoi tessellation + smoothing
         vals = soltab.val
-        weights = soltab.weight
+        if 'amplitude' in soltab.getType():
+            vals_ph = soltab_ph.val
         times = soltab.time
         freqs = soltab.freq
         ants = soltab.ant
         axis_names = soltab.getAxesNames()
-        if len(vals.shape) > 3:
-            # remove degenerate freq and pol axes
-            if 'freq' in axis_names:
-                freq_ind = axis_names.index('freq')
-                vals = np.squeeze(vals, axis=freq_ind)
-                weights = np.squeeze(weights, axis=freq_ind)
-                axis_names.remove('freq')
-            if 'pol' in axis_names:
-                pol_ind = axis_names.index('pol')
-                vals = np.squeeze(vals, axis=pol_ind)
-                weights = np.squeeze(weights, axis=pol_ind)
-                axis_names.remove('pol')
-
-        # Rearrange to get order [dir, time, ant]
-        dir_ind = axis_names.index('dir')
-        time_ind = axis_names.index('time')
-        ant_ind = axis_names.index('ant')
-        vals = vals.transpose([dir_ind, time_ind, ant_ind])
-        weights = weights.transpose([dir_ind, time_ind, ant_ind])
         source_names = soltab.dir[:]
         source_dict = solset.getSou()
 
-        # Make blank output FITS file
+        # Make blank output FITS file (type does not matter at this point)
         midRA = bounds_mid_deg[0]
         midDec = bounds_mid_deg[1]
         temp_image = outroot + '.tmp'
@@ -566,30 +603,31 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                 if poly.contains(Point(xypos)):
                     poly.index = i
 
+        # Rasterize the polygons to an array, with the value being equal to the
+        # polygon's index+1
+        data_template = np.ones(data[0, 0, 0, :, :].shape)
+        data_rasertize_template = np.zeros(data[0, 0, 0, :, :].shape)
+        for poly in polygons:
+            verts_xy = poly.exterior.xy
+            verts = []
+            for x, y in zip(verts_xy[0], verts_xy[1]):
+                verts.append((x, y))
+            poly_raster = misc.rasterize(verts, data_template.copy()) * (poly.index+1)
+            filled = np.where(poly_raster > 0)
+            data_rasertize_template[filled] = poly_raster[filled]
+
         # Identify any gaps in time (frequency gaps are not allowed), as we need to
         # output a separate FITS file for each time chunk
-        delta_times = times[1:] - times[:-1]
+        delta_times = times[1:] - times[:-1]  # time at center of solution interval
         timewidth = np.min(delta_times)
-        times -= timewidth / 2.0  # go from center of solution interval to start
         gaps = np.where(delta_times > timewidth*1.2)
         gaps_ind = gaps[0] + 1
         gaps_ind = np.append(gaps_ind, np.array([len(times)]))
+
         if soltab.getType() == 'tec':
             # TEC solutions
-            # data is [RA, DEC, ANTENNA, FREQ, TIME].T
-            # Rasterize the polygons to an array, with the value being equal to the
-            # polygon's index+1
-            data_template = np.ones(data[0, 0, 0, :, :].shape)
-            data_rasertize_template = np.zeros(data[0, 0, 0, :, :].shape)
-            for poly in polygons:
-                verts_xy = poly.exterior.xy
-                verts = []
-                for x, y in zip(verts_xy[0], verts_xy[1]):
-                    verts.append((x, y))
-                poly_raster = misc.rasterize(verts, data_template.copy()) * (poly.index+1)
-                filled = np.where(poly_raster > 0)
-                data_rasertize_template[filled] = poly_raster[filled]
-
+            # input data are [time, ant, dir, freq]
+            # output data are [RA, DEC, ANTENNA, FREQ, TIME].T
             # Now loop over stations, frequencies, and times and fill in the correct
             # values
             outfiles = []
@@ -609,11 +647,17 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                         for s, stat in enumerate(ants):
                             for poly in polygons:
                                 ind = np.where(data_rasertize_template == poly.index+1)
-                                data[t, f, s, ind[0], ind[1]] = vals[poly.index, t, s]
+                                data[t, f, s, ind[0], ind[1]] = vals[t+g_start, s, poly.index, 0]
 
                             # Smooth if desired
                             if smooth > 0:
                                 data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :], sigma=(smooth, smooth), order=0)
+
+                            # Add Gaussians at patch positions if desired
+                            if gsize > 0:
+                                for i, (x, y) in enumerate(xy):
+                                    A = vals[t+g_start, s, i, 0] - data[t, f, s, int(y), int(x)]
+                                    data[t, f, s, :, :] += guassian_image(A, x, y, data.shape[4], data.shape[3], gsize)
                 g_start = g_stop
 
                 # Write FITS file
@@ -622,42 +666,63 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                 outfiles.append(outfile)
 
             return {'aterm_images': ','.join(outfiles)}
-
         else:
-
             # Gain solutions
-            # data is [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
-            # Rasterize the polygons to an array, with the value being equal to the
-            # polygon's index+1
-            data_template = np.ones(data[0, 0, 0, 0, :, :].shape)
-            data_rasertize_template = np.zeros(data[0, 0, 0, 0, :, :].shape)
-            for poly in polygons:
-                verts_xy = poly.exterior.xy
-                verts = []
-                for x, y in zip(verts_xy[0], verts_xy[1]):
-                    verts.append((x, y))
-                poly_raster = misc.rasterize(verts, data_template.copy()) * (poly.index+1)
-                filled = np.where(poly_raster > 0)
-                data_rasertize_template[filled] = poly_raster[filled]
-
+            # input data are [time, freq, ant, dir, pol]
+            # output data are [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
             # Now loop over stations, frequencies, and times and fill in the correct
             # matrix values (matrix dimension has 4 elements: real XX, imaginary XX,
             # real YY and imaginary YY)
-            freqs = [freq0]  # freq axis not yet supported by IDG
-            for t, time in enumerate(times):
-                for f, freq in enumerate(freqs):
-                    for s, stat in enumerate(ants):
-                        for p, poly in enumerate(polygons):
-                            ind = np.where(data_rasertize_template == poly.index+1)
-                            data[t, f, s, 0, ind[0], ind[1]] = val_amp_xx * np.cos(val_phase_xx)
-                            data[t, f, s, 2, ind[0], ind[1]] = val_amp_yy * np.cos(val_phase_yy)
-                            data[t, f, s, 1, ind[0], ind[1]] = val_amp_xx * np.sin(val_phase_xx)
-                            data[t, f, s, 3, ind[0], ind[1]] = val_amp_yy * np.sin(val_phase_yy)
+            outfiles = []
+            g_start = 0
+            for gnum, g_stop in enumerate(gaps_ind):
+                outfile = '{0}_{1}.fits'.format(outroot, gnum)
+                misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
+                                         yimsize=imsize, cellsize_deg=cellsize_deg,
+                                         times=times[g_start:g_stop],
+                                         freqs=freqs, antennas=soltab.ant,
+                                         aterm_type='gain')
+                hdu = pyfits.open(temp_image, memmap=False)
+                data = hdu[0].data
+                w = wcs.WCS(hdu[0].header)
+                for t, time in enumerate(times[g_start:g_stop]):
+                    for f, freq in enumerate(freqs):
+                        for s, stat in enumerate(ants):
+                            for p, poly in enumerate(polygons):
+                                ind = np.where(data_rasertize_template == poly.index+1)
+                                val_amp_xx = vals[t+g_start, f, s, poly.index, 0]
+                                val_amp_yy = vals[t+g_start, f, s, poly.index, 1]
+                                val_phase_xx = vals_ph[t+g_start, f, s, poly.index, 0]
+                                val_phase_yy = vals_ph[t+g_start, f, s, poly.index, 1]
+                                data[t, f, s, 0, ind[0], ind[1]] = val_amp_xx * np.cos(val_phase_xx)
+                                data[t, f, s, 2, ind[0], ind[1]] = val_amp_yy * np.cos(val_phase_yy)
+                                data[t, f, s, 1, ind[0], ind[1]] = val_amp_xx * np.sin(val_phase_xx)
+                                data[t, f, s, 3, ind[0], ind[1]] = val_amp_yy * np.sin(val_phase_yy)
 
-                        # Smooth if desired
-                        if smooth > 0:
-                            data[t, f, s, :, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :, :], sigma=(0, smooth, smooth), order=0)
+                            # Smooth if desired
+                            if smooth > 0:
+                                data[t, f, s, :, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :, :], sigma=(0, smooth, smooth), order=0)
 
-            # Write FITS file
-            hdu[0].data = data
-            hdu.writeto(outfile, overwrite=True)
+                            # Add Gaussians at patch positions if desired
+                            if gsize > 0:
+                                for i, (x, y) in enumerate(xy):
+                                    val_amp_xx = vals[t+g_start, f, s, i, 0]
+                                    val_amp_yy = vals[t+g_start, f, s, i, 1]
+                                    val_phase_xx = vals_ph[t+g_start, f, s, i, 0]
+                                    val_phase_yy = vals_ph[t+g_start, f, s, i, 1]
+                                    A = val_amp_xx * np.cos(val_phase_xx) - data[t, f, s, 0, int(y), int(x)]
+                                    data[t, f, s, 0, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                    A = val_amp_yy * np.cos(val_phase_yy) - data[t, f, s, 2, int(y), int(x)]
+                                    data[t, f, s, 2, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                    A = val_amp_xx * np.sin(val_phase_xx) - data[t, f, s, 1, int(y), int(x)]
+                                    data[t, f, s, 1, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                    A = val_amp_yy * np.sin(val_phase_yy) - data[t, f, s, 3, int(y), int(x)]
+                                    data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                g_start = g_stop
+
+                # Write FITS file
+                hdu[0].data = data
+                hdu.writeto(outfile, overwrite=True)
+                outfiles.append(outfile)
+
+            return {'aterm_images': ','.join(outfiles)}

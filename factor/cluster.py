@@ -6,6 +6,7 @@ import logging
 import sys
 import re
 import numpy as np
+import shutil
 
 log = logging.getLogger('factor:cluster')
 
@@ -199,14 +200,12 @@ def find_executables(cluster_parset):
     cluster_parset : dict
         Cluster-specific parset dictionary
     """
-    from distutils import spawn
-
     executables = {'genericpipeline_executable': ['genericpipeline.py'],
-                   'wsclean_executable': ['wsclean25'],
+                   'wsclean_executable': ['wsclean'],
                    'h5collector_executable': ['H5parm_collector.py']}
     for key, names in executables.items():
         for name in names:
-            path = spawn.find_executable(name)
+            path = shutil.which(name)
             if path is not None:
                 cluster_parset[key] = path
                 break

@@ -1,7 +1,7 @@
 """
 Definition of context manager classes
 """
-import time
+from timeit import default_timer as timer
 import datetime
 import logging
 import sys
@@ -26,13 +26,13 @@ class Timer(object):
         self.type = type
 
     def __enter__(self):
-        self.start = time.time()
+        self.start = timer()
 
     def __exit__(self, type, value, tb):
         if type is not None:
             raise type(value).with_traceback(tb)
 
-        elapsed = time.time() - self.start
+        elapsed = timer() - self.start
         self.log.debug('Time for {0}: {1:0>8}'.format(self.type,
                        datetime.timedelta(seconds=elapsed)))
 

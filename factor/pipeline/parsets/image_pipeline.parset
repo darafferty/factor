@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_timestep_map, create_freqstep_map, expand_h5parm_map, prepare_imaging_data, create_compressed_mapfile, premask, make_aterm_config, image, filter]
+pipeline.steps = [update_mapfile_hosts, create_sector_files_map, create_freqstep_map, prepare_imaging_data, create_compressed_mapfile, premask, make_aterm_config, image, filter]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -16,14 +16,6 @@ create_sector_files_map.control.files       = {{ obs_filename }}
 create_sector_files_map.control.mapfile_dir = input.output.mapfile_dir
 create_sector_files_map.control.filename    = sector_files.mapfile
 
-# create a mapfile with each observation's timestep value, length = nobs
-create_timestep_map.control.kind        = plugin
-create_timestep_map.control.type        = addListMapfile
-create_timestep_map.control.hosts       = {{ hosts }}
-create_timestep_map.control.files       = {{ image_timestep }}
-create_timestep_map.control.mapfile_dir = input.output.mapfile_dir
-create_timestep_map.control.filename    = timestep.mapfile
-
 # create a mapfile with each observation's freqstep value, length = nobs
 create_freqstep_map.control.kind        = plugin
 create_freqstep_map.control.type        = addListMapfile
@@ -32,67 +24,18 @@ create_freqstep_map.control.files       = {{ image_freqstep }}
 create_freqstep_map.control.mapfile_dir = input.output.mapfile_dir
 create_freqstep_map.control.filename    = freqstep.mapfile
 
-# expand mapfile of the dir-dependent parmDB to all obs, length = nobs
-expand_h5parm_map.control.kind             = plugin
-expand_h5parm_map.control.type             = expandMapfile
-expand_h5parm_map.control.mapfile_in       = {{ h5parm_mapfile }}
-expand_h5parm_map.control.mapfile_to_match = create_sector_files_map.output.mapfile
-expand_h5parm_map.control.mapfile_dir      = input.output.mapfile_dir
-expand_h5parm_map.control.filename         = expand_h5parms.mapfile
-
-# phase shift, apply the direction-dependent solutions, and average, length = nobs
-# note: the apply steps will not be necessary once we can use screens in WSClean
+# phase shift and average, length = nobs
 prepare_imaging_data.control.type                                 = dppp
-prepare_imaging_data.control.mapfiles_in                          = [create_sector_files_map.output.mapfile,expand_h5parm_map.output.mapfile,create_timestep_map.output.mapfile,create_freqstep_map.output.mapfile]
-prepare_imaging_data.control.inputkeys                            = [msin,h5parm,timestep,freqstep]
+prepare_imaging_data.control.mapfiles_in                          = [create_sector_files_map.output.mapfile,create_freqstep_map.output.mapfile]
+prepare_imaging_data.control.inputkeys                            = [msin,freqstep]
 prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_proc_single }}
 prepare_imaging_data.argument.msin.datacolumn                     = DATA
 prepare_imaging_data.argument.msout.overwrite                     = True
 prepare_imaging_data.argument.msout.writefullresflag              = False
-{% if local_dir is not none %}
-prepare_imaging_data.argument.local_scratch_dir                   = {{ local_dir }}
-{% endif %}
-
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
-# flagging
-
-{% if use_tec_screens %}
-
-{% if apply_slowgains %}
-# prepare_imaging_data.argument.steps                               = [flag,shift,tec,amp,phase,flagzero,interp,avg]
-prepare_imaging_data.argument.steps                               = [flag,shift,amp,phase,flagzero,interp,avg]
-{% else %}
-prepare_imaging_data.argument.steps                               = [flag,shift,tec,flagzero,interp,avg]
-{% endif %}
-
-{% else %}
-
-{% if apply_slowgains %}
-prepare_imaging_data.argument.steps                               = [flag,shift,amp,phase,flagzero,interp,avg]
-{% else %}
 prepare_imaging_data.argument.steps                               = [flag,shift,flagzero,interp,avg]
-{% endif %}
-
-{% endif %}
-
-
-{% else %}
-# no flagging
-
-{% if apply_slowgains %}
-# prepare_imaging_data.argument.steps                               = [tec,amp,phase,shift,flagzero,interp,avg]
-prepare_imaging_data.argument.steps                               = [amp,phase,shift,flagzero,interp,avg]
-{% else %}
-prepare_imaging_data.argument.steps                               = [tec,shift,flagzero,interp,avg]
-{% endif %}
-
-
-{% endif %}
-
-{% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 prepare_imaging_data.argument.flag.type                           = preflagger
 prepare_imaging_data.argument.flag.expr                           = {{ flag_expr }}
-{% endif %}
 {% if flag_abstime is not none %}
 prepare_imaging_data.argument.flag.flag_abstime.abstime           = {{ flag_abstime }}
 {% endif %}
@@ -102,28 +45,16 @@ prepare_imaging_data.argument.flag.flag_baseline.baseline         = {{ flag_base
 {% if flag_freqrange is not none %}
 prepare_imaging_data.argument.flag.flag_freqrange.freqrange       = {{ flag_freqrange }}
 {% endif %}
+{% else %}
+prepare_imaging_data.argument.steps                               = [shift,flagzero,interp,avg]
+{% endif %}
 prepare_imaging_data.argument.shift.type                          = phaseshifter
 prepare_imaging_data.argument.shift.phasecenter                   = [{{ ra }}deg, {{ dec }}deg]
-prepare_imaging_data.argument.tec.type                            = applycal
-prepare_imaging_data.argument.tec.parmdb                          = h5parm
-prepare_imaging_data.argument.tec.correction                      = origtec000
-prepare_imaging_data.argument.tec.direction                       = [{{ central_patch }}]
-{% if apply_slowgains %}
-prepare_imaging_data.argument.amp.type                            = applycal
-prepare_imaging_data.argument.amp.parmdb                          = h5parm
-prepare_imaging_data.argument.amp.correction                      = amplitude000
-prepare_imaging_data.argument.amp.direction                       = [{{ central_patch }}]
-prepare_imaging_data.argument.phase.type                          = applycal
-prepare_imaging_data.argument.phase.parmdb                        = h5parm
-prepare_imaging_data.argument.phase.correction                    = phase000
-prepare_imaging_data.argument.phase.direction                     = [{{ central_patch }}]
-{% endif %}
 prepare_imaging_data.argument.flagzero.type                       = preflagger
 prepare_imaging_data.argument.flagzero.amplmin                    = 1e-20
 prepare_imaging_data.argument.interp.type                         = interpolate
 prepare_imaging_data.argument.avg.type                            = squash
 prepare_imaging_data.argument.avg.freqstep                        = freqstep
-# prepare_imaging_data.argument.avg.timestep                        = timestep
 prepare_imaging_data.argument.msout.storagemanager                = "Dysco"
 
 # make the compressed mapfile, length = 1
@@ -147,19 +78,18 @@ premask.argument.cellsize_deg          = {{ cellsize_deg }}
 premask.argument.region_file           = {{ region_file }}
 premask.argument.make_blank_image      = True
 
-# if screens are to be used during imaging, make the aterm-config file, length = 1
-make_aterm_config.control.type         = make_aterm_config
-make_aterm_config.control.mapfile_in   = create_compressed_mapfile.output.mapfile
-make_aterm_config.control.outputkey    = outfile
-make_aterm_config.argument.flags       = [outfile]
-make_aterm_config.argument.tec_mapfile = {{ fast_aterms_mapfile }}
+# make the aterm-config file, length = 1
+make_aterm_config.control.type          = make_aterm_config
+make_aterm_config.control.mapfile_in    = create_compressed_mapfile.output.mapfile
+make_aterm_config.control.outputkey     = outfile
+make_aterm_config.argument.flags        = [outfile]
+make_aterm_config.argument.tec_mapfile  = {{ fast_aterms_mapfile }}
+make_aterm_config.argument.gain_mapfile = {{ slow_aterms_mapfile }}
 
 # do the imaging, length = 1
 image.control.type                   = wsclean
-image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile]
-image.control.inputkeys              = [msfile,fitsmask]
-# image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
-# image.control.inputkeys              = [msfile,fitsmask,atermconfig]
+image.control.mapfiles_in            = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
+image.control.inputkeys              = [msfile,fitsmask,atermconfig]
 {% if use_beam %}
 image.argument.flags                 = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-grid-with-beam,-use-differential-lofar-beam,msfile]
 {% else %}
@@ -182,7 +112,7 @@ image.argument.temp-dir              = {{ local_dir_parent }}
 {% endif %}
 image.argument.deconvolution-channels = 4
 image.argument.fit-spectral-pol      = 3
-image.argument.channels-out = 12
+image.argument.channels-out          = 12
 image.argument.multiscale-shape      = gaussian
 image.argument.weighting-rank-filter = 3
 {% if taper_arcsec > 0.0 %}
@@ -197,8 +127,8 @@ image.argument.auto-threshold        = 0.3
 image.argument.local-rms-window      = 50
 image.argument.local-rms-method      = rms-with-min
 image.argument.idg-mode              = {{ idg_mode }}
-# image.argument.aterm-config          = atermconfig
-# image.argument.aterm-kernel-size     = 16
+image.argument.aterm-config          = atermconfig
+image.argument.aterm-kernel-size     = 16
 
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel

@@ -34,7 +34,7 @@ def plugin_main(args, **kwargs):
 
     map_in = DataMap.load(mapfile_in)
     map_match = DataMap.load(mapfile_to_match)
-    stride = len(map_match) / len(map_in)
+    stride = len(map_match) // len(map_in)
 
     map_out = DataMap([])
     if 'suffix_to_add' in kwargs:

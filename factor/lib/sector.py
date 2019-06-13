@@ -371,7 +371,7 @@ class Sector(object):
                 xylist.append('[{0}deg, {1}deg]'.format(x, y))
             lines.append('poly[{0}]\n'.format(', '.join(xylist)))
 
-            with open(outputfile, 'wb') as f:
+            with open(outputfile, 'w') as f:
                 f.writelines(lines)
         elif region_format == 'ds9':
             lines = []
@@ -387,7 +387,7 @@ class Sector(object):
             lines.append('point({0}, {1}) # point=cross width=2 text={{{2}}}\n'.
                          format(self.ra, self.dec, self.name))
 
-            with open(outputfile, 'wb') as f:
+            with open(outputfile, 'w') as f:
                 f.writelines(lines)
         else:
             self.log.error('Region format not understood.')
