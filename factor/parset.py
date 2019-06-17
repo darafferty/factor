@@ -34,7 +34,7 @@ def parset_read(parset_file, use_log_file=True, skip_cluster=False):
         sys.exit(1)
 
     log.info("Reading parset file: {}".format(parset_file))
-    parset = configparser.Rawconfigparser()
+    parset = configparser.RawConfigParser()
     parset.read(parset_file)
 
     # Handle global parameters
@@ -104,7 +104,7 @@ def get_global_options(parset):
 
     Parameters
     ----------
-    parset : Rawconfigparser object
+    parset : RawConfigParser object
         Input parset
 
     Returns
@@ -196,7 +196,7 @@ def get_calibration_options(parset):
 
     Parameters
     ----------
-    parset : Rawconfigparser object
+    parset : RawConfigParser object
         Input parset
 
     Returns
@@ -326,7 +326,7 @@ def get_imaging_options(parset):
 
     Parameters
     ----------
-    parset : Rawconfigparser object
+    parset : RawConfigParser object
         Input parset
 
     Returns
@@ -569,7 +569,7 @@ def get_cluster_options(parset):
 
     Parameters
     ----------
-    parset : Rawconfigparser object
+    parset : RawConfigParser object
         Input parset
 
     Returns
