@@ -658,8 +658,10 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                             # Add Gaussians at patch positions if desired
                             if gsize > 0:
                                 for i, (x, y) in enumerate(xy):
-                                    A = vals[t+g_start, s, i, 0] - data[t, f, s, int(y), int(x)]
-                                    data[t, f, s, :, :] += guassian_image(A, x, y, data.shape[4], data.shape[3], gsize)
+                                    # Only do this if patch is inside the region of interest
+                                    if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
+                                        A = vals[t+g_start, s, i, 0] - data[t, f, s, int(y), int(x)]
+                                        data[t, f, s, :, :] += guassian_image(A, x, y, data.shape[4], data.shape[3], gsize)
                 g_start = g_stop
 
                 # Write FITS file
