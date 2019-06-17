@@ -551,7 +551,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         # Get x, y coords for directions in pixels
         source_positions = []
         for source in source_names:
-            source_positions.append(source_dict[source])
+            source_positions.append(source_dict[source.encode()])
         source_positions = np.array(source_positions)
         ra_deg = source_positions.T[0] * 180.0 / np.pi
         dec_deg = source_positions.T[1] * 180.0 / np.pi
