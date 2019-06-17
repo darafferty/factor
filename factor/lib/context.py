@@ -33,7 +33,7 @@ class Timer(object):
             raise type(value).with_traceback(tb)
 
         elapsed = timer() - self.start
-        self.log.debug('Time for {0}: {1:0>8}'.format(self.type,
+        self.log.debug('Time for {0}: {1}'.format(self.type,
                        datetime.timedelta(seconds=elapsed)))
 
 

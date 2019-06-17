@@ -78,7 +78,7 @@ class Operation(object):
 
         # Local scratch directories and corresponding node recipes
         scratch_subdir = '{0}_{1}'.format(self.direction.name,
-                                          uuid.uuid4().hex()[0:6])
+                                          uuid.uuid4().hex[0:6])
         if self.parset['cluster_specific']['dir_local'] is None:
             # Not specified
             self.local_scratch_dir = None

@@ -434,6 +434,8 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         bounds_deg[2] += padding_ra
         bounds_deg[3] += padding_dec
     cellsize_deg = float(cellsize_deg)
+    gsize = float(gsize)
+    smooth = float(smooth)
 
     if 'screen' in soltab.getType():
         # Handle screen solutions
