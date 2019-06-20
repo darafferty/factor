@@ -50,65 +50,84 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
         Value with which to fill the data
     """
     if freqs is not None and times is not None and antennas is not None:
+        nants = len(antennas)
+        ntimes = len(times)
+        nfreqs = len(freqs)
         if aterm_type == 'tec':
             # TEC solutions
             # data is [RA, DEC, ANTENNA, FREQ, TIME].T
-            nants = len(antennas)
-            ntimes = len(times)
-            nfreqs = len(freqs)
             shape_out = [ntimes, nfreqs, nants, yimsize, ximsize]
-            ref_freq = freqs[0]
         else:
             # Gain solutions
             # data is [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
-            nants = len(antennas)
-            ntimes = len(times)
-            nfreqs = 1  # IDG does not support freq yet for gains
             shape_out = [ntimes, nfreqs, nants, 4, yimsize, ximsize]
-            ref_freq = np.mean(freqs)
     else:
         # Normal FITS image
         # data is [STOKES, FREQ, DEC, RA]
         shape_out = [1, 1, yimsize, ximsize]
-        ref_freq = 150e6
+        nfreqs = 1
+        freqs = [150e6]
 
     hdu = pyfits.PrimaryHDU(np.ones(shape_out, dtype=np.float32)*fill_val)
     hdulist = pyfits.HDUList([hdu])
     header = hdulist[0].header
 
     # Add RA, Dec info
-    header['CRVAL1'] = reference_ra_deg
-    header['CDELT1'] = -cellsize_deg
-    header['CRPIX1'] = ximsize / 2.0
-    header['CUNIT1'] = 'deg'
-    header['CTYPE1'] = 'RA---SIN'
-    header['CRVAL2'] = reference_dec_deg
-    header['CDELT2'] = cellsize_deg
-    header['CRPIX2'] = yimsize / 2.0
-    header['CUNIT2'] = 'deg'
-    header['CTYPE2'] = 'DEC--SIN'
+    i = 1
+    header['CRVAL{}'.format(i)] = reference_ra_deg
+    header['CDELT{}'.format(i)] = -cellsize_deg
+    header['CRPIX{}'.format(i)] = ximsize / 2.0
+    header['CUNIT{}'.format(i)] = 'deg'
+    header['CTYPE{}'.format(i)] = 'RA---SIN'
+    i += 1
+    header['CRVAL{}'.format(i)] = reference_dec_deg
+    header['CDELT{}'.format(i)] = cellsize_deg
+    header['CRPIX{}'.format(i)] = yimsize / 2.0
+    header['CUNIT{}'.format(i)] = 'deg'
+    header['CTYPE{}'.format(i)] = 'DEC--SIN'
+    i += 1
 
-    # Add STOKES info or ANTENNA info
+    # Add STOKES info or ANTENNA (+MATRIX) info
     if antennas is None:
-        header['CRVAL3'] = 1.0
-        header['CDELT3'] = 1.0
-        header['CRPIX3'] = 1.0
-        header['CUNIT3'] = ''
-        header['CTYPE3'] = 'STOKES'
+        # basic image
+        header['CRVAL{}'.format(i)] = 1.0
+        header['CDELT{}'.format(i)] = 1.0
+        header['CRPIX{}'.format(i)] = 1.0
+        header['CUNIT{}'.format(i)] = ''
+        header['CTYPE{}'.format(i)] = 'STOKES'
+        i += 1
     else:
-        header['CRVAL3'] = 0.0
-        header['CDELT3'] = 1.0
-        header['CRPIX3'] = 1.0
-        header['CUNIT3'] = ''
-        header['CTYPE3'] = 'ANTENNA'
+        if aterm_type == 'gain':
+            # gain aterm images: add MATRIX info
+            header['CRVAL{}'.format(i)] = 0.0
+            header['CDELT{}'.format(i)] = 1.0
+            header['CRPIX{}'.format(i)] = 1.0
+            header['CUNIT{}'.format(i)] = ''
+            header['CTYPE{}'.format(i)] = 'MATRIX'
+            i += 1
+
+        # dTEC or gain: add ANTENNA info
+        header['CRVAL{}'.format(i)] = 0.0
+        header['CDELT{}'.format(i)] = 1.0
+        header['CRPIX{}'.format(i)] = 1.0
+        header['CUNIT{}'.format(i)] = ''
+        header['CTYPE{}'.format(i)] = 'ANTENNA'
+        i += 1
 
     # Add frequency info
+    ref_freq = freqs[0]
+    if nfreqs > 1:
+        deltas = freqs[1:] - freqs[:-1]
+        del_freq = np.min(deltas)
+    else:
+        del_freq = 1e8
     header['RESTFRQ'] = ref_freq
-    header['CRVAL4'] = ref_freq
-    header['CDELT4'] = 3e8
-    header['CRPIX4'] = 1.0
-    header['CUNIT4'] = 'Hz'
-    header['CTYPE4'] = 'FREQ'
+    header['CRVAL{}'.format(i)] = ref_freq
+    header['CDELT{}'.format(i)] = del_freq
+    header['CRPIX{}'.format(i)] = 1.0
+    header['CUNIT{}'.format(i)] = 'Hz'
+    header['CTYPE{}'.format(i)] = 'FREQ'
+    i += 1
 
     # Add time info
     if times is not None:
@@ -118,19 +137,12 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
             del_time = np.min(deltas)
         else:
             del_time = 1.0
-        header['CRVAL5'] = ref_time
-        header['CDELT5'] = del_time
-        header['CRPIX5'] = 1.0
-        header['CUNIT5'] = 's'
-        header['CTYPE5'] = 'TIME'
-
-    # Add matrix info
-    if aterm_type == 'gain':
-        header['CRVAL6'] = 1.0
-        header['CDELT6'] = 1.0
-        header['CRPIX6'] = 1.0
-        header['CUNIT6'] = ''
-        header['CTYPE6'] = 'MATRIX'
+        header['CRVAL{}'.format(i)] = ref_time
+        header['CDELT{}'.format(i)] = del_time
+        header['CRPIX{}'.format(i)] = 1.0
+        header['CUNIT{}'.format(i)] = 's'
+        header['CTYPE{}'.format(i)] = 'TIME'
+        i += 1
 
     # Add equinox
     header['EQUINOX'] = 2000.0
@@ -168,19 +180,8 @@ def rasterize(verts, data):
     ImageDraw.Draw(mask).polygon(verts, outline=1, fill=0)
     masked_ind = np.where(np.array(mask).transpose())
     points = [Point(xm, ym) for xm, ym in zip(masked_ind[0], masked_ind[1])]
-    outside_points = [v for v in points if prepared_polygon.disjoint(v)]
+    outside_points = filter(lambda v: prepared_polygon.disjoint(v), points)
     for outside_point in outside_points:
         data[int(outside_point.y), int(outside_point.x)] = 0
 
     return data
-
-
-def string2bool(instring):
-    if not isinstance(instring, str):
-        raise ValueError('string2bool: Input is not a basic string!')
-    if instring.upper() == 'TRUE' or instring == '1':
-        return True
-    elif instring.upper() == 'FALSE' or instring == '0':
-        return False
-    else:
-        raise ValueError('string2bool: Cannot convert string "'+instring+'" to boolean!')

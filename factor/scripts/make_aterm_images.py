@@ -710,18 +710,20 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                             # Add Gaussians at patch positions if desired
                             if gsize > 0:
                                 for i, (x, y) in enumerate(xy):
-                                    val_amp_xx = vals[t+g_start, f, s, i, 0]
-                                    val_amp_yy = vals[t+g_start, f, s, i, 1]
-                                    val_phase_xx = vals_ph[t+g_start, f, s, i, 0]
-                                    val_phase_yy = vals_ph[t+g_start, f, s, i, 1]
-                                    A = val_amp_xx * np.cos(val_phase_xx) - data[t, f, s, 0, int(y), int(x)]
-                                    data[t, f, s, 0, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
-                                    A = val_amp_yy * np.cos(val_phase_yy) - data[t, f, s, 2, int(y), int(x)]
-                                    data[t, f, s, 2, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
-                                    A = val_amp_xx * np.sin(val_phase_xx) - data[t, f, s, 1, int(y), int(x)]
-                                    data[t, f, s, 1, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
-                                    A = val_amp_yy * np.sin(val_phase_yy) - data[t, f, s, 3, int(y), int(x)]
-                                    data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                    # Only do this if patch is inside the region of interest
+                                    if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
+                                        val_amp_xx = vals[t+g_start, f, s, i, 0]
+                                        val_amp_yy = vals[t+g_start, f, s, i, 1]
+                                        val_phase_xx = vals_ph[t+g_start, f, s, i, 0]
+                                        val_phase_yy = vals_ph[t+g_start, f, s, i, 1]
+                                        A = val_amp_xx * np.cos(val_phase_xx) - data[t, f, s, 0, int(y), int(x)]
+                                        data[t, f, s, 0, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                        A = val_amp_yy * np.cos(val_phase_yy) - data[t, f, s, 2, int(y), int(x)]
+                                        data[t, f, s, 2, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                        A = val_amp_xx * np.sin(val_phase_xx) - data[t, f, s, 1, int(y), int(x)]
+                                        data[t, f, s, 1, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                        A = val_amp_yy * np.sin(val_phase_yy) - data[t, f, s, 3, int(y), int(x)]
+                                        data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
                 g_start = g_stop
 
                 # Write FITS file
