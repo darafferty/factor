@@ -180,8 +180,19 @@ def rasterize(verts, data):
     ImageDraw.Draw(mask).polygon(verts, outline=1, fill=0)
     masked_ind = np.where(np.array(mask).transpose())
     points = [Point(xm, ym) for xm, ym in zip(masked_ind[0], masked_ind[1])]
-    outside_points = filter(lambda v: prepared_polygon.disjoint(v), points)
+    outside_points = [v for v in points if prepared_polygon.disjoint(v)]
     for outside_point in outside_points:
         data[int(outside_point.y), int(outside_point.x)] = 0
 
     return data
+
+
+def string2bool(instring):
+    if not isinstance(instring, str):
+        raise ValueError('string2bool: Input is not a basic string!')
+    if instring.upper() == 'TRUE' or instring == '1':
+        return True
+    elif instring.upper() == 'FALSE' or instring == '0':
+        return False
+    else:
+        raise ValueError('string2bool: Cannot convert string "'+instring+'" to boolean!')
