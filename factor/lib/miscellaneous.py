@@ -188,11 +188,18 @@ def rasterize(verts, data):
 
 
 def string2bool(instring):
-    if not isinstance(instring, str):
-        raise ValueError('string2bool: Input is not a basic string!')
-    if instring.upper() == 'TRUE' or instring == '1':
-        return True
-    elif instring.upper() == 'FALSE' or instring == '0':
-        return False
+    if invar is None:
+        return None
+    if isinstance(invar, bool):
+        return invar
+    elif isinstance(invar, str):
+        if invar.upper() == 'TRUE' or invar == '1':
+            return True
+        elif invar.upper() == 'FALSE' or invar == '0':
+            return False
+        else:
+            raise ValueError('input2bool: Cannot convert string "'+invar+'" to boolean!')
+    elif isinstance(invar, int) or isinstance(invar, float):
+        return bool(invar)
     else:
-        raise ValueError('string2bool: Cannot convert string "'+instring+'" to boolean!')
+        raise TypeError('input2bool: Unsupported data type:'+str(type(invar)))
