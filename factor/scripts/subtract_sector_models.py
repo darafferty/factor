@@ -31,10 +31,10 @@ def get_nchunks(msin, nsectors, fraction=1.0):
     nchunks : int
         Number of chunks
     """
-    tot_m, used_m, free_m = list(map(int, os.popen('free -t -m').readlines()[-1].split()[1:]))
-    msin_m = float(subprocess.check_output(['du', '-sh', msin]).split()[0][:-1]) * 1000.0 * fraction
+    tot_m, used_m, free_m = list(map(int, os.popen('free -tm').readlines()[-1].split()[1:]))
+    msin_m = float(subprocess.check_output(['du', '-sm', msin]).split()[0]) * fraction
     tot_required_m = msin_m * nsectors * 2.0
-    nchunks = max(1, int(np.ceil(tot_required_m / free_m)))
+    nchunks = max(1, int(np.ceil(tot_required_m / tot_m)))
     return nchunks
 
 
@@ -173,7 +173,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                 nrow = nrows_per_chunk
             nrows.append(nrow)
             startrows.append(startrows[i-1] + nrows[i-1])
-        print('subtract_sector_models: Using {} chunks for peeling'.format(nchunks))
+        print('subtract_sector_models: Using {} chunk(s) for peeling'.format(nchunks))
 
         for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
             # For each chunk, load data
@@ -240,7 +240,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             nrow = nrows_per_chunk
         nrows.append(nrow)
         startrows.append(startrows[i-1] + nrows[i-1])
-    print('subtract_sector_models: Using {} chunks'.format(nchunks))
+    print('subtract_sector_models: Using {} chunk(s)'.format(nchunks))
 
     for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
         # For each chunk, load data
@@ -335,7 +335,7 @@ class CovWeights:
         # initialise
         nChan = residualdata.shape[1]
         nPola = residualdata.shape[2]
-        nt = residualdata.shape[0] / nbl
+        nt = int(residualdata.shape[0] / nbl)
         residualdata = residualdata.reshape((nt, nbl, nChan, nPola))
         A0 = A0.reshape((nt, nbl))[0, :]
         A1 = A1.reshape((nt, nbl))[0, :]
@@ -398,7 +398,7 @@ class CovWeights:
         darray = ms.getcol("DATA", startrow=self.startrow, nrow=self.nrow)
         tvalues = np.array(sorted(list(set(tarray))))
         nt = tvalues.shape[0]
-        nbl = tarray.shape[0]/nt
+        nbl = int(tarray.shape[0]/nt)
         nchan = darray.shape[1]
         npol = darray.shape[2]
         A0 = np.array(ms.getcol("ANTENNA1", startrow=self.startrow, nrow=self.nrow).reshape((nt, nbl)))
