@@ -187,7 +187,7 @@ def rasterize(verts, data):
     return data
 
 
-def string2bool(instring):
+def string2bool(invar):
     if invar is None:
         return None
     if isinstance(invar, bool):
