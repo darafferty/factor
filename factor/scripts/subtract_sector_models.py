@@ -163,7 +163,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         # Define chunks based on available memory
         fraction = float(nrows_in) / float(tin.nrows())
         nchunks = get_nchunks(msin, nr_outliers, fraction)
-        nrows_per_chunk = nrows_in / nchunks
+        nrows_per_chunk = int(nrows_in / nchunks)
         startrows = [startrow_in]
         nrows = [nrows_per_chunk]
         for i in range(1, nchunks):
