@@ -82,7 +82,7 @@ class Calibrate(Operation):
             Baseline selection string
         """
         cs = self.get_core_stations()
-        non_core = [a for a in self.stations if a not in cs]
+        non_core = [a for a in self.field.stations if a not in cs]
 
         return '[CR]*&&;!{}'.format(';!'.join(non_core))
 
@@ -101,7 +101,7 @@ class Calibrate(Operation):
         elif self.field.antenna == 'LBA':
             all_st = ['CS002LBA', 'CS003LBA', 'CS004LBA', 'CS005LBA', 'CS006LBA', 'CS007LBA']
 
-        return [a for a in all_st if a in self.stations]
+        return [a for a in all_st if a in self.field.stations]
 
     def get_core_stations(self):
         """
@@ -132,7 +132,7 @@ class Calibrate(Operation):
                         'CS103LBA', 'CS201LBA', 'CS301LBA', 'CS302LBA', 'CS401LBA', 'CS501LBA',
                         'RS106LBA', 'RS205LBA', 'RS305LBA', 'RS306LBA', 'RS406LBA', 'RS407LBA',
                         'RS503LBA']
-        return [a for a in all_core if a in self.stations]
+        return [a for a in all_core if a in self.field.stations]
 
     def finalize(self):
         """
