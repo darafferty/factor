@@ -33,20 +33,22 @@ class Calibrate(Operation):
         startchan = field.get_obs_parameters('startchan')
         nchan = field.get_obs_parameters('nchan')
         solint_fast_timestep = field.get_obs_parameters('solint_fast_timestep')
+        solint_fast_timestep_core = field.get_obs_parameters('solint_fast_timestep_core')
+        solint_fast_timestep_remote = field.get_obs_parameters('solint_fast_timestep_remote')
         solint_slow_timestep = field.get_obs_parameters('solint_slow_timestep')
         solint_fast_freqstep = field.get_obs_parameters('solint_fast_freqstep')
         solint_slow_freqstep = field.get_obs_parameters('solint_slow_freqstep')
-        output_fast_h5parm = [os.path.join(self.pipeline_parset_dir,
-                              'fast_phase_{}.h5parm'.format(i))
+        output_fast_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+                              'fast_phase_{}.h5parm'.format(i)))
                               for i in range(field.ntimechunks)]
-        output_fast_core_h5parm = [os.path.join(self.pipeline_parset_dir,
-                                   'fast_phase_core_{}.h5parm'.format(i))
+        output_fast_core_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+                                   'fast_phase_core_{}.h5parm'.format(i)))
                                    for i in range(field.ntimechunks)]
-        output_fast_remote_h5parm = [os.path.join(self.pipeline_parset_dir,
-                                     'fast_phase_remote_{}.h5parm'.format(i))
+        output_fast_remote_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+                                     'fast_phase_remote_{}.h5parm'.format(i)))
                                      for i in range(field.ntimechunks)]
-        output_slow_h5parm = [os.path.join(self.pipeline_parset_dir,
-                              'slow_gain_{}.h5parm'.format(i))
+        output_slow_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+                              'slow_gain_{}.h5parm'.format(i)))
                               for i in range(field.nfreqchunks)]
         baselines_core = self.get_baselines_core()
         antennaconstraint_core = '[{}]'.format(','.join(self.get_superterp_stations()))
@@ -61,6 +63,8 @@ class Calibrate(Operation):
                                 'startchan': startchan,
                                 'nchan': nchan,
                                 'solint_fast_timestep': solint_fast_timestep,
+                                'solint_fast_timestep_core': solint_fast_timestep_core,
+                                'solint_fast_timestep_remote': solint_fast_timestep_remote,
                                 'solint_slow_timestep': solint_slow_timestep,
                                 'solint_fast_freqstep': solint_fast_freqstep,
                                 'solint_slow_freqstep': solint_slow_freqstep,
