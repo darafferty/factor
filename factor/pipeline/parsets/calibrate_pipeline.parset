@@ -235,7 +235,7 @@ solve_fast_phases1.argument.solve.usebeammodel       = True
 {% endif %}
 solve_fast_phases1.argument.solve.h5parm             = h5parm
 solve_fast_phases1.argument.solve.sourcedb           = sourcedb
-solve_fast_phases1.argument.solve.solint             = timestep_core
+solve_fast_phases1.argument.solve.solint             = timestep
 solve_fast_phases1.argument.solve.nchan              = freqstep
 {% if mode == 'tec' %}
 solve_fast_phases1.argument.solve.approximatetec     = {{ approximatetec }}
@@ -319,7 +319,7 @@ solve_fast_phases2.argument.solve.usebeammodel       = True
 {% endif %}
 solve_fast_phases2.argument.solve.h5parm             = h5parm
 solve_fast_phases2.argument.solve.sourcedb           = sourcedb
-solve_fast_phases2.argument.solve.solint             = timestep_remote
+solve_fast_phases2.argument.solve.solint             = timestep
 solve_fast_phases2.argument.solve.nchan              = freqstep
 {% if mode == 'tec' %}
 solve_fast_phases2.argument.solve.approximatetec     = {{ approximatetec }}
