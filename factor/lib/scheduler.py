@@ -49,7 +49,7 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
     # Add needed attr/methods
     pipeline.name = '{0}_{1}'.format(op_name, direction_name)
     pipeline.logger = getSearchingLogger(pipeline.name)
-    pipeline.inputs['args'] = [parset]
+    pipeline.inputs['args'] = [str(parset)]
     pipeline.inputs['config'] = config
     pipeline.inputs['job_name'] = direction_name
 
