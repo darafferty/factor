@@ -6,12 +6,14 @@ import sys
 from lofarpipe.support.data_map import DataMap
 
 
-def main(output_file, tec_mapfile=None, gain_mapfile=None, use_beam=False):
+def main(input_file, output_file, tec_mapfile=None, gain_mapfile=None, use_beam=False):
     """
     Make an aterm-config file for WSClean
 
     Parameters
     ----------
+    input_file : str
+        Filename of input file (not used but needed for pipeline)
     output_file : str
         Filename of output config file
     tec_mapfile : str, optional

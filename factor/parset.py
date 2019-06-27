@@ -238,6 +238,10 @@ def get_calibration_options(parset):
     # Solve mode: tec or tecscreen (default = tec)
     if 'mode' not in parset_dict:
         parset_dict['mode'] = 'tec'
+    if 'solve_core_separately' in parset_dict:
+        parset_dict['solve_core_separately'] = parset.getboolean('calibration', 'solve_core_separately')
+    else:
+        parset_dict['solve_core_separately'] = True
 
     # Minimum uv distance in lambda for calibration (default = 80)
     if 'solve_min_uv_lambda' in parset_dict:
@@ -250,6 +254,10 @@ def get_calibration_options(parset):
         parset_dict['fast_timestep_sec'] = parset.getfloat('calibration', 'fast_timestep_sec')
     else:
         parset_dict['fast_timestep_sec'] = 8.0
+    if 'fast_timestep_core_sec' in parset_dict:
+        parset_dict['fast_timestep_core_sec'] = parset.getfloat('calibration', 'fast_timestep_core_sec')
+    else:
+        parset_dict['fast_timestep_core_sec'] = 32.0
     if 'fast_freqstep_hz' in parset_dict:
         parset_dict['fast_freqstep_hz'] = parset.getfloat('calibration', 'fast_freqstep_hz')
     else:

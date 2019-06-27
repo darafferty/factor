@@ -49,6 +49,7 @@ class Field(object):
         self.stepsize = self.parset['calibration_specific']['stepsize']
         self.tolerance = self.parset['calibration_specific']['tolerance']
         self.mode = self.parset['calibration_specific']['mode']
+        self.solve_core_separately = self.parset['calibration_specific']['solve_core_separately']
         self.tecscreen_max_order = self.parset['calibration_specific']['tecscreen_max_order']
         self.use_beam = self.parset['calibration_specific']['use_beam']
 
@@ -94,6 +95,14 @@ class Field(object):
                 else:
                     self.observations.append(obs)
 
+        # Check that all MSs have the same antenna type
+        self.antenna = obs0.antenna
+        for obs in self.observations:
+            if self.antenna != obs.antenna:
+                self.log.critical('Antenna type for MS {0} differs from the one for MS {1}! '
+                                  'Exiting!'.format(self.obs.ms_filename, self.obs0.ms_filename))
+                sys.exit(1)
+
         # Check that all observations have the same frequency axis
         # NOTE: this may not be necessary and is disabled for now
         obs0 = self.observations[0]
@@ -122,6 +131,14 @@ class Field(object):
         for obs in self.observations:
             if self.diam != obs.diam:
                 self.log.critical('Station diameter for MS {0} differs from the one for MS {1}! '
+                                  'Exiting!'.format(self.obs.ms_filename, self.obs0.ms_filename))
+                sys.exit(1)
+
+        # Check that all observations have the same stations
+        self.stations = obs0.stations
+        for obs in self.observations:
+            if self.stations != obs.stations:
+                self.log.critical('Stations in MS {0} differ from those in MS {1}! '
                                   'Exiting!'.format(self.obs.ms_filename, self.obs0.ms_filename))
                 sys.exit(1)
 

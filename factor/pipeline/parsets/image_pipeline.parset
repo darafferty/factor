@@ -81,6 +81,7 @@ premask.argument.make_blank_image      = True
 # make the aterm-config file, length = 1
 make_aterm_config.control.type          = make_aterm_config
 make_aterm_config.control.mapfile_in    = create_compressed_mapfile.output.mapfile
+make_aterm_config.control.inputkey      = infile
 make_aterm_config.control.outputkey     = outfile
 make_aterm_config.argument.flags        = [outfile]
 make_aterm_config.argument.tec_mapfile  = {{ fast_aterms_mapfile }}

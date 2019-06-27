@@ -90,12 +90,13 @@ class Observation(object):
         self.dec = np.degrees(float(obs.col('REFERENCE_DIR')[0][0][1]))
         obs.close()
 
-        # Get station diameter
+        # Get station names and diameter
         ant = pt.table(self.ms_filename+'::ANTENNA', ack=False)
+        self.stations = ant.col('NAME')[:]
         self.diam = float(ant.col('DISH_DIAMETER')[0])
-        if 'HBA' in ant.col('NAME')[0]:
+        if 'HBA' in self.stations[0]:
             self.antenna = 'HBA'
-        elif 'LBA' in ant.col('NAME')[0]:
+        elif 'LBA' in self.stations[0]:
             self.antenna = 'LBA'
         else:
             self.log.warning('Antenna type not recognized (only LBA and HBA data '
@@ -120,6 +121,7 @@ class Observation(object):
         """
         # Get the target solution intervals
         target_fast_timestep = parset['calibration_specific']['fast_timestep_sec']
+        target_fast_timestep_core = parset['calibration_specific']['fast_timestep_core_sec']
         target_fast_freqstep = parset['calibration_specific']['fast_freqstep_hz']
         target_slow_timestep = parset['calibration_specific']['slow_timestep_sec']
         target_slow_freqstep = parset['calibration_specific']['slow_freqstep_hz']
@@ -129,6 +131,7 @@ class Observation(object):
         timepersample = self.timepersample
         channelwidth = self.channelwidth
         solint_fast_timestep = max(1, int(round(target_fast_timestep / timepersample)))
+        solint_fast_timestep_core = max(1, int(round(target_fast_timestep_core / timepersample)))
         solint_fast_freqstep = max(1, self.get_nearest_frequstep(target_fast_freqstep / channelwidth))
 
         # Calculate time ranges of calibration chunks for fast-phase solve. Try
@@ -140,8 +143,12 @@ class Observation(object):
         # available cores:
         #
         # tot_mem = size of MS / # timeslots * ?
+        if parset['calibration_specific']['solve_core_separately']:
+            solint_fast = solint_fast_timestep_core
+        else:
+            solint_fast = solint_fast_timestep
         target_time_chunksize = get_time_chunksize(parset['cluster_specific'], self.timepersample,
-                                                   self.numsamples, solint_fast_timestep)
+                                                   self.numsamples, solint_fast)
         samplesperchunk = int(round(target_time_chunksize / timepersample))
         chunksize = samplesperchunk * timepersample
         mystarttime = self.starttime
@@ -201,6 +208,8 @@ class Observation(object):
 
         # Set solution intervals (same for every calibration chunk)
         self.parameters['solint_fast_timestep'] = [solint_fast_timestep] * self.ntimechunks
+        self.parameters['solint_fast_timestep_core'] = [solint_fast_timestep_core] * self.ntimechunks
+        self.parameters['solint_fast_timestep_remote'] = [solint_fast_timestep] * self.ntimechunks
         self.parameters['solint_fast_freqstep'] = [solint_fast_freqstep] * self.ntimechunks
         self.parameters['solint_slow_timestep'] = [solint_slow_timestep] * self.nfreqchunks
         self.parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
@@ -410,3 +419,25 @@ class Observation(object):
             delta_freq *= 1.1
 
         return delta_freq
+
+    def get_core_baselines(self):
+        """
+        Returns the DPPP string selection of core baselines
+
+        Parameters
+        ----------
+        freq : float
+            Frequency at which averaging will be done
+        delta_theta : float
+            Distance from phase center
+        resolution : float
+            Resolution of restoring beam
+        reduction_factor : float
+            Ratio of pre-to-post averaging peak flux density
+
+        Returns
+        -------
+        delta_freq : float
+            Bandwidth over which averaging will be done
+        """
+

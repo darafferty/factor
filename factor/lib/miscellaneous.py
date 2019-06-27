@@ -15,7 +15,7 @@ def read_vertices(filename):
     """
     Returns facet vertices stored in input file
     """
-    with open(filename, 'r') as f:
+    with open(filename, 'rb') as f:
         vertices = pickle.load(f)
     return vertices
 

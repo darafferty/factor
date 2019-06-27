@@ -1,6 +1,9 @@
 #! /usr/bin/env python
 """
 Script to create a mosaic from facet images
+
+Use https://github.com/revoltek/scripts/blob/master/mosaic.py instead?
+
 """
 import argparse
 from argparse import RawTextHelpFormatter

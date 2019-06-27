@@ -17,6 +17,7 @@ from scipy.spatial import Voronoi
 import shapely.geometry
 import shapely.ops
 import scipy.ndimage as ndimage
+from lofarpipe.support.data_map import DataMap, DataProduct
 
 
 def save_frame(screen, fitted_phase1, residuals,  x, y, k, sindx,
@@ -668,6 +669,11 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                 hdu[0].data = data
                 hdu.writeto(outfile, overwrite=True)
                 outfiles.append(outfile)
+
+            map_out = DataMap([])
+            map_out.data.append(DataProduct('localhost', ','.join(outfiles), False))
+            fileid = os.path.join(mapfile_dir, filename)
+            map_out.save(fileid)
 
             return {'aterm_images': ','.join(outfiles)}
         else:

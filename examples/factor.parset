@@ -66,8 +66,10 @@ input_skymodel = /data/skymodel.txt
 # HBA and 6.0 for LBA)
 # patch_target_flux_jy = 3.0
 
-# Solve mode: tec or tecscreen (default = tec)
+# Solve mode: tec or tecscreen (default = tec), and whether to solve separately for
+# the core stations in the tec solve
 # mode = tec
+# solve_core_separately = True
 
 # General solver parameters (defaults shown):
 # maxiter = 50
@@ -80,6 +82,7 @@ input_skymodel = /data/skymodel.txt
 # approximatetec = True
 # maxapproxiter = 25
 # fast_timestep_sec = 8.0
+# fast_timestep_core_sec = 32.0
 # fast_freqstep_hz = 1e6
 # tecscreen_max_order = 20
 
