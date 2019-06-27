@@ -6,6 +6,7 @@ import sys
 import logging
 import numpy as np
 import lsmtool
+import lsmtool.skymodel
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
 from factor.scripts import blank_image, mosaic_images
@@ -94,6 +95,7 @@ class Field(object):
                                                              endtime=endtime))
                 else:
                     self.observations.append(obs)
+        obs0 = self.observations[0]
 
         # Check that all MSs have the same antenna type
         self.antenna = obs0.antenna
@@ -105,7 +107,6 @@ class Field(object):
 
         # Check that all observations have the same frequency axis
         # NOTE: this may not be necessary and is disabled for now
-        obs0 = self.observations[0]
         enforce_uniform_frequency_structure = False
         if enforce_uniform_frequency_structure:
             for obs in self.observations:
@@ -201,8 +202,8 @@ class Field(object):
             pipeline
         """
         self.log.info('Reading sky model...')
-        if type(skymodel) is str:
-            skymodel = lsmtool.load(skymodel)
+        if type(skymodel) is not lsmtool.skymodel.SkyModel:
+            skymodel = lsmtool.load(str(skymodel))
 
         # Check if any sky models included in Factor are within the region of the
         # input sky model. If so, concatenate them with the input sky model
@@ -214,7 +215,7 @@ class Field(object):
             concat_skymodels = []
             for skymodel in skymodels:
                 try:
-                    s = lsmtool.load(skymodel)
+                    s = lsmtool.load(str(skymodel))
                     dist_deg = s.getDistance(self.ra, self.dec)
                     if any(dist_deg < max_separation_deg):
                         concat_skymodels.append(skymodel)
@@ -301,10 +302,10 @@ class Field(object):
 
         for i, (sm, sn) in enumerate(zip(sector_skymodels, sector_names)):
             if i == 0:
-                skymodel = lsmtool.load(sm)
+                skymodel = lsmtool.load(str(sm))
                 skymodel.group('single', root=sn)
             else:
-                skymodel2 = lsmtool.load(sm)
+                skymodel2 = lsmtool.load(str(sm))
                 skymodel2.group('single', root=sn)
                 skymodel.concatenate(skymodel2)
         self.make_skymodels(skymodel, regroup=regroup)
@@ -541,7 +542,7 @@ class Field(object):
         all_source_names = self.calibration_skymodel.getColValues('Name').tolist()
         sector_source_names = []
         for sector in self.imaging_sectors:
-            skymodel = lsmtool.load(sector.predict_skymodel_file)
+            skymodel = lsmtool.load(str(sector.predict_skymodel_file))
             sector_source_names.extend(skymodel.getColValues('Name').tolist())
         outlier_ind = np.array([all_source_names.index(sn) for sn in all_source_names
                                 if sn not in sector_source_names])

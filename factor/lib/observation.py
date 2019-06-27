@@ -28,7 +28,7 @@ class Observation(object):
         is the end of the MS file
     """
     def __init__(self, ms_filename, starttime=None, endtime=None):
-        self.ms_filename = ms_filename
+        self.ms_filename = str(ms_filename)
         self.ms_field = self.ms_filename + '_field'
         self.name = os.path.basename(self.ms_filename)
         self.log = logging.getLogger('factor:{}'.format(self.name))

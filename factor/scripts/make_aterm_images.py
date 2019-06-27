@@ -428,6 +428,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
     if type(bounds_mid_deg) is str:
         bounds_mid_deg = [float(f.strip()) for f in bounds_mid_deg.strip('[]').split(';')]
     if padding_fraction is not None:
+        padding_fraction = float(padding_fraction)
         padding_ra = (bounds_deg[2] - bounds_deg[0]) * (padding_fraction - 1.0)
         padding_dec = (bounds_deg[3] - bounds_deg[1]) * (padding_fraction - 1.0)
         bounds_deg[0] -= padding_ra

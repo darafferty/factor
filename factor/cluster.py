@@ -205,7 +205,11 @@ def find_executables(cluster_parset):
                    'h5collector_executable': ['H5parm_collector.py']}
     for key, names in executables.items():
         for name in names:
-            path = shutil.which(name)
+            try:
+                path = shutil.which(name)
+            except AttributeError:
+                from distutils import spawn
+                path = spawn.find_executable(name)
             if path is not None:
                 cluster_parset[key] = path
                 break
