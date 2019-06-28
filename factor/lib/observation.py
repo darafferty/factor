@@ -157,13 +157,14 @@ class Observation(object):
             nchunks = int(round(float(self.numsamples) * timepersample) / chunksize)
         else:
             nchunks = 1
-        self.ntimechunks = nchunks
-        self.log.debug('Using {} time chunk(s) for fast-phase calibration'.format(self.ntimechunks))
-        self.parameters['timechunk_filename'] = [self.ms_filename] * self.ntimechunks
-        starttimes = [mystarttime+(chunksize * i) for i in range(self.ntimechunks)]
+        starttimes = [mystarttime+(chunksize * i) for i in range(nchunks)]
         if starttimes[-1] >= myendtime:
             # Make sure the last start time does not equal or exceed the end time
             starttimes.pop(-1)
+            nchunks -= 1
+        self.ntimechunks = nchunks
+        self.log.debug('Using {} time chunk(s) for fast-phase calibration'.format(self.ntimechunks))
+        self.parameters['timechunk_filename'] = [self.ms_filename] * self.ntimechunks
         self.parameters['starttime'] = [self.convert_mjd(t) for t in starttimes]
         self.parameters['ntimes'] = [samplesperchunk] * self.ntimechunks
         if self.goesto_endofms:
