@@ -191,8 +191,6 @@ class Observation(object):
                                                           parset['cluster_specific'], channelwidth,
                                                           min_freqstep, solint_slow_timestep,
                                                           self.antenna, ndir)
-
-        # Now define chunks
         channelsperchunk = int(round(target_freq_chunksize / channelwidth))
         chunksize = channelsperchunk * channelwidth
         mystartfreq = self.startfreq

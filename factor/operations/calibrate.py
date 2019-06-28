@@ -51,8 +51,8 @@ class Calibrate(Operation):
                               'slow_gain_{}.h5parm'.format(i)))
                               for i in range(field.nfreqchunks)]
         baselines_core = self.get_baselines_core()
-        antennaconstraint_core = '[{}]'.format(','.join(self.get_superterp_stations()))
-        antennaconstraint_remote = '[{}]'.format(','.join(self.get_core_stations()))
+        antennaconstraint_core = '[[{}]]'.format(','.join(self.get_superterp_stations()))
+        antennaconstraint_remote = '[[{}]]'.format(','.join(self.get_core_stations()))
 
         self.parms_dict.update({'timechunk_filename': timechunk_filename,
                                 'freqchunk_filename': freqchunk_filename,
