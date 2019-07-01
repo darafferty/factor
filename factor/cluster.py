@@ -272,9 +272,17 @@ def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_ti
     solint_fast_timestep : int
         Number of time samples in fast-phase solve
     """
-    # Try to make at least as many time chunks as there are nodes
+    # TODO: check memory usage?
+    # Try to make at least as many time chunks as there are nodes, but ensure that
+    # solint_fast_timestep a divisor of samplesperchunk (otherwise we could get a lot
+    # of solutions with less than the target time)
     n_nodes = len(cluster_parset['node_list'])
-    samplesperchunk = np.ceil(numsamples / solint_fast_timestep / n_nodes)
+    samplesperchunk = np.ceil(numsamples / n_nodes)
+    while samplesperchunk % solint_fast_timestep:
+        samplesperchunk -= 1
+    if samplesperchunk < solint_fast_timestep:
+        samplesperchunk = solint_fast_timestep
+
     target_time_chunksize = timepersample * samplesperchunk
 
     return target_time_chunksize
