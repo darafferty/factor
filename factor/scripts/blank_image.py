@@ -42,12 +42,7 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
     region_file : str, optional
         Filename of region file in CASA format to use as the mask
     """
-    if type(make_blank_image) is str:
-        if make_blank_image.lower() == 'true':
-            make_blank_image = True
-        else:
-            make_blank_image = False
-
+    make_blank_image = misc.string2bool(make_blank_image)
     if make_blank_image:
         print('Making empty image...')
         if reference_ra_deg is not None and reference_dec_deg is not None:
