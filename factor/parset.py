@@ -525,6 +525,10 @@ def get_imaging_options(parset):
         parset_dict['robust'] = parset.getfloat('imaging', 'robust')
     else:
         parset_dict['robust'] = -0.5
+    if 'padding' in parset_dict:
+        parset_dict['padding'] = parset.getfloat('imaging', 'padding')
+    else:
+        parset_dict['padding'] = 1.2
     if 'min_uv_lambda' in parset_dict:
         parset_dict['min_uv_lambda'] = parset.getfloat('imaging', 'min_uv_lambda')
     else:
@@ -565,7 +569,7 @@ def get_imaging_options(parset):
                        'multiscale_scales_pixel', 'grid_center_ra', 'grid_center_dec',
                        'grid_width_ra_deg', 'grid_width_dec_deg', 'grid_nsectors_ra',
                        'wsclean_image_padding', 'min_uv_lambda', 'max_uv_lambda',
-                       'robust', 'sector_center_ra_list', 'sector_center_dec_list',
+                       'robust', 'padding', 'sector_center_ra_list', 'sector_center_dec_list',
                        'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
                        'idg_mode', 'sector_do_multiscale_list', 'target_ra',
                        'target_dec', 'target_radius_arcmin','use_beam']
