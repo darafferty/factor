@@ -55,13 +55,13 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_va
             f = si.interp1d(st2.time, st2.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
             vals = f(st1.time) + st1.val
             ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
-            sto = ho.getSolset(solset=solset1)
+            sto = sso.getSoltab(add_soltab)
             sto.setValues(vals)
         else:
             f = si.interp1d(st1.time, st1.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
             vals = f(st2.time) + st2.val
             ss2.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
-            sto = ho.getSolset(solset=solset2)
+            sto = sso.getSoltab(add_soltab)
             sto.setValues(vals)
     else:
         # Just copy over both solsets
