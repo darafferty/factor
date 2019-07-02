@@ -10,7 +10,7 @@ import sys
 import os
 
 
-def main(h5in, baseline, solset='sol000', soltab='tec000', dataval=1.0):
+def main(h5in, baseline, solset='sol000', soltab='tec000', dataval=0.0):
     """
     Reset solutions
 
