@@ -4,12 +4,14 @@ Script to combine two h5parms
 """
 import argparse
 from argparse import RawTextHelpFormatter
+from factor.lib import miscellaneous as misc
 from losoto.h5parm import h5parm
+import scipy.interpolate as si
 import sys
 import os
 
 
-def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000'):
+def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_values=False, add_soltab='tec000'):
     """
     Combines two h5parms
 
@@ -25,7 +27,13 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000'):
         Name of solset for h5parm1
     solset2 : str, optional
         Name of solset for h5parm2
+    add_values : bool, optional
+        If True, add values of the two h5parms, resampling on time if necessary (input
+        h5parms must have the same axes)
+    add_soltab : str, optional
+        Name of soltab values to add
     """
+    add_values = misc.string2bool(add_values)
     h1 = h5parm(h5parm1)
     h2 = h5parm(h5parm2)
     ss1 = h1.getSolset(solset=solset1)
@@ -35,8 +43,28 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000'):
     ho = h5parm(outh5parm, readonly=False)
 
     sso = ho.makeSolset(solsetName = 'sol000', addTables=False)
-    ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
-    ss2.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
+
+    if add_values:
+        # Figure out which one has finest time grid and interpolate other onto that grid,
+        # then add
+        st1 = ss1.getSoltab(add_soltab)
+        st2 = ss2.getSoltab(add_soltab)
+        axis_names = st1.getAxesNames()  # assume both have same axes
+        time_ind = axis_names.index('time')
+        if st1.shape[time_ind] > st2.shape[time_ind]:
+            f = si.interp1d(st2.time, st2.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
+            vals = f(st1.time) + ss1.val
+            st1.setValues(vals)
+            ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
+        else:
+            f = si.interp1d(st1.time, st1.val, axis=time_ind, kind='nearest', fill_value='extrapolate'
+            vals = f(st2.time) + ss2.val
+            st2.setValues(vals)
+            ss2.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
+    else:
+        # Just copy over both solsets
+        ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
+        ss2.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
 
     h1.close()
     h2.close()
