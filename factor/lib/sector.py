@@ -341,7 +341,7 @@ class Sector(object):
         # (which includes the padding done by WSClean, needed for aterm generation)
         self.initial_poly = poly
         self.poly = Polygon(poly)
-        padding_pix = dec_width_pix*(1.0 - self.field.parset['imaging_specific']['padding'])
+        padding_pix = dec_width_pix*(1.0 - self.field.parset['imaging_specific']['wsclean_image_padding'])
         self.poly_padded = self.poly.buffer(padding_pix)
 
     def get_vertices_radec(self):
