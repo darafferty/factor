@@ -51,7 +51,7 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_va
         st2 = ss2.getSoltab(add_soltab)
         axis_names = st1.getAxesNames()  # assume both have same axes
         time_ind = axis_names.index('time')
-        if st1.shape[time_ind] > st2.shape[time_ind]:
+        if st1.val.shape[time_ind] > st2.val.shape[time_ind]:
             f = si.interp1d(st2.time, st2.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
             vals = f(st1.time) + ss1.val
             st1.setValues(vals)
