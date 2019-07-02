@@ -421,8 +421,10 @@ class Field(object):
         # Compute bounding box for all imaging sectors and store as a
         # a semi-colon-separated list of [minRA; minDec; maxRA; maxDec] (we use semi-
         # colons, as otherwise the pipeline parset parser will split the list). Also
-        # store the midpoint as [midRA; midDec]
-        all_sectors = MultiPolygon([sector.poly for sector in self.imaging_sectors])
+        # store the midpoint as [midRA; midDec]. These values are needed for the aterm
+        # image generation, so we use the padded polygons to ensure that the final
+        # bounding box encloses all of the images *with* padding included
+        all_sectors = MultiPolygon([sector.poly_padded for sector in self.imaging_sectors])
         self.sector_bounds_xy = all_sectors.bounds
         minRA, minDec = self.xy2radec([self.sector_bounds_xy[0]], [self.sector_bounds_xy[1]])
         maxRA, maxDec = self.xy2radec([self.sector_bounds_xy[2]], [self.sector_bounds_xy[3]])

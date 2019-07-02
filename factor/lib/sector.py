@@ -109,8 +109,15 @@ class Sector(object):
         # IDG does not yet support rectangular images
         self.imsize = [max(self.imsize), max(self.imsize)]
 
-        # IDG has problems with small images
-        self.imsize = [max(1500, self.imsize[0]), max(1500, self.imsize[0])]
+        # IDG has problems with small images, so set minimum size to 1500 and adjust
+        # padded polygon
+        minsize = 1500
+        if max(self.imsize) < minsize:
+            dec_width_pix = self.width_dec / abs(self.field.wcs.wcs.cdelt[1])
+            padding_pix = dec_width_pix * (1.0 - self.field.parset['imaging_specific']['padding'])
+            padding_pix *= minsize / max(self.imsize)  # scale padding to new imsize
+            self.poly_padded = self.poly.buffer(padding_pix)
+            self.imsize = [minsize, minsize]
 
         self.wsclean_imsize = '{0} {1}'.format(self.imsize[0], self.imsize[1])
         self.log.debug('Image size is {0} x {1} pixels'.format(
@@ -327,8 +334,14 @@ class Sector(object):
                       (x0+ra_width_pix, y0+dec_width_pix),
                       (x0+ra_width_pix, y0), (x0, y0)]
         poly = Polygon(poly_verts)
+
+        # Save initial polygon, copy of initial polygon (which potentially will be
+        # altered later for source avoidance), and buffered version of initial polygon
+        # (which includes the padding done by WSClean, needed for aterm generation)
         self.initial_poly = poly
         self.poly = Polygon(poly)
+        padding_pix = dec_width_pix*(1.0 - self.field.parset['imaging_specific']['padding'])
+        self.poly_padded = self.poly.buffer(padding_pix)
 
     def get_vertices_radec(self):
         """
