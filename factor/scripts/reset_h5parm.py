@@ -29,7 +29,7 @@ def main(h5in, baseline, solset='sol000', soltab='tec000', dataval=1.0):
         Value to set solutions to
 
     """
-    h = h5parm(h5in, readOnly=False)
+    h = h5parm(h5in, readonly=False)
     s = h.getSolset(solset)
     t = s.getSoltab(soltab)
 
