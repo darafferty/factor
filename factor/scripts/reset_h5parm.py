@@ -10,13 +10,13 @@ import sys
 import os
 
 
-def main(h5parm, baseline, solset='sol000', soltab='tec000', dataval=1.0):
+def main(h5in, baseline, solset='sol000', soltab='tec000', dataval=1.0):
     """
     Reset solutions
 
     Parameters
     ----------
-    h5parm : str
+    h5in : str
         Filename of h5parm
     baseline : str
         Baseline selection used in calibration. E.g.:
@@ -29,7 +29,7 @@ def main(h5parm, baseline, solset='sol000', soltab='tec000', dataval=1.0):
         Value to set solutions to
 
     """
-    h = h5parm(h5parm, readOnly=False)
+    h = h5parm(h5in, readOnly=False)
     s = h.getSolset(solset)
     t = s.getSoltab(soltab)
 
