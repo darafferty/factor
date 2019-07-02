@@ -102,6 +102,7 @@ image.argument.niter                 = {{ wsclean_niter }}
 image.argument.pol                   = I
 image.argument.weight                = briggs {{ robust }}
 image.argument.mgain                 = 0.8
+image.argument.padding               = {{ wsclean_image_padding }}
 image.argument.minuv-l               = {{ min_uv_lambda }}
 image.argument.maxuv-l               = {{ max_uv_lambda }}
 image.argument.scale                 = {{ cellsize_deg }}

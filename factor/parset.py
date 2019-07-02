@@ -321,10 +321,12 @@ def get_calibration_options(parset):
 
     # Check for invalid options
     allowed_options = ['max_selfcal_loops', 'mode', 'solve_min_uv_lambda',
-                       'fast_timestep_sec', 'fast_freqstep_hz',
-                       'slow_timestep_sec', 'slow_freqstep_hz', 'approximatetec',
-                       'propagatesolutions', 'maxapproxiter', 'maxiter', 'stepsize',
-                       'tolerance', 'patch_target_flux_jy', 'smoothnessconstraint',
+                       'fast_timestep_sec', 'fast_timestep_core_sec',
+                       'fast_freqstep_hz', 'solve_core_separately',
+                       'slow_timestep_sec', 'slow_freqstep_hz',
+                       'approximatetec', 'propagatesolutions', 'maxapproxiter',
+                       'maxiter', 'stepsize', 'tolerance',
+                       'patch_target_flux_jy', 'smoothnessconstraint',
                        'use_beam', 'tecscreen_max_order']
     for option in given_options:
         if option not in allowed_options:
@@ -525,10 +527,6 @@ def get_imaging_options(parset):
         parset_dict['robust'] = parset.getfloat('imaging', 'robust')
     else:
         parset_dict['robust'] = -0.5
-    if 'padding' in parset_dict:
-        parset_dict['padding'] = parset.getfloat('imaging', 'padding')
-    else:
-        parset_dict['padding'] = 1.2
     if 'min_uv_lambda' in parset_dict:
         parset_dict['min_uv_lambda'] = parset.getfloat('imaging', 'min_uv_lambda')
     else:
@@ -558,11 +556,11 @@ def get_imaging_options(parset):
     else:
         parset_dict['target_radius_arcmin'] = None
 
-    # Padding factor for WSClean images (default = 1.4)
+    # Padding factor for WSClean images (default = 1.2)
     if 'wsclean_image_padding' in parset_dict:
         parset_dict['wsclean_image_padding'] = parset.getfloat('imaging', 'wsclean_image_padding')
     else:
-        parset_dict['wsclean_image_padding'] = 1.4
+        parset_dict['wsclean_image_padding'] = 1.2
 
     # Check for invalid options
     allowed_options = ['max_peak_smearing', 'cellsize_arcsec', 'robust', 'reweight',

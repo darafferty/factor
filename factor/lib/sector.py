@@ -91,6 +91,7 @@ class Sector(object):
         self.use_tec_screens = self.field.parset['imaging_specific']['use_tec_screens']
         self.use_gain_screens = self.field.parset['imaging_specific']['use_gain_screens']
         self.use_beam = self.field.parset['imaging_specific']['use_beam']
+        self.wsclean_image_padding = self.field.parset['imaging_specific']['wsclean_image_padding']
         self.flag_abstime = self.field.parset['flag_abstime']
         self.flag_baseline = self.field.parset['flag_baseline']
         self.flag_freqrange = self.field.parset['flag_freqrange']
@@ -114,7 +115,7 @@ class Sector(object):
         minsize = 1500
         if max(self.imsize) < minsize:
             dec_width_pix = self.width_dec / abs(self.field.wcs.wcs.cdelt[1])
-            padding_pix = dec_width_pix * (1.0 - self.field.parset['imaging_specific']['padding'])
+            padding_pix = dec_width_pix * (1.0 - self.wsclean_image_padding)
             padding_pix *= minsize / max(self.imsize)  # scale padding to new imsize
             self.poly_padded = self.poly.buffer(padding_pix)
             self.imsize = [minsize, minsize]

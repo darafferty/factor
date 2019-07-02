@@ -97,11 +97,9 @@ input_skymodel = /data/skymodel.txt
 
 [imaging]
 # Imaging parameters: pixel size in arcsec (default = 1.5 for HBA, 3.0 for LBA), Briggs
-# robust parameter (default = -0.5), internal padding factor (default = 1.2) and
-# minimum uv distance in lambda (default = 80)
+# robust parameter (default = -0.5) and minimum uv distance in lambda (default = 80)
 # cellsize_arcsec = 1.5
 # robust = -0.5
-# padding = 1.2
 # min_uv_lambda = 80.0
 # max_uv_lambda = 0.0
 # taper_arcsec = 0.0
