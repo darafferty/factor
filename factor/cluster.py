@@ -257,7 +257,8 @@ def get_total_memory():
     return tot_gb
 
 
-def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_timestep):
+def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_timestep,
+                       antenna, ndir):
     """
     Returns the target chunk size in seconds for an observation
 
@@ -271,21 +272,40 @@ def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_ti
         Total number of time samples in the observation
     solint_fast_timestep : int
         Number of time samples in fast-phase solve
+    antenna : str
+        Antenna type: "HBA" or "LBA"
+    ndir : int
+        Number of directions/patches in the calibration
     """
     # TODO: check memory usage?
+    mem_gb = cluster_parset['fmem'] * get_total_memory()
+    if antenna == 'HBA':
+        # Memory usage in GB/timeslot/dir of a typical HBA observation
+        mem_usage_gb = 0.2
+    elif antenna == 'LBA':
+        # Memory usage in GB/timeslot/dir of a typical LBA observation
+        mem_usage_gb = 0.05
+    gb_per_solint = mem_usage_gb * solint_fast_timestep * ndir
+
     # Try to make at least as many time chunks as there are nodes, but ensure that
     # solint_fast_timestep a divisor of samplesperchunk (otherwise we could get a lot
     # of solutions with less than the target time)
     n_nodes = len(cluster_parset['node_list'])
     samplesperchunk = np.ceil(numsamples / n_nodes)
+    if mem_gb / gb_per_solint < 1.0:
+        old_solint_fast_timestep = solint_fast_timestep
+        solint_fast_timestep *= mem_gb / gb_per_solint
+        solint_fast_timestep = max(1, int(round(solint_fast_timestep)))
+        log.warn('Not enough memory available for fast-phase solve. Reducing solution '
+                 'time interval from {0} to {1}'.format(old_solint_fast_timestep,
+                                                        solint_fast_timestep))
     while samplesperchunk % solint_fast_timestep:
         samplesperchunk -= 1
     if samplesperchunk < solint_fast_timestep:
         samplesperchunk = solint_fast_timestep
-
     target_time_chunksize = timepersample * samplesperchunk
 
-    return target_time_chunksize
+    return target_time_chunksize, solint_fast_timestep
 
 
 def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,

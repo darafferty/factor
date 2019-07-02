@@ -256,8 +256,14 @@ def get_calibration_options(parset):
         parset_dict['fast_timestep_sec'] = 8.0
     if 'fast_timestep_core_sec' in parset_dict:
         parset_dict['fast_timestep_core_sec'] = parset.getfloat('calibration', 'fast_timestep_core_sec')
+        if parset_dict['fast_timestep_core_sec'] < parset_dict['fast_timestep_sec']:
+            log.error('The core timestep of ({0} s) is less than that of the '
+                      'whole array ({1} s). It should be larger by a factor of '
+                      '3-4. Exiting...'.format(parset_dict['fast_timestep_core_sec'],
+                                               parset_dict['fast_timestep_sec']))
+            sys.exit(1)
     else:
-        parset_dict['fast_timestep_core_sec'] = 32.0
+        parset_dict['fast_timestep_core_sec'] = 4 * parset_dict['fast_timestep_sec']
     if 'fast_freqstep_hz' in parset_dict:
         parset_dict['fast_freqstep_hz'] = parset.getfloat('calibration', 'fast_freqstep_hz')
     else:

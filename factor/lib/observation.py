@@ -144,11 +144,18 @@ class Observation(object):
         #
         # tot_mem = size of MS / # timeslots * ?
         if parset['calibration_specific']['solve_core_separately']:
-            solint_fast = solint_fast_timestep_core
+            # use the core timestep, as it is longer
+            target_time_chunksize, solint_fast_timestep_core = get_time_chunksize(parset['cluster_specific'],
+                                                                                  self.timepersample,
+                                                                                  self.numsamples,
+                                                                                  solint_fast_timestep_core,
+                                                                                  self.antenna, ndir)
         else:
-            solint_fast = solint_fast_timestep
-        target_time_chunksize = get_time_chunksize(parset['cluster_specific'], self.timepersample,
-                                                   self.numsamples, solint_fast)
+            target_time_chunksize, solint_fast_timestep = get_time_chunksize(parset['cluster_specific'],
+                                                                             self.timepersample,
+                                                                             self.numsamples,
+                                                                             solint_fast_timestep,
+                                                                             self.antenna, ndir)
         samplesperchunk = int(round(target_time_chunksize / timepersample))
         chunksize = samplesperchunk * timepersample
         mystarttime = self.starttime
