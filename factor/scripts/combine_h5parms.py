@@ -53,12 +53,12 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_va
         time_ind = axis_names.index('time')
         if st1.val.shape[time_ind] > st2.val.shape[time_ind]:
             f = si.interp1d(st2.time, st2.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
-            vals = f(st1.time) + ss1.val
+            vals = f(st1.time) + st1.val
             st1.setValues(vals)
             ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
         else:
             f = si.interp1d(st1.time, st1.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
-            vals = f(st2.time) + ss2.val
+            vals = f(st2.time) + st2.val
             st2.setValues(vals)
             ss2.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
     else:
