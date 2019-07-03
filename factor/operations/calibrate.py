@@ -150,9 +150,9 @@ class Calibrate(Operation):
             self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
                                                      'combine_fast_h5parms_output.mapfile')
         self.field.fast_aterms_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                      'make_fast_aterms.aterm_images.mapfile')
+                                                      'fast_aterm_images.mapfile')
         self.field.slow_aterms_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                      'make_slow_aterms.aterm_images.mapfile')
+                                                      'slow_aterm_images.mapfile')
 
         # Save the solutions
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))

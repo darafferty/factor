@@ -379,7 +379,8 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
 
 
 def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname='sol000',
-         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.02, smooth=0, gsize=0):
+         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.02, smooth=0, gsize=0,
+         mapfile_dir='.', filename='aterm_images.mapfile'):
     """
     Make a-term FITS images
 
@@ -399,15 +400,19 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         Name of solset
     ressoltabname : str, optional
         Soltab containing the screen residuals
-    padding_fraction : float
+    padding_fraction : float, optional
         Fraction of total size to pad with (e.g., 0.2 => 20% padding all around)
-    cellsize_deg : float
+    cellsize_deg : float, optional
         Cellsize of output image
-    smooth : float
+    smooth : float, optional
         Size of smoothing kernel to apply (in units of output pixels)
-    gsize : float
+    gsize : float, optional
         FWHM of Gaussian to add at patch locations (to enforce that solutions at these
         locations are exactly equal to those in the h5parm)
+    mapfile_dir : str, optional
+        Directory in which to store output mapfile
+    filename : str, optional
+        Filename of output mapfile
 
     Returns
     -------
