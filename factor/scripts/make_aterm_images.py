@@ -743,4 +743,9 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                 hdu.writeto(outfile, overwrite=True)
                 outfiles.append(outfile)
 
+            map_out = DataMap([])
+            map_out.data.append(DataProduct('localhost', ','.join(outfiles), False))
+            fileid = os.path.join(mapfile_dir, filename)
+            map_out.save(fileid)
+
             return {'aterm_images': ','.join(outfiles)}
