@@ -385,6 +385,7 @@ create_fast_output_map.control.filename    = combine_fast_h5parms_output.mapfile
 combine_fast_phases.control.type        = combine_h5parms
 combine_fast_phases.control.mapfiles_in = [combine_fast_phases_core.output.mapfile,combine_fast_phases_remote.output.mapfile]
 combine_fast_phases.control.inputkeys   = [h1,h2]
+combine_fast_phases.control.mapfile_out = create_fast_output_map.output.mapfile
 combine_fast_phases.control.outputkey   = outfile
 combine_fast_phases.argument.flags      = [h1,h2,outfile]
 combine_fast_phases.argument.add_values = True
