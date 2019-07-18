@@ -150,7 +150,7 @@ def main(images, outfits, maxwidth=0):
     ma = pims[-1].coordinates()
     ma['direction'].set_referencepixel([len(master_dec)/2, len(master_ra)/2])
     ma['direction'].set_increment([decinc[np.argmin(np.abs(decinc))], rainc[np.argmin(np.abs(rainc))]])
-    ma['direction'].set_referencevalue([master_dec[len(master_dec)/2], master_ra[len(master_ra)/2]])
+    ma['direction'].set_referencevalue([master_dec[int(len(master_dec)/2)], master_ra[int(len(master_ra)/2)]])
 
     # Initialize the output image
     master_im = np.zeros((len(master_dec), len(master_ra)))
