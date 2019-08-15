@@ -573,7 +573,7 @@ fit_slow_screens.argument.flags       = [infile]
 create_slow_aterms_output_map.control.kind        = plugin
 create_slow_aterms_output_map.control.type        = addListMapfile
 create_slow_aterms_output_map.control.hosts       = {{ hosts }}
-create_slow_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/slow_aterms.fits]
+create_slow_aterms_output_map.control.files       = [input.output.working_directory/input.output.job_name/slow_aterms]
 create_slow_aterms_output_map.control.mapfile_dir = input.output.mapfile_dir
 create_slow_aterms_output_map.control.filename    = slow_aterms_output.mapfile
 

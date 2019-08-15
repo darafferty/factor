@@ -43,8 +43,17 @@ class Image(Operation):
         """
         # Save output mapfiles for later use
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-                                           'image-MFS-image.fits.mapfile'))
-        self.direction.image_file = in_map[0].file
+                                           'image-MFS-I-image-pb.fits.mapfile'))
+        self.direction.I_image_file = in_map[0].file
+        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'image-MFS-Q-image-pb.fits.mapfile'))
+        self.direction.Q_image_file = in_map[0].file
+        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'image-MFS-U-image-pb.fits.mapfile'))
+        self.direction.U_image_file = in_map[0].file
+        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'image-MFS-V-image-pb.fits.mapfile'))
+        self.direction.V_image_file = in_map[0].file
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'filter.mapfile'))
         self.direction.image_skymodel_file = in_map[0].file

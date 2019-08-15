@@ -9,9 +9,12 @@ import lsmtool
 import lsmtool.skymodel
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
-from factor.scripts import blank_image, mosaic_images
+from factor.lib.image import Image
 from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon, MultiPolygon
+from astropy.io import fits as pyfits
+from astropy.wcs import WCS as pywcs
+from reproject import reproject_interp
 import rtree
 import glob
 
@@ -419,18 +422,18 @@ class Field(object):
             sector.set_imaging_parameters(do_multiscale)
 
         # Compute bounding box for all imaging sectors and store as a
-        # a semi-colon-separated list of [minRA; minDec; maxRA; maxDec] (we use semi-
-        # colons, as otherwise the pipeline parset parser will split the list). Also
+        # a semi-colon-separated list of [maxRA; minDec; minRA; maxDec] (we use semi-
+        # colons as otherwise the pipeline parset parser will split the list). Also
         # store the midpoint as [midRA; midDec]. These values are needed for the aterm
         # image generation, so we use the padded polygons to ensure that the final
         # bounding box encloses all of the images *with* padding included
         all_sectors = MultiPolygon([sector.poly_padded for sector in self.imaging_sectors])
         self.sector_bounds_xy = all_sectors.bounds
-        minRA, minDec = self.xy2radec([self.sector_bounds_xy[0]], [self.sector_bounds_xy[1]])
-        maxRA, maxDec = self.xy2radec([self.sector_bounds_xy[2]], [self.sector_bounds_xy[3]])
+        maxRA, minDec = self.xy2radec([self.sector_bounds_xy[0]], [self.sector_bounds_xy[1]])
+        minRA, maxDec = self.xy2radec([self.sector_bounds_xy[2]], [self.sector_bounds_xy[3]])
         midRA, midDec = self.xy2radec([(self.sector_bounds_xy[0]+self.sector_bounds_xy[2])/2.0],
                                       [(self.sector_bounds_xy[1]+self.sector_bounds_xy[3])/2.0])
-        self.sector_bounds_deg = '[{0:.6f};{1:.6f};{2:.6f};{3:.6f}]'.format(minRA[0], minDec[0], maxRA[0], maxDec[0])
+        self.sector_bounds_deg = '[{0:.6f};{1:.6f};{2:.6f};{3:.6f}]'.format(maxRA[0], minDec[0], minRA[0], maxDec[0])
         self.sector_bounds_mid_deg = '[{0:.6f};{1:.6f}]'.format(midRA[0], midDec[0])
 
         # Make outlier sectors containing any remaining calibration sources (not
@@ -644,25 +647,74 @@ class Field(object):
         iter : int
             Iteration index
         """
+        # TODO: make QUV mosaics as well and put all four in a single FITS cube
         dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
         create_directory(dst_dir)
-        field_image_filename = os.path.join(dst_dir, 'field-MFS-image.fits')
+        field_image_filename = os.path.join(dst_dir, 'field-MFS-I-image.fits')
         if os.path.exists(field_image_filename):
             os.remove(field_image_filename)
-        if len(self.imaging_sectors) > 1:
-            # Blank the sector images before making mosaic
-            self.log.info('Making mosiac of sector images...')
-            blanked_images = []
-            for sector in self.imaging_sectors:
-                input_image_file = sector.image_file
-                vertices_file = sector.vertices_file
-                output_image_file = input_image_file + '_blanked'
-                blanked_images.append(output_image_file)
-                blank_image.main(input_image_file, output_image_file, vertices_file=vertices_file)
 
-            # Make the mosaic
-            mosaic_images.main(blanked_images, field_image_filename)
-        else:
+        if len(self.imaging_sectors) == 1:
             # No need to mosaic a single image; just copy it
-            output_image_filename = self.imaging_sectors[0].image_file
+            output_image_filename = self.imaging_sectors[0].I_image_file
             os.system('cp {0} {1}'.format(output_image_filename, field_image_filename))
+        else:
+            # Set up images used in mosaic
+            directions = []
+            for sector in self.imaging_sectors:
+                d = Image(sector.I_image_file)
+                d.vertices_file = sector.vertices_file
+                d.blank()
+                d.calc_weight()
+                directions.append(d)
+
+            # Prepare header for final gridding
+            mra = np.mean(np.array([d.get_wcs().wcs.crval[0] for d in directions]))
+            mdec = np.mean(np.array([d.get_wcs().wcs.crval[1] for d in directions]))
+
+            # Make a reference WCS and use it to find the extent in pixels
+            # needed for the combined image
+            rwcs = pywcs(naxis=2)
+            rwcs.wcs.ctype = directions[0].get_wcs().wcs.ctype
+            rwcs.wcs.cdelt = directions[0].get_wcs().wcs.cdelt
+            rwcs.wcs.crval = [mra, mdec]
+            rwcs.wcs.crpix = [1, 1]
+            xmin, xmax, ymin, ymax = 0, 0, 0, 0
+            for d in directions:
+                w = d.get_wcs()
+                ys, xs = np.where(d.img_data)
+                axmin, aymin, axmax, aymax = xs.min(), ys.min(), xs.max(), ys.max()
+                del xs, ys
+                for x, y in ((axmin, aymin), (axmax, aymin), (axmin, aymax), (axmax, aymax)):
+                    ra, dec = [float(f) for f in w.wcs_pix2world(x, y, 0)]
+                    nx, ny = [float(f) for f in rwcs.wcs_world2pix(ra, dec, 0)]
+                    xmin, xmax, ymin, ymax = min(nx, xmin), max(nx, xmax), min(ny, ymin), max(ny, ymax)
+            xsize = int(xmax-xmin)
+            ysize = int(ymax-ymin)
+
+            rwcs.wcs.crpix = [-int(xmin)+1, -int(ymin)+1]
+            regrid_hdr = rwcs.to_header()
+            regrid_hdr['NAXIS'] = 2
+            regrid_hdr['NAXIS1'] = xsize
+            regrid_hdr['NAXIS2'] = ysize
+
+            isum = np.zeros([ysize, xsize])
+            wsum = np.zeros_like(isum)
+            mask = np.zeros_like(isum, dtype=np.bool)
+            for i, d in enumerate(directions):
+                r, footprint = reproject_interp((d.img_data, d.img_hdr), regrid_hdr)
+                r[np.isnan(r)] = 0
+                w, footprint = reproject_interp((d.weight_data, d.img_hdr), regrid_hdr)
+                mask |= ~np.isnan(w)
+                w[np.isnan(w)] = 0
+                isum += r*w
+                wsum += w
+            isum /= wsum
+            isum[~mask] = np.nan
+
+            for ch in ('BMAJ', 'BMIN', 'BPA'):
+                regrid_hdr[ch] = pyfits.open(directions[0].imagefile)[0].header[ch]
+            regrid_hdr['ORIGIN'] = 'Factor'
+            regrid_hdr['UNITS'] = 'Jy/beam'
+            hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)
+            hdu.writeto(field_image_filename, overwrite=True)

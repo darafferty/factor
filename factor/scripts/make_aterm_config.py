@@ -4,6 +4,7 @@ Script to make an aterm-config file for WSClean
 """
 import sys
 from lofarpipe.support.data_map import DataMap
+from factor.lib import miscellaneous as misc
 
 
 def main(input_file, output_file, tec_mapfile=None, gain_mapfile=None, use_beam=False):
@@ -26,6 +27,7 @@ def main(input_file, output_file, tec_mapfile=None, gain_mapfile=None, use_beam=
     if tec_mapfile is None and gain_mapfile is None:
         print('make_aterm_config: One of tec_mapfile or gain_mapfile must be specified')
         sys.exit(1)
+    use_beam = misc.string2bool(use_beam)
 
     terms = []
     if tec_mapfile is not None:

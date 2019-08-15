@@ -561,6 +561,8 @@ def get_imaging_options(parset):
         parset_dict['wsclean_image_padding'] = parset.getfloat('imaging', 'wsclean_image_padding')
     else:
         parset_dict['wsclean_image_padding'] = 1.2
+    if parset_dict['wsclean_image_padding'] < 1.0:
+        parset_dict['wsclean_image_padding'] = 1.0
 
     # Check for invalid options
     allowed_options = ['max_peak_smearing', 'cellsize_arcsec', 'robust', 'reweight',

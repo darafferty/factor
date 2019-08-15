@@ -48,30 +48,30 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
     for iter, step in enumerate(strategy_steps):
         # Calibrate
         if step['do_calibrate']:
+            field.__dict__.update(step['calibrate_parameters'])
             field.do_slowgain_solve = step['do_slowgain']
             op = Calibrate(field, iter+1)
             scheduler.run(op)
 
         # Predict and subtract sector models
         if step['do_predict']:
-            field.peel_outliers = step['peel_outliers']
+            field.__dict__.update(step['predict_parameters'])
             op = Predict(field, iter+1)
             scheduler.run(op)
-            if step['peel_outliers']:
+            if field.peel_outliers:
                 # Update the observations to use the new peeled datasets and remove the
                 # outlier sectors (since, once peeled, they are no longer needed)
                 for obs in field.observations:
                     obs.ms_filename = obs.ms_field
                 field.sectors = [sector for sector in field.sectors if not sector.is_outlier]
                 field.outlier_sectors = []
+                field.peel_outliers = False
 
         # Image the sectors
         if step['do_image']:
-            # Set flag for slow-gain apply
             imaging_sectors = [sector for sector in field.sectors if not sector.is_outlier]
             for sector in imaging_sectors:
-                if not sector.use_gain_screens:
-                    sector.apply_slowgains = step['do_slowgain']
+                sector.__dict__.update(step['image_parameters'])
 
             # Put the sectors using multiscale clean first, as they take the longest to
             # image

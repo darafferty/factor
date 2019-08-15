@@ -99,6 +99,7 @@ class Sector(object):
         self.mode = self.field.parset['calibration_specific']['mode']
         self.target_fast_timestep = self.field.parset['calibration_specific']['fast_timestep_sec']
         self.target_slow_freqstep = self.field.parset['calibration_specific']['slow_freqstep_hz']
+        self.auto_mask = 3.0
 
         # Set image size based on current sector polygon
         xmin, ymin, xmax, ymax = self.poly.bounds
@@ -115,7 +116,7 @@ class Sector(object):
         minsize = 1500
         if max(self.imsize) < minsize:
             dec_width_pix = self.width_dec / abs(self.field.wcs.wcs.cdelt[1])
-            padding_pix = dec_width_pix * (1.0 - self.wsclean_image_padding)
+            padding_pix = dec_width_pix * (self.wsclean_image_padding - 1.0)
             padding_pix *= minsize / max(self.imsize)  # scale padding to new imsize
             self.poly_padded = self.poly.buffer(padding_pix)
             self.imsize = [minsize, minsize]
@@ -341,7 +342,7 @@ class Sector(object):
         # (which includes the padding done by WSClean, needed for aterm generation)
         self.initial_poly = poly
         self.poly = Polygon(poly)
-        padding_pix = dec_width_pix*(1.0 - self.field.parset['imaging_specific']['wsclean_image_padding'])
+        padding_pix = dec_width_pix*(self.field.parset['imaging_specific']['wsclean_image_padding'] - 1.0)
         self.poly_padded = self.poly.buffer(padding_pix)
 
     def get_vertices_radec(self):
