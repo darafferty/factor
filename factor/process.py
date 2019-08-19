@@ -49,7 +49,6 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
         # Calibrate
         if step['do_calibrate']:
             field.__dict__.update(step['calibrate_parameters'])
-            field.do_slowgain_solve = step['do_slowgain']
             op = Calibrate(field, iter+1)
             scheduler.run(op)
 

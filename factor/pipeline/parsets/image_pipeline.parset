@@ -57,6 +57,9 @@ prepare_imaging_data.argument.avg.type                            = squash
 prepare_imaging_data.argument.avg.freqstep                        = freqstep
 prepare_imaging_data.argument.msout.storagemanager                = "Dysco"
 
+# TODO: add step that reads above data, applies central solutions, and
+# averages, to produce calibrated dataset
+
 # make the compressed mapfile, length = 1
 create_compressed_mapfile.control.kind        = plugin
 create_compressed_mapfile.control.type        = compressMapfile

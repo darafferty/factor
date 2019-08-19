@@ -393,7 +393,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
     outroot : str
         Root of filename of output FITS file (root+'_0.fits')
     bounds_deg : list
-        List of [minRA, minDec, maxRA, maxDec] for image bounds
+        List of [maxRA, minDec, minRA, maxDec] for image bounds
     bounds_mid_deg : list
         List of [RA, Dec] for midpoint of image bounds
     solsetname : str, optional
