@@ -99,8 +99,11 @@ image.argument.flags                  = [-no-update-model-required,-multiscale,-
 image.argument.fits-mask              = fitsmask
 image.argument.size                   = {{ wsclean_imsize }}
 image.argument.niter                  = {{ wsclean_niter }}
-image.argument.pol                    = IQUV
-image.argument.link-polarizations     = I
+image.argument.pol                    = I
+# NOTE: currently, -save-source-list only works with pol=I -- when it works with other
+# pols, enable IQUV imaging with the following lines
+# image.argument.pol                    = IQUV
+# image.argument.link-polarizations     = I
 image.argument.weight                 = briggs {{ robust }}
 image.argument.mgain                  = 0.8
 image.argument.padding                = {{ wsclean_image_padding }}
@@ -132,7 +135,7 @@ image.argument.local-rms-method       = rms-with-min
 image.argument.idg-mode               = {{ idg_mode }}
 image.argument.aterm-config           = atermconfig
 image.argument.aterm-kernel-size      = 16
-image.argument.parallel-deconvolution = 512
+# image.argument.parallel-deconvolution = 512
 
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel
