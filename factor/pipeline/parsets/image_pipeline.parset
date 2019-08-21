@@ -139,7 +139,10 @@ image.argument.aterm-kernel-size      = 16
 
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel
-filter.control.mapfiles_in            = [image.output.image-MFS-I-image.fits.mapfile,image.output.image-sources.txt.mapfile]
+filter.control.mapfiles_in            = [image.output.image-MFS-image.fits.mapfile,image.output.image-sources.txt.mapfile]
+# NOTE: currently, -save-source-list only works with pol=I -- when it works with other
+# pols, enable IQUV imaging with the following line
+# filter.control.mapfiles_in            = [image.output.image-MFS-I-image.fits.mapfile,image.output.image-sources.txt.mapfile]
 filter.control.inputkeys              = [imagefile,modelfile]
 filter.control.outputkey              = outmodelfile
 filter.argument.flags                 = [imagefile,modelfile,outmodelfile]
