@@ -59,8 +59,8 @@ class Image(Operation):
 #         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
 #                                            'image-MFS-V-image-pb.fits.mapfile'))
 #         self.direction.V_image_file = in_map[0].file
-#         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-#                                            'filter.mapfile'))
+        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'filter.mapfile'))
         self.direction.image_skymodel_file = in_map[0].file
 
         # Delete temp data
