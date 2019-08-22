@@ -109,7 +109,7 @@ class Image(object):
                 else:
                     dataslice.append(0)
             self.img_hdr = header
-            self.img_data = f[0].data[dataslice]
+            self.img_data = f[0].data[tuple(dataslice)]
 
     def write(self, filename=None):
         if filename is None:
@@ -131,7 +131,7 @@ class Image(object):
             vertices_file = self.vertices_file
         vertices = misc.read_vertices(vertices_file)
 
-        w = pywcs.WCS(self.header)
+        w = pywcs(self.header)
         RAind = w.axis_type_names.index('RA')
         Decind = w.axis_type_names.index('DEC')
         RAverts = vertices[0]
