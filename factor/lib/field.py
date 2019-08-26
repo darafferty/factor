@@ -96,6 +96,7 @@ class Field(object):
                             endtime = obs.endtime
                         self.observations.append(Observation(obs.ms_filename, starttime=starttime,
                                                              endtime=endtime))
+#                     self.log.info('Spitting observation(s)')
                 else:
                     self.observations.append(obs)
         obs0 = self.observations[0]
@@ -229,46 +230,60 @@ class Field(object):
                 skymodel.concatenate(s, matchBy='position', radius=matching_radius_deg,
                                      keep='from2', inheritPatches=True)
 
-        # Group by thresholding
+        # Group by thresholding if desired
         source_skymodel = skymodel.copy()
         if find_sources:
             self.log.info('Identifying sources...')
-#             source_skymodel.group('threshold', FWHM='10.0 arcsec', threshold=0.05)
-        source_skymodel.group('threshold', FWHM='10.0 arcsec', threshold=0.05)
-        self.source_skymodel = source_skymodel.copy()
+            source_skymodel.group('threshold', FWHM='10.0 arcsec', threshold=0.05)
+        self.source_skymodel = source_skymodel.copy()  # make copy before grouping
 
-        # Now tesselate to get patches of the target flux and write out calibration sky model
+        # Now regroup sky model into calibration patches if desired
         if regroup:
-            flux = self.parset['calibration_specific']['patch_target_flux_jy']
-            totflux = np.sum(source_skymodel.getColValues('I', units='Jy'))
-            if totflux < flux:
-                self.log.critical('Total flux of sky model ({0} Jy) is less than target flux ({1} Jy) '
-                                  'Exiting!'.format(totflux, flux))
-                sys.exit(1)
-            self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(flux))
-            source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='wmean', byPatch=True)
+            target_flux = self.parset['calibration_specific']['patch_target_flux_jy']
 
-            # If any patch falls below the target flux, merge it with the nearest patch
-            # and recalculate patch positions
-            check_flux = True
-            while check_flux:
-                check_flux = False
-                patch_fluxes = source_skymodel.getColValues('I', aggregate='sum')
-                patch_names = source_skymodel.getPatchNames().tolist()
-                for i, (pf, pn) in enumerate(zip(patch_fluxes, patch_names)):
-                    if pf < flux:
-                        RA, Dec = source_skymodel.getPatchPositions(patchName=pn, asArray=True)
-                        sep = source_skymodel.getDistance(RA, Dec, byPatch=True).tolist()[0]
-                        sep.pop(i)
-                        patch_names.pop(i)
-                        nearest_patch = patch_names[np.argmin(sep)]
-                        source_skymodel.merge([nearest_patch, pn])
-                        source_skymodel.setPatchPositions(method='wmean')
-                        check_flux = True
-                        break
+            # Find groups of bright sources to use as basis for calibrator patches
+            source_skymodel.group('meanshift')
+            source_skymodel.setPatchPositions(method='wmean')
+
+            # Tessellate
+            source_skymodel.group('voronoi', targetFlux=target_flux)
+            source_skymodel.setPatchPositions(method='wmean')
             calibration_skymodel = source_skymodel
         else:
             calibration_skymodel = skymodel
+
+        # Now tesselate to get patches of the target flux and write out calibration sky model
+#         if regroup:
+#
+#             totflux = np.sum(source_skymodel.getColValues('I', units='Jy'))
+#             if totflux < flux:
+#                 self.log.critical('Total flux of sky model ({0} Jy) is less than target flux ({1} Jy) '
+#                                   'Exiting!'.format(totflux, flux))
+#                 sys.exit(1)
+#             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(flux))
+#             source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='wmean', byPatch=True)
+#
+#             # If any patch falls below the target flux, merge it with the nearest patch
+#             # and recalculate patch positions
+#             check_flux = True
+#             while check_flux:
+#                 check_flux = False
+#                 patch_fluxes = source_skymodel.getColValues('I', aggregate='sum')
+#                 patch_names = source_skymodel.getPatchNames().tolist()
+#                 for i, (pf, pn) in enumerate(zip(patch_fluxes, patch_names)):
+#                     if pf < flux:
+#                         RA, Dec = source_skymodel.getPatchPositions(patchName=pn, asArray=True)
+#                         sep = source_skymodel.getDistance(RA, Dec, byPatch=True).tolist()[0]
+#                         sep.pop(i)
+#                         patch_names.pop(i)
+#                         nearest_patch = patch_names[np.argmin(sep)]
+#                         source_skymodel.merge([nearest_patch, pn])
+#                         source_skymodel.setPatchPositions(method='wmean')
+#                         check_flux = True
+#                         break
+#             calibration_skymodel = source_skymodel
+#         else:
+#             calibration_skymodel = skymodel
         self.num_patches = len(calibration_skymodel.getPatchNames())
         self.log.info('Using {} calibration patches'.format(self.num_patches))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
