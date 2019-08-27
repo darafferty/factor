@@ -243,7 +243,7 @@ class Field(object):
             target_flux = self.parset['calibration_specific']['patch_target_flux_jy']
 
             # Find groups of bright sources to use as basis for calibrator patches
-            source_skymodel.group('meanshift')
+            source_skymodel.group('meanshift', byPatch=True)
             source_skymodel.setPatchPositions(method='wmean')
 
             # Tessellate
