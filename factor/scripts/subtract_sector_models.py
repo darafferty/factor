@@ -154,6 +154,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                 model_list.pop(i)
             else:
                 nrows_list.append(tin.nrows())
+                starttime_exact = convert_mjd2mvt(starttime_chunk)  # store exact value for use later
             tin.close()
         if len(set(nrows_list)) > 1:
             print('subtract_sector_models: Model data files have differing number of rows...')
@@ -176,7 +177,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     tarray = None
     if starttime is not None:
         times = [convert_mjd(t) for t in tin.getcol('TIME')]
-        startrow_in = times.index(starttime)
+        startrow_in = times.index(starttime_exact)
         nrows_in = nrows_list[0]
     else:
         startrow_in = 0
