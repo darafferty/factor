@@ -176,7 +176,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     nbl = np.where(tarray == tarray[0])[0].size
     tarray = None
     if starttime is not None:
-        times = [convert_mjd(t) for t in tin.getcol('TIME')]
+        times = [convert_mjd2mvt(t) for t in tin.getcol('TIME')]
         startrow_in = times.index(starttime_exact)
         nrows_in = nrows_list[0]
     else:
