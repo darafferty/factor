@@ -9,6 +9,7 @@ import os
 import subprocess
 from lofarpipe.support.data_map import DataMap
 from astropy.time import Time
+import dateutil.parser
 import losoto
 from factor.lib import miscellaneous as misc
 
@@ -38,7 +39,7 @@ def get_nchunks(msin, nsectors, fraction=1.0):
     return nchunks
 
 
-def convert_mjd(mjd_sec):
+def convert_mjd2mvt(mjd_sec):
     """
     Converts MJD to casacore MVTime
 
@@ -59,6 +60,33 @@ def convert_mjd(mjd_sec):
     month = d.ctime().split(' ')[1]
 
     return '{0}{1}{2}/{3}'.format(day, month, year, hour)
+
+
+def convert_mvt2mjd(mvt_str):
+    """
+    Converts casacore MVTime to MJD
+
+    Parameters
+    ----------
+    mvt_str : str
+        MVTime time
+
+    Returns
+    -------
+    mjdtime : float
+        MJD time in seconds
+    """
+    day_str = mvt_str.split('/')[0].lower()
+    months = {'jan':1, 'feb':2, 'mar':3, 'apr':4, 'may':5, 'jun':6,
+              'jul':7, 'aug':8, 'sep':9, 'oct':10, 'nov':11, 'dec':12}
+    for m in months:
+        if m in day_str:
+            p = day_str.split(m)
+            day_str = '{0}.{1}.{2}'.format(p[1], months[m], p[0])
+    time_str = mvt_str.split('/')[1]
+    t = dateutil.parser.parse('{0}/{1}'.format(day_str, time_str))
+
+    return Time(t).mjd * 3600 * 24
 
 
 def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
@@ -116,10 +144,13 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     if starttime is not None:
         # Filter the list of models to include only ones for the given times
         nrows_list = []
-        for i, msmod in enumerate(model_list[:]):
+        for msmod in model_list[:]:
             tin = pt.table(msmod, readonly=True, ack=False)
             starttime_chunk = np.min(tin.getcol('TIME'))
-            if convert_mjd(starttime_chunk) != starttime:
+            if not misc.approx_equal(starttime_chunk, convert_mvt2mjd(starttime), tol=1.0):
+                # Remove files with start times that are not within 1 sec of the
+                # specified starttime
+                i = model_list.index(msmod)
                 model_list.pop(i)
             else:
                 nrows_list.append(tin.nrows())
