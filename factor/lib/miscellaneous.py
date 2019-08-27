@@ -2,13 +2,12 @@
 Miscellaneous functions
 """
 import numpy as np
-import sys
 import pickle
 from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
 from astropy.io import fits as pyfits
-from astropy import wcs
 from PIL import Image, ImageDraw
+from reproject import reproject_interp
 
 
 def read_vertices(filename):
@@ -240,11 +239,10 @@ def regrid(d, regrid_hdr=None):
         The regrided data and weight arrays
     """
     if regrid_hdr is None:
-        regrid_hdr = self.regrid_hdr
+        regrid_hdr = d.regrid_hdr
     r, footprint = reproject_interp((d.img_data, d.img_hdr), d.regrid_hdr)
     r[np.isnan(r)] = 0
     w, footprint = reproject_interp((d.weight_data, d.img_hdr), d.regrid_hdr)
-    mask |= ~np.isnan(w)
     w[np.isnan(w)] = 0
     return r, w
 
@@ -253,8 +251,10 @@ def _float_approx_equal(x, y, tol=1e-18, rel=1e-7):
     if tol is rel is None:
         raise TypeError('cannot specify both absolute and relative errors are None')
     tests = []
-    if tol is not None: tests.append(tol)
-    if rel is not None: tests.append(rel*abs(x))
+    if tol is not None:
+        tests.append(tol)
+    if rel is not None:
+        tests.append(rel*abs(x))
     assert tests
     return abs(x - y) <= max(tests)
 

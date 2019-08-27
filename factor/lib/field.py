@@ -10,13 +10,14 @@ import lsmtool.skymodel
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
 from factor.lib.image import Image
+from factor.lib.miscellaneous import regrid
 from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon, MultiPolygon
 from astropy.io import fits as pyfits
 from astropy.wcs import WCS as pywcs
-from reproject import reproject_interp
 import rtree
 import glob
+from multiprocessing import Pool, cpu_count
 
 
 class Field(object):
@@ -251,39 +252,6 @@ class Field(object):
             calibration_skymodel = source_skymodel
         else:
             calibration_skymodel = skymodel
-
-        # Now tesselate to get patches of the target flux and write out calibration sky model
-#         if regroup:
-#
-#             totflux = np.sum(source_skymodel.getColValues('I', units='Jy'))
-#             if totflux < flux:
-#                 self.log.critical('Total flux of sky model ({0} Jy) is less than target flux ({1} Jy) '
-#                                   'Exiting!'.format(totflux, flux))
-#                 sys.exit(1)
-#             self.log.info('Grouping sky model to form calibration patches of ~ {} Jy each...'.format(flux))
-#             source_skymodel.group(algorithm='tessellate', targetFlux=flux, method='wmean', byPatch=True)
-#
-#             # If any patch falls below the target flux, merge it with the nearest patch
-#             # and recalculate patch positions
-#             check_flux = True
-#             while check_flux:
-#                 check_flux = False
-#                 patch_fluxes = source_skymodel.getColValues('I', aggregate='sum')
-#                 patch_names = source_skymodel.getPatchNames().tolist()
-#                 for i, (pf, pn) in enumerate(zip(patch_fluxes, patch_names)):
-#                     if pf < flux:
-#                         RA, Dec = source_skymodel.getPatchPositions(patchName=pn, asArray=True)
-#                         sep = source_skymodel.getDistance(RA, Dec, byPatch=True).tolist()[0]
-#                         sep.pop(i)
-#                         patch_names.pop(i)
-#                         nearest_patch = patch_names[np.argmin(sep)]
-#                         source_skymodel.merge([nearest_patch, pn])
-#                         source_skymodel.setPatchPositions(method='wmean')
-#                         check_flux = True
-#                         break
-#             calibration_skymodel = source_skymodel
-#         else:
-#             calibration_skymodel = skymodel
         self.num_patches = len(calibration_skymodel.getPatchNames())
         self.log.info('Using {} calibration patches'.format(self.num_patches))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
@@ -706,24 +674,24 @@ class Field(object):
                     xmin, xmax, ymin, ymax = min(nx, xmin), max(nx, xmax), min(ny, ymin), max(ny, ymax)
             xsize = int(xmax-xmin)
             ysize = int(ymax-ymin)
-
             rwcs.wcs.crpix = [-int(xmin)+1, -int(ymin)+1]
             regrid_hdr = rwcs.to_header()
             regrid_hdr['NAXIS'] = 2
             regrid_hdr['NAXIS1'] = xsize
             regrid_hdr['NAXIS2'] = ysize
+            for d in directions:
+                d.regrid_hdr = regrid_hdr
 
+            # Regrid images and add them to mosaic
             isum = np.zeros([ysize, xsize])
             wsum = np.zeros_like(isum)
             mask = np.zeros_like(isum, dtype=np.bool)
-            for i, d in enumerate(directions):
-                r, footprint = reproject_interp((d.img_data, d.img_hdr), regrid_hdr)
-                r[np.isnan(r)] = 0
-                w, footprint = reproject_interp((d.weight_data, d.img_hdr), regrid_hdr)
-                mask |= ~np.isnan(w)
-                w[np.isnan(w)] = 0
+            with Pool(cpu_count()) as pool:
+                results = pool.map(regrid, directions)
+            for r, w in results:
                 isum += r*w
                 wsum += w
+                mask |= ~np.isnan(w)
             isum /= wsum
             isum[~mask] = np.nan
 
