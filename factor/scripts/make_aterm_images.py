@@ -379,7 +379,7 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
 
 
 def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname='sol000',
-         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.02, smooth=0, gsize=0,
+         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.2, smooth=0, gsize=0,
          mapfile_dir='.', filename='aterm_images.mapfile'):
     """
     Make a-term FITS images
