@@ -23,7 +23,6 @@ class Image(object):
     def __init__(self, imagefile):
         self.imagefile = imagefile
         self.name = 'FITS_image'
-        self.log = logging.getLogger('factor:{}'.format(self.name))
         self.vertices_file = None
         self.scale = 1.
         self.shift = 0.
