@@ -196,7 +196,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         fraction = float(nrows_in) / float(tin.nrows())
         nchunks = get_nchunks(msin, nr_outliers, fraction)
         nrows_per_chunk = int(nrows_in / nchunks)
-        startrows = [startrow_in]
+        startrows_tin = [startrow_in]
+        startrows_tmod = [0]
         nrows = [nrows_per_chunk]
         for i in range(1, nchunks):
             if i == nchunks-1:
@@ -204,21 +205,22 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             else:
                 nrow = nrows_per_chunk
             nrows.append(nrow)
-            startrows.append(startrows[i-1] + nrows[i-1])
+            startrows_tin.append(startrows_tin[i-1] + nrows[i-1])
+            startrows_tmod.append(startrows_tmod[i-1] + nrows[i-1])
         print('subtract_sector_models: Using {} chunk(s) for peeling'.format(nchunks))
 
-        for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
+        for c, (startrow_tin, startrow_tmod, nrow) in enumerate(zip(startrows_tin, startrows_tmod, nrows)):
             # For each chunk, load data
-            datain = tin.getcol(msin_column, startrow=startrow, nrow=nrow)
+            datain = tin.getcol(msin_column, startrow=startrow_tin, nrow=nrow)
             if use_compression:
                 # Replace flagged values with NaNs before compression
-                flags = tin.getcol('FLAG', startrow=startrow, nrow=nrow)
+                flags = tin.getcol('FLAG', startrow=startrow_tin, nrow=nrow)
                 flagged = np.where(flags)
                 datain[flagged] = np.NaN
             datamod_list = []
             for i, msmodel in enumerate(model_list[nsectors-nr_outliers:]):
                 tmod = pt.table(msmodel, readonly=True, ack=False)
-                datamod_list.append(tmod.getcol(model_column, startrow=startrow, nrow=nrow))
+                datamod_list.append(tmod.getcol(model_column, startrow=startrow_tmod, nrow=nrow))
                 tmod.close()
 
             # For each sector, subtract sum of model data for this chunk
@@ -229,7 +231,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                     datamod_all = datamod_list[sector_ind].copy()
                 else:
                     datamod_all += datamod_list[sector_ind]
-            tout.putcol(out_column, datain-datamod_all, startrow=startrow, nrow=nrow)
+            tout.putcol(out_column, datain-datamod_all, startrow=startrow_tmod, nrow=nrow)
             tout.flush()
         tout.close()
         tin.close()
@@ -263,7 +265,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             nrows_per_chunk = nbl
             break
     nchunks = int(np.ceil(nrows_in / nrows_per_chunk))
-    startrows = [startrow_in]
+    startrows_tin = [startrow_in]
+    startrows_tmod = [0]
     nrows = [nrows_per_chunk]
     for i in range(1, nchunks):
         if i == nchunks-1:
@@ -271,17 +274,18 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         else:
             nrow = nrows_per_chunk
         nrows.append(nrow)
-        startrows.append(startrows[i-1] + nrows[i-1])
+        startrows_tin.append(startrows_tin[i-1] + nrows[i-1])
+        startrows_tmod.append(startrows_tmod[i-1] + nrows[i-1])
     print('subtract_sector_models: Using {} chunk(s)'.format(nchunks))
 
-    for c, (startrow, nrow) in enumerate(zip(startrows, nrows)):
+    for c, (startrow_tin, startrow_tmod, nrow) in enumerate(zip(startrows_tin, startrows_tmod, nrows)):
         # For each chunk, load data
-        datain = tin.getcol(msin_column, startrow=startrow, nrow=nrow)
-        flags = tin.getcol('FLAG', startrow=startrow, nrow=nrow)
+        datain = tin.getcol(msin_column, startrow=startrow_tin, nrow=nrow)
+        flags = tin.getcol('FLAG', startrow=startrow_tin, nrow=nrow)
         datamod_list = []
         for i, msmodel in enumerate(model_list):
             tmod = pt.table(msmodel, readonly=True, ack=False)
-            datamod_list.append(tmod.getcol(model_column, startrow=startrow, nrow=nrow))
+            datamod_list.append(tmod.getcol(model_column, startrow=startrow_tmod, nrow=nrow))
             tmod.close()
 
         # For each sector, subtract sum of model data for this chunk
@@ -295,17 +299,17 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                     datamod_all = datamod_list[sector_ind].copy()
                 else:
                     datamod_all += datamod_list[sector_ind]
-            tout.putcol(out_column, datain-datamod_all, startrow=startrow, nrow=nrow)
+            tout.putcol(out_column, datain-datamod_all, startrow=startrow_tmod, nrow=nrow)
             if reweight:
                 # Also subtract sector's model to make residual data for reweighting
                 if weights is None:
                     datamod_all += datamod_list[i]
-                    covweights = CovWeights(model_list[0], solint_sec, solint_hz, startrow, nrow,
+                    covweights = CovWeights(model_list[0], solint_sec, solint_hz, startrow_tmod, nrow,
                                             gainfile=gainfile, uvcut=uvcut, phaseonly=phaseonly,
                                             dirname=dirname, quiet=quiet)
                     coefficients = covweights.FindWeights(datain-datamod_all, flags)
                     weights = covweights.calcWeights(coefficients)
-                tout.putcol(weights_colname, weights, startrow=startrow, nrow=nrow)
+                tout.putcol(weights_colname, weights, startrow=startrow_tmod, nrow=nrow)
             tout.flush()
     for tout in tout_list:
         tout.close()
