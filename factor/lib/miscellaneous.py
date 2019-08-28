@@ -222,29 +222,27 @@ def string2bool(invar):
         raise TypeError('input2bool: Unsupported data type:'+str(type(invar)))
 
 
-def regrid(d, regrid_hdr=None):
+def regrid(img_data, img_hdr, regrid_hdr):
     """
     Regrids an image
 
     Parameters
     ----------
-    d : Image object
-        Input Image
+    img_data : array
+        Input data to regrid
+    img_hdr : header
+        Header with WCS to regrid from
     regrid_hdr : header
         Header with WCS to regrid to
 
     Returns
     -------
-    r, w : numpy arrays
-        The regrided data and weight arrays
+    regrid_data : array
+        The regrided data array
     """
-    if regrid_hdr is None:
-        regrid_hdr = d.regrid_hdr
-    r, footprint = reproject_interp((d.img_data, d.img_hdr), d.regrid_hdr)
-    r[np.isnan(r)] = 0
-    w, footprint = reproject_interp((d.weight_data, d.img_hdr), d.regrid_hdr)
-    w[np.isnan(w)] = 0
-    return r, w
+    regrid_data, footprint = reproject_interp((img_data, img_hdr), regrid_hdr)
+    regrid_data[np.isnan(regrid_data)] = 0
+    return regrid_data
 
 
 def _float_approx_equal(x, y, tol=1e-18, rel=1e-7):

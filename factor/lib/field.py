@@ -686,9 +686,12 @@ class Field(object):
             isum = np.zeros([ysize, xsize])
             wsum = np.zeros_like(isum)
             mask = np.zeros_like(isum, dtype=np.bool)
-            with Pool(cpu_count()) as pool:
-                results = pool.map(regrid, directions)
-            for r, w in results:
+            with Pool(processes=cpu_count()) as pool:
+                args_list = [(d.img_data, d.img_hdr, regrid_hdr) for d in directions]
+                regrid_data_list = pool.starmap(regrid, arg_list)
+                args_list = [(d.weight_data, d.img_hdr, regrid_hdr) for d in directions]
+                regrid_weights_list = pool.starmap(regrid, arg_list)
+            for r, w in zip(regrid_data_list, regrid_weights_list):
                 isum += r*w
                 wsum += w
                 mask |= ~np.isnan(w)
