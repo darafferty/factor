@@ -34,7 +34,6 @@ class Image(object):
         self.flatten()
         self.ra = self.img_hdr['CRVAL1']
         self.dec = self.img_hdr['CRVAL2']
-        self.regrid_hdr = None
 
     def find_beam(self):
         """

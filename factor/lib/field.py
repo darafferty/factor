@@ -10,14 +10,13 @@ import lsmtool.skymodel
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
 from factor.lib.image import Image
-from factor.lib.miscellaneous import regrid
 from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon, MultiPolygon
 from astropy.io import fits as pyfits
 from astropy.wcs import WCS as pywcs
+from reproject import reproject_interp
 import rtree
 import glob
-from multiprocessing import Pool, cpu_count
 
 
 class Field(object):
@@ -679,22 +678,19 @@ class Field(object):
             regrid_hdr['NAXIS'] = 2
             regrid_hdr['NAXIS1'] = xsize
             regrid_hdr['NAXIS2'] = ysize
-            for d in directions:
-                d.regrid_hdr = regrid_hdr
 
             # Regrid images and add them to mosaic
             isum = np.zeros([ysize, xsize])
             wsum = np.zeros_like(isum)
             mask = np.zeros_like(isum, dtype=np.bool)
-            with Pool(processes=cpu_count()) as pool:
-                args_list = [(d.img_data, d.img_hdr, regrid_hdr) for d in directions]
-                regrid_data_list = pool.starmap(regrid, args_list)
-                args_list = [(d.weight_data, d.img_hdr, regrid_hdr) for d in directions]
-                regrid_weights_list = pool.starmap(regrid, args_list)
-            for r, w in zip(regrid_data_list, regrid_weights_list):
+            for i, d in enumerate(directions):
+                r, footprint = reproject_interp((d.img_data, d.img_hdr), regrid_hdr)
+                r[np.isnan(r)] = 0
+                w, footprint = reproject_interp((d.weight_data, d.img_hdr), regrid_hdr)
+                mask |= ~np.isnan(w)
+                w[np.isnan(w)] = 0
                 isum += r*w
                 wsum += w
-                mask |= ~np.isnan(w)
             isum /= wsum
             isum[~mask] = np.nan
 
