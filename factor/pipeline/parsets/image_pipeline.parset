@@ -24,13 +24,31 @@ create_freqstep_map.control.files       = {{ image_freqstep }}
 create_freqstep_map.control.mapfile_dir = input.output.mapfile_dir
 create_freqstep_map.control.filename    = freqstep.mapfile
 
+# create a mapfile with each observation's starttime value, length = nobs
+create_starttime_map.control.kind        = plugin
+create_starttime_map.control.type        = addListMapfile
+create_starttime_map.control.hosts       = {{ hosts }}
+create_starttime_map.control.files       = {{ starttime }}
+create_starttime_map.control.mapfile_dir = input.output.mapfile_dir
+create_starttime_map.control.filename    = starttime.mapfile
+
+# create a mapfile with each observation's ntimes value, length = nobs
+create_ntimes_map.control.kind        = plugin
+create_ntimes_map.control.type        = addListMapfile
+create_ntimes_map.control.hosts       = {{ hosts }}
+create_ntimes_map.control.files       = {{ ntimes }}
+create_ntimes_map.control.mapfile_dir = input.output.mapfile_dir
+create_ntimes_map.control.filename    = ntimes.mapfile
+
 # phase shift and average, length = nobs
 prepare_imaging_data.control.type                                 = dppp
-prepare_imaging_data.control.mapfiles_in                          = [create_sector_files_map.output.mapfile,create_freqstep_map.output.mapfile]
-prepare_imaging_data.control.inputkeys                            = [msin,freqstep]
+prepare_imaging_data.control.mapfiles_in                          = [create_sector_files_map.output.mapfile,create_freqstep_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile]
+prepare_imaging_data.control.inputkeys                            = [msin,freqstep,starttime,ntimes]
 prepare_imaging_data.argument.numthreads                          = {{ max_cpus_per_proc_single }}
 prepare_imaging_data.argument.msin.datacolumn                     = DATA
 prepare_imaging_data.argument.msout.overwrite                     = True
+prepare_imaging_data.argument.msin.starttime                      = starttime
+prepare_imaging_data.argument.msin.ntimes                         = ntimes
 prepare_imaging_data.argument.msout.writefullresflag              = False
 {% if flag_abstime is not none or flag_baseline is not none or flag_freqrange is not none %}
 prepare_imaging_data.argument.steps                               = [flag,shift,flagzero,interp,avg]
@@ -105,7 +123,7 @@ image.argument.pol                    = I
 # image.argument.pol                    = IQUV
 # image.argument.link-polarizations     = I
 image.argument.weight                 = briggs {{ robust }}
-image.argument.mgain                  = 0.8
+image.argument.mgain                  = 0.6
 image.argument.padding                = {{ wsclean_image_padding }}
 image.argument.minuv-l                = {{ min_uv_lambda }}
 image.argument.maxuv-l                = {{ max_uv_lambda }}
@@ -129,7 +147,7 @@ image.argument.auto-mask              = {{ auto_mask - 1 }}
 {% else %}
 image.argument.auto-mask              = {{ auto_mask }}
 {% endif %}
-image.argument.auto-threshold         = 0.5
+image.argument.auto-threshold         = 1.0
 image.argument.local-rms-window       = 50
 image.argument.local-rms-method       = rms-with-min
 image.argument.idg-mode               = {{ idg_mode }}
