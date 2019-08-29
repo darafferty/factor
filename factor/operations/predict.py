@@ -63,7 +63,6 @@ class Predict(Operation):
                                 'sector_model_filename': sector_model_filename,
                                 'sector_skymodel': sector_skymodel,
                                 'sector_patches': sector_patches,
-                                'obs_starttime': obs_starttime,
                                 'obs_solint_sec': obs_solint_sec,
                                 'obs_solint_hz': obs_solint_hz,
                                 'min_uv_lambda': min_uv_lambda,
