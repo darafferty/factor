@@ -153,7 +153,7 @@ image.argument.local-rms-method       = rms-with-min
 image.argument.idg-mode               = {{ idg_mode }}
 image.argument.aterm-config           = atermconfig
 image.argument.aterm-kernel-size      = 16
-# image.argument.parallel-deconvolution = 512
+image.argument.parallel-deconvolution = 512
 
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel
