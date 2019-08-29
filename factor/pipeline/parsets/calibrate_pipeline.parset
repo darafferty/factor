@@ -204,6 +204,10 @@ expand_sourcedb_mapfile_freq.control.filename         = expand_sourcedb_freq.map
 
 # smooth with baseline-dependent weights?
 
+# solve for fast phases (true phase, not tec), do clock-TEC separation per direction to
+# find delay+offset, then proceed with normal tec solves while applying the delays+offsets?
+# This should remove direction-dependent delays during solve, but we also need to apply
+# them during imaging with screens
 
 {% if solve_core_separately %}
 

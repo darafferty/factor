@@ -33,7 +33,7 @@ class Image(Operation):
         ntimes = []
         for obs in field.observations:
             starttime.append(obs.starttime)
-            ntimes.append(obs.nsamples)
+            ntimes.append(obs.numsamples)
 
         self.parms_dict.update({'obs_filename': obs_filename,
                                 'h5parm_mapfile': field.h5parm_mapfile,
