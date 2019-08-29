@@ -29,6 +29,11 @@ class Image(Operation):
             obs_filename = sector.get_obs_parameters('ms_filename')
         image_freqstep = sector.get_obs_parameters('image_freqstep')
         image_timestep = sector.get_obs_parameters('image_timestep')
+        starttime = []
+        ntimes = []
+        for obs in field.observations:
+            starttime.append(obs.starttime)
+            ntimes.append(obs.nsamples)
 
         self.parms_dict.update({'obs_filename': obs_filename,
                                 'h5parm_mapfile': field.h5parm_mapfile,
