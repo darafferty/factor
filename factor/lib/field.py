@@ -56,6 +56,7 @@ class Field(object):
         self.solve_core_separately = self.parset['calibration_specific']['solve_core_separately']
         self.tecscreen_max_order = self.parset['calibration_specific']['tecscreen_max_order']
         self.use_beam = self.parset['calibration_specific']['use_beam']
+        self.use_idg_predict = self.parset['calibration_specific']['use_idg_predict']
 
         if not mininmal:
             # Scan MS files to get observation info

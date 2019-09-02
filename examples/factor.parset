@@ -94,6 +94,9 @@ input_skymodel = /data/skymodel.txt
 # Use the beam model during calibration (default = False)?
 # use_beam = False
 
+# Use the IDG for predict during calibration (default = False)?
+# use_idg_predict = False
+
 
 [imaging]
 # Imaging parameters: pixel size in arcsec (default = 1.5 for HBA, 3.0 for LBA), Briggs

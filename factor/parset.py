@@ -319,6 +319,12 @@ def get_calibration_options(parset):
     else:
         parset_dict['use_beam'] = False
 
+    # Use the IDG for predict during calibration (default = False)?
+    if 'use_idg_predict' in parset_dict:
+        parset_dict['use_idg_predict'] = parset.getboolean('calibration', 'use_idg_predict')
+    else:
+        parset_dict['use_idg_predict'] = False
+
     # Check for invalid options
     allowed_options = ['max_selfcal_loops', 'mode', 'solve_min_uv_lambda',
                        'fast_timestep_sec', 'fast_timestep_core_sec',
@@ -327,7 +333,7 @@ def get_calibration_options(parset):
                        'approximatetec', 'propagatesolutions', 'maxapproxiter',
                        'maxiter', 'stepsize', 'tolerance',
                        'patch_target_flux_jy', 'smoothnessconstraint',
-                       'use_beam', 'tecscreen_max_order']
+                       'use_beam', 'tecscreen_max_order', 'use_idg_predict']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '
