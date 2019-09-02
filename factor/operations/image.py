@@ -32,7 +32,7 @@ class Image(Operation):
         starttime = []
         ntimes = []
         for obs in field.observations:
-            starttime.append(obs.starttime)
+            starttime.append(obs.convert_mjd(obs.starttime))
             ntimes.append(obs.numsamples)
 
         self.parms_dict.update({'obs_filename': obs_filename,
@@ -52,6 +52,9 @@ class Image(Operation):
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'image-MFS-image-pb.fits.mapfile'))
         self.direction.I_image_file = in_map[0].file
+        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'image-MFS-model-pb.fits.mapfile'))
+        self.direction.I_model_file = in_map[0].file
         # NOTE: currently, -save-source-list only works with pol=I -- when it works with other
         # pols, enable IQUV imaging with the following lines
 #         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,

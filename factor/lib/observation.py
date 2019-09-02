@@ -428,25 +428,3 @@ class Observation(object):
             delta_freq *= 1.1
 
         return delta_freq
-
-    def get_core_baselines(self):
-        """
-        Returns the DPPP string selection of core baselines
-
-        Parameters
-        ----------
-        freq : float
-            Frequency at which averaging will be done
-        delta_theta : float
-            Distance from phase center
-        resolution : float
-            Resolution of restoring beam
-        reduction_factor : float
-            Ratio of pre-to-post averaging peak flux density
-
-        Returns
-        -------
-        delta_freq : float
-            Bandwidth over which averaging will be done
-        """
-
