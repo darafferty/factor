@@ -189,7 +189,8 @@ class Field(object):
         """
         return sum([obs.parameters[parameter] for obs in self.observations], [])
 
-    def make_skymodels(self, skymodel, regroup=True, find_sources=False):
+    def make_skymodels(self, skymodel, regroup=True, find_sources=False,
+                       adjust_for_beam=False):
         """
         Groups a sky model into source and calibration patches
 
@@ -204,10 +205,12 @@ class Field(object):
             If True, group the sky model by thresholding to find sources. This is not
             needed if the input sky model was filtered by PyBDSF in the imaging
             pipeline
+        adjust_for_beam : bool, optional
+            If True, adjust the sky model for the beam attenuation (from apparent to true)
         """
         self.log.info('Reading sky model...')
         if type(skymodel) is not lsmtool.skymodel.SkyModel:
-            skymodel = lsmtool.load(str(skymodel))
+            skymodel = lsmtool.load(str(skymodel), beamMS=self.observations[0].ms_filename)
 
         # Check if any sky models included in Factor are within the region of the
         # input sky model. If so, concatenate them with the input sky model
@@ -254,13 +257,14 @@ class Field(object):
         self.num_patches = len(calibration_skymodel.getPatchNames())
         self.log.info('Using {} calibration patches'.format(self.num_patches))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
-        calibration_skymodel.write(self.calibration_skymodel_file, clobber=True)
+        calibration_skymodel.write(self.calibration_skymodel_file, clobber=True,
+                                   applyBeam=adjust_for_beam, adjustSI=True, invertBeam=True)
         self.calibration_skymodel = calibration_skymodel
 
         # Check that the TEC screen order is not more than num_patches - 1
         self.tecscreenorder = min(self.num_patches-1, self.tecscreen_max_order)
 
-    def update_skymodels(self, iter, regroup, imaged_sources_only):
+    def update_skymodels(self, iter, regroup, imaged_sources_only, adjust_for_beam):
         """
         Updates the source and calibration sky models from the output sector sky model(s)
 
@@ -268,6 +272,12 @@ class Field(object):
         ----------
         iter : int
             Iteration index
+        regroup : bool
+            Regroup sky model
+        imaged_sources_only : bool
+            Only use imaged sources
+        adjust_for_beam : bool
+            If True, adjust the sky model for the beam attenuation (from apparent to true)
         """
         # Concat all output sector sky models
         self.log.info('Updating sky model...')
@@ -629,17 +639,18 @@ class Field(object):
         iter : int
             Iteration index
         """
-        # TODO: make QUV mosaics as well and put all four in a single FITS cube
+        # TODO: make QUV mosaics as well
         dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
         create_directory(dst_dir)
-        field_image_filename = os.path.join(dst_dir, 'field-MFS-I-image.fits')
-        if os.path.exists(field_image_filename):
-            os.remove(field_image_filename)
+        self.field_image_filename = os.path.join(dst_dir, 'field-MFS-I-image.fits')
+        self.field_model_filename = os.path.join(dst_dir, 'field-MFS-I-model.fits')
+        if os.path.exists(self.field_image_filename):
+            os.remove(self.field_image_filename)
 
         if len(self.imaging_sectors) == 1:
             # No need to mosaic a single image; just copy it
             output_image_filename = self.imaging_sectors[0].I_image_file
-            os.system('cp {0} {1}'.format(output_image_filename, field_image_filename))
+            os.system('cp {0} {1}'.format(output_image_filename, self.field_image_filename))
         else:
             # Set up images used in mosaic
             directions = []
@@ -699,4 +710,4 @@ class Field(object):
             regrid_hdr['ORIGIN'] = 'Factor'
             regrid_hdr['UNITS'] = 'Jy/beam'
             hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)
-            hdu.writeto(field_image_filename, overwrite=True)
+            hdu.writeto(self.field_image_filename, overwrite=True)
