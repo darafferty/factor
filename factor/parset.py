@@ -124,11 +124,17 @@ def get_global_options(parset):
     else:
         parset_dict['data_fraction'] = 1.0
 
-    # Regroup initial skymodel (default = True)
+    # Regroup input sky model (default = True)
     if 'regroup_input_skymodel' in parset_dict:
         parset_dict['regroup_input_skymodel'] = parset.getboolean('global', 'regroup_input_skymodel')
     else:
         parset_dict['regroup_input_skymodel'] = False
+
+    # Input sky model is in apparent flux (default = True)
+    if 'apparent_sky' in parset_dict:
+        parset_dict['apparent_sky'] = parset.getboolean('global', 'apparent_sky')
+    else:
+        parset_dict['apparent_sky'] = False
 
     # Filename of h5parm file containing solutions for the patches in the
     # input sky model
@@ -180,7 +186,7 @@ def get_global_options(parset):
     given_options = parset.options('global')
     allowed_options = ['dir_working', 'input_ms', 'strategy',
                        'use_compression', 'flag_abstime', 'flag_baseline', 'flag_freqrange',
-                       'flag_expr', 'input_skymodel',
+                       'flag_expr', 'input_skymodel', 'apparent_sky',
                        'regroup_input_skymodel', 'input_h5parm', 'data_fraction']
     for option in given_options:
         if option not in allowed_options:

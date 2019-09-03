@@ -63,7 +63,9 @@ class Field(object):
             self.scan_observations(self.parset['data_fraction'])
 
             # Make calibration and source sky models by grouping the initial sky model
-            self.make_skymodels(self.parset['input_skymodel'], self.parset['regroup_input_skymodel'],
+            self.make_skymodels(self.parset['input_skymodel'],
+                                apparent_sky=self.parset['apparent_sky'],
+                                regroup=self.parset['regroup_input_skymodel'],
                                 find_sources=True)
 
             # Set up imaging sectors
@@ -191,7 +193,7 @@ class Field(object):
         return sum([obs.parameters[parameter] for obs in self.observations], [])
 
     def make_skymodels(self, skymodel, regroup=True, find_sources=False,
-                       adjust_for_beam=False):
+                       apparent_sky=True):
         """
         Groups a sky model into source and calibration patches
 
@@ -206,8 +208,8 @@ class Field(object):
             If True, group the sky model by thresholding to find sources. This is not
             needed if the input sky model was filtered by PyBDSF in the imaging
             pipeline
-        adjust_for_beam : bool, optional
-            If True, adjust the sky model for the beam attenuation (from apparent to true)
+        apparent_sky : bool, optional
+            If True, the input sky model has apparent fluxes. If False, it has true fluxes
         """
         self.log.info('Reading sky model...')
         if type(skymodel) is not lsmtool.skymodel.SkyModel:
@@ -241,16 +243,23 @@ class Field(object):
             source_skymodel.group('threshold', FWHM='10.0 arcsec', threshold=0.05)
         self.source_skymodel = source_skymodel.copy()  # make copy before grouping
 
+        # Set whether to apply the beam during grouping and when writing the output.
+        # Since we want to group on apparent fluxes (for calibration), we activate
+        # it if the model has true flues. And since we always want to write the
+        # true fluxes, we activate it if the model has apparent fluxes
+        applyBeam_group = not apparent_sky
+        applyBeam_write = apparent_sky
+
         # Now regroup sky model into calibration patches if desired
         if regroup:
             target_flux = self.parset['calibration_specific']['patch_target_flux_jy']
 
             # Find groups of bright sources to use as basis for calibrator patches
-            source_skymodel.group('meanshift', byPatch=True)
+            source_skymodel.group('meanshift', byPatch=True, applyBeam=applyBeam_group)
             source_skymodel.setPatchPositions(method='wmean')
 
             # Tessellate
-            source_skymodel.group('voronoi', targetFlux=target_flux)
+            source_skymodel.group('voronoi', targetFlux=target_flux, applyBeam=applyBeam_group)
             source_skymodel.setPatchPositions(method='wmean')
             calibration_skymodel = source_skymodel
         else:
@@ -259,13 +268,13 @@ class Field(object):
         self.log.info('Using {} calibration patches'.format(self.num_patches))
         self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
         calibration_skymodel.write(self.calibration_skymodel_file, clobber=True,
-                                   applyBeam=adjust_for_beam, adjustSI=True, invertBeam=True)
+                                   applyBeam=applyBeam_write, adjustSI=True, invertBeam=True)
         self.calibration_skymodel = calibration_skymodel
 
         # Check that the TEC screen order is not more than num_patches - 1
         self.tecscreenorder = min(self.num_patches-1, self.tecscreen_max_order)
 
-    def update_skymodels(self, iter, regroup, imaged_sources_only, adjust_for_beam):
+    def update_skymodels(self, iter, regroup, imaged_sources_only, apparent_sky):
         """
         Updates the source and calibration sky models from the output sector sky model(s)
 
@@ -277,8 +286,8 @@ class Field(object):
             Regroup sky model
         imaged_sources_only : bool
             Only use imaged sources
-        adjust_for_beam : bool
-            If True, adjust the sky model for the beam attenuation (from apparent to true)
+        apparent_sky : bool
+            If True, the sky models to be updated are in apparent flux
         """
         # Concat all output sector sky models
         self.log.info('Updating sky model...')
@@ -304,7 +313,7 @@ class Field(object):
                 skymodel2 = lsmtool.load(str(sm))
                 skymodel2.group('single', root=sn)
                 skymodel.concatenate(skymodel2)
-        self.make_skymodels(skymodel, regroup=regroup)
+        self.make_skymodels(skymodel, regroup=regroup, apparent_sky=apparent_sky)
 
         # Re-adjust sector boundaries and update their sky models
 #         if regroup:

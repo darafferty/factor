@@ -10,7 +10,9 @@ dir_working = /data/factor
 # or a list can be given
 input_ms = /data/ms/*.ms
 
-# Full path to the input sky model file (required)
+# Full path to the input sky model file (required). If the sky model has apparent flux
+# densities instead of true ones, set the apparent_sky option to True
+# apparent_sky = False
 input_skymodel = /data/skymodel.txt
 
 # Filename of h5parm file containing solutions for the patches in the initial sky mode

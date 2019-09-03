@@ -90,6 +90,6 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
         # Update the sky models
         if step['do_update']:
             field.update_skymodels(iter+1, step['regroup_model'], step['imaged_sources_only'],
-                                   step['adjust_for_beam'])
+                                   step['apparent_sky'])
 
     log.info("Factor has finished :)")
