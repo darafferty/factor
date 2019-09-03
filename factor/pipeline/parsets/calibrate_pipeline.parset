@@ -226,6 +226,7 @@ solve_fast_phases1.argument.solve.tecscreen.mode     = station
 {% if use_beam %}
 solve_fast_phases1.argument.solve.usebeammodel       = True
 solve_fast_phases1.argument.solve.beammode           = array_factor
+solve_fast_phases1.argument.solve.onebeamperpatch    = True
 {% endif %}
 solve_fast_phases1.argument.solve.h5parm             = h5parm
 solve_fast_phases1.argument.solve.solint             = timestep
