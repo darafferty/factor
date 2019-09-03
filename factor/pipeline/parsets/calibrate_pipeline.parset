@@ -203,10 +203,10 @@ expand_sourcedb_mapfile_freq.control.filename         = expand_sourcedb_freq.map
 # solve for fast phases (core stations only), length = ntimechunks
 solve_fast_phases1.control.type                      = dppp_inplace
 {% if use_idg_predict %}
-solve_fast_phases1.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_core_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_core_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
+solve_fast_phases1.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_core_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_core_map.output.mapfile,create_fast_freqstep_map.output.mapfile]
 solve_fast_phases1.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep]
 {% else %}
-solve_fast_phases1.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_core_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_core_map.output.mapfile,create_fast_freqstep_map.output.mapfile]
+solve_fast_phases1.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_core_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_core_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
 solve_fast_phases1.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
 {% endif %}
 solve_fast_phases1.control.max_per_node              = 1
@@ -293,8 +293,13 @@ expand_fast_phases_core_mapfile.control.filename         = expand_fastphase_core
 
 # solve for fast phases (remote stations), length = ntimechunks
 solve_fast_phases2.control.type                      = dppp_inplace
+{% if use_idg_predict %}
+solve_fast_phases2.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_remote_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_remote_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_fast_phases_core_mapfile.output.mapfile]
+solve_fast_phases2.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,fast_core_h5parm]
+{% else %}
 solve_fast_phases2.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_remote_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_remote_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile,expand_fast_phases_core_mapfile.output.mapfile]
 solve_fast_phases2.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb,fast_core_h5parm]
+{% endif %}
 solve_fast_phases2.control.max_per_node              = 1
 solve_fast_phases2.argument.numthreads               = {{ max_proc_per_node }}
 solve_fast_phases2.argument.msin.datacolumn          = {{ data_colname }}
@@ -383,8 +388,13 @@ combine_fast_phases.argument.add_values = True
 
 # solve for fast phases (all stations), length = ntimechunks
 solve_fast_phases.control.type                      = dppp_inplace
+{% if use_idg_predict %}
+solve_fast_phases.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile]
+solve_fast_phases.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep]
+{% else %}
 solve_fast_phases.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
 solve_fast_phases.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
+{% endif %}
 solve_fast_phases.control.max_per_node              = 1
 solve_fast_phases.argument.numthreads               = {{ max_proc_per_node }}
 solve_fast_phases.argument.msin.datacolumn          = {{ data_colname }}
@@ -492,8 +502,13 @@ expand_fast_phases_mapfile.control.filename         = expand_fastphase_freq.mapf
 
 # solve for slow gains, length = nfreqchunks*nobs
 solve_slow_gains.control.type                           = dppp_inplace
+{% if use_idg_predict %}
+solve_slow_gains.control.mapfiles_in                    = [create_freqchunk_files_map.output.mapfile,create_slow_starttime_map.output.mapfile,create_slow_ntimes_map.output.mapfile,expand_fast_phases_mapfile.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile]
+solve_slow_gains.control.inputkeys                      = [msin,starttime,ntimes,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep]
+{% else %}
 solve_slow_gains.control.mapfiles_in                    = [create_freqchunk_files_map.output.mapfile,create_slow_starttime_map.output.mapfile,create_slow_ntimes_map.output.mapfile,expand_fast_phases_mapfile.output.mapfile,create_slow_h5parms_map.output.mapfile,create_startchan_map.output.mapfile,create_nchan_map.output.mapfile,create_slow_timestep_map.output.mapfile,create_slow_freqstep_map.output.mapfile,expand_sourcedb_mapfile_freq.output.mapfile]
 solve_slow_gains.control.inputkeys                      = [msin,starttime,ntimes,fast_h5parm,slow_h5parm,startchan,nchan,timestep,freqstep,sourcedb]
+{% endif %}
 solve_slow_gains.control.max_per_node                   = 1
 solve_slow_gains.argument.numthreads                    = {{ max_proc_per_node }}
 solve_slow_gains.argument.msin.datacolumn               = {{ data_colname }}
