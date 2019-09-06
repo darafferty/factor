@@ -110,6 +110,8 @@ make_aterm_config.argument.gain_mapfile = {{ slow_aterms_mapfile }}
 make_aterm_config.argument.use_beam     = True
 
 # do the imaging, length = 1
+# NOTE: the differential beam is applied, but its use is specified in the aterm config
+# file made above
 image.control.type                    = wsclean
 image.control.mapfiles_in             = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
 image.control.inputkeys               = [msfile,fitsmask,atermconfig]
@@ -158,6 +160,9 @@ image.argument.parallel-deconvolution = 512
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel
 filter.control.mapfiles_in            = [image.output.image-MFS-image.fits.mapfile,image.output.image-sources.txt.mapfile]
+# NOTE: currently, the source-list file is not pb-corrected, once it is, enable with the
+# following line
+# filter.control.mapfiles_in            = [image.output.image-MFS-image.fits.mapfile,image.output.image-sources-pb.txt.mapfile]
 # NOTE: currently, -save-source-list only works with pol=I -- when it works with other
 # pols, enable IQUV imaging with the following line
 # filter.control.mapfiles_in            = [image.output.image-MFS-I-image.fits.mapfile,image.output.image-sources.txt.mapfile]
