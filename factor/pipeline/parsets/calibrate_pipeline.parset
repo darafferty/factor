@@ -191,12 +191,7 @@ expand_sourcedb_mapfile_freq.control.mapfile_dir      = input.output.mapfile_dir
 expand_sourcedb_mapfile_freq.control.filename         = expand_sourcedb_freq.mapfile
 {% endif %}
 
-# smooth with baseline-dependent weights?
-
-# solve for fast phases (true phase, not tec), do clock-TEC separation per direction to
-# find delay+offset, then proceed with normal tec solves while applying the delays+offsets?
-# This should remove direction-dependent delays during solve, but we also need to apply
-# them during imaging with screens
+# TODO: smooth with baseline-dependent weights?
 
 {% if solve_core_separately %}
 
@@ -573,10 +568,13 @@ combine_slow_gains.argument.outh5parm  = outfile
 
 # fit screens to slow gains, length = 1
 # TODO: better to reweight, then split h5parm to allow parallel processing of screen fitting
-fit_slow_screens.control.type         = fit_gain_screens
-fit_slow_screens.control.mapfile_in   = combine_slow_gains.output.mapfile
-fit_slow_screens.control.inputkey     = infile
-fit_slow_screens.argument.flags       = [infile]
+fit_slow_screens.control.type               = fit_gain_screens
+fit_slow_screens.control.mapfile_in         = combine_slow_gains.output.mapfile
+fit_slow_screens.control.inputkey           = infile
+fit_slow_screens.argument.flags             = [infile]
+fit_slow_screens.argument.smooth_amplitudes = True
+fit_slow_screens.argument.normalize         = True
+fit_slow_screens.argument.smooth_phases     = True
 
 # create a mapfile for output of a-term step, length = 1
 create_slow_aterms_output_map.control.kind        = plugin
