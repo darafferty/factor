@@ -105,6 +105,8 @@ predict_model_data.argument.predict.applycal.steps                = [tec]
 predict_model_data.argument.predict.applycal.tec.correction       = origtec000
 {% if use_beam %}
 predict_model_data.argument.predict.usebeammodel                  = True
+predict_model_data.argument.predict.beammode                      = array_factor
+predict_model_data.argument.predict.onebeamperpatch               = True
 {% endif %}
 predict_model_data.argument.msout.storagemanager                  = "Dysco"
 predict_model_data.argument.msout.storagemanager.databitrate      = 0
