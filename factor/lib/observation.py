@@ -52,6 +52,11 @@ class Observation(object):
                                   'Exiting!'.format(self.starttime))
                 sys.exit(1)
             self.starttime = tab.getcol('TIME')[valid_times[0]]
+
+        # DPPP takes ceil(startTimeParset - startTimeMS), so ensure that our start time is
+        # slightly less than the true one (if it's slightly larger, DPPP sets the first
+        # time to the next time, skipping the first time slot)
+        self.starttime -= 0.1
         if self.starttime > np.min(tab.getcol('TIME')):
             self.startsat_startofms = False
         else:
@@ -70,7 +75,7 @@ class Observation(object):
         else:
             self.goesto_endofms = True
         self.timepersample = tab.getcell('EXPOSURE', 0)
-        self.numsamples = int(np.ceil((self.endtime - self.starttime) / self.timepersample))
+        self.numsamples = int(np.round((self.endtime - self.starttime) / self.timepersample))
         tab.close()
 
         # Get frequency info
@@ -259,7 +264,10 @@ class Observation(object):
         # The start time and number of times (since an observation can be a part of its
         # associated MS file)
         self.parameters['predict_starttime'] = self.convert_mjd(self.starttime)
-        self.parameters['predict_ntimes'] = self.numsamples
+        if self.goesto_endofms:
+            self.parameters['predict_ntimes'] = 0
+        else:
+            self.parameters['predict_ntimes'] = self.numsamples
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing,
                                width_ra, width_dec):
