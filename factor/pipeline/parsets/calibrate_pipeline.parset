@@ -317,6 +317,7 @@ solve_fast_phases2.argument.solve.tecscreen.mode     = station
 {% if use_beam %}
 solve_fast_phases2.argument.solve.usebeammodel       = True
 solve_fast_phases2.argument.solve.beammode           = array_factor
+solve_fast_phases2.argument.solve.onebeamperpatch    = True
 {% endif %}
 solve_fast_phases2.argument.solve.h5parm             = h5parm
 solve_fast_phases2.argument.solve.sourcedb           = sourcedb
@@ -412,6 +413,7 @@ solve_fast_phases.argument.solve.tecscreen.mode     = station
 {% if use_beam %}
 solve_fast_phases.argument.solve.usebeammodel       = True
 solve_fast_phases.argument.solve.beammode           = array_factor
+solve_fast_phases.argument.solve.onebeamperpatch    = True
 {% endif %}
 solve_fast_phases.argument.solve.h5parm             = h5parm
 solve_fast_phases.argument.solve.sourcedb           = sourcedb
@@ -532,6 +534,7 @@ solve_slow_gains.argument.solve.applycal.tec.correction = origtec000
 {% if use_beam %}
 solve_slow_gains.argument.solve.usebeammodel            = True
 solve_slow_gains.argument.solve.beammode                = array_factor
+solve_slow_gains.argument.solve.onebeamperpatch         = True
 {% endif %}
 solve_slow_gains.argument.solve.uvlambdamin             = {{ solve_min_uv_lambda }}
 solve_slow_gains.argument.solve.smoothnessconstraint    = {{ smoothnessconstraint }}
