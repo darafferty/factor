@@ -68,60 +68,6 @@ def set_strategy(field):
                 strategy_steps[i]['do_update'] = True
                 strategy_steps[i]['regroup_model'] = True
                 strategy_steps[i]['imaged_sources_only'] = False
-                strategy_steps[i]['apparent_sky'] = True
-
-            if i < 1 or i == max_selfcal_loops - 1:
-                strategy_steps[i]['do_check'] = False
-            else:
-                strategy_steps[i]['do_check'] = True
-
-    elif field.parset['strategy'] == 'subfieldselfcal':
-        # Selfcal with peeling of non-imaged sources (intended to be run on a contiguous
-        # subfield and not on separated sectors):
-        #     - calibration on all sources
-        #     - peeling of non-sector sources
-        #     - imaging of sectors
-        #     - regrouping of resulting sky model to meet flux criteria
-        #     - calibration on regrouped sources (calibration groups may differ from sectors)
-        max_selfcal_loops = field.parset['calibration_specific']['max_selfcal_loops']
-        for i in range(max_selfcal_loops):
-            strategy_steps.append({})
-            strategy_steps[i]['calibrate_parameters'] = {}
-            strategy_steps[i]['predict_parameters'] = {}
-            strategy_steps[i]['image_parameters'] = {}
-
-            strategy_steps[i]['do_calibrate'] = True
-            if field.input_h5parm is not None and i == 0:
-                strategy_steps[i]['do_calibrate'] = False
-            if i < 3 and not always_do_slowgain:
-                strategy_steps[i]['calibrate_parameters']['do_slowgain_solve'] = False
-            else:
-                strategy_steps[i]['calibrate_parameters']['do_slowgain_solve'] = True
-
-            if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
-                strategy_steps[i]['do_predict'] = True
-            else:
-                strategy_steps[i]['do_predict'] = False
-            if i < 1:
-                strategy_steps[i]['predict_parameters']['peel_outliers'] = True
-            else:
-                strategy_steps[i]['predict_parameters']['peel_outliers'] = False
-
-            strategy_steps[i]['do_image'] = True
-            if i == 0:
-                strategy_steps[i]['image_parameters']['auto_mask'] = 3.6
-            elif i == 1:
-                strategy_steps[i]['image_parameters']['auto_mask'] = 3.3
-            else:
-                strategy_steps[i]['image_parameters']['auto_mask'] = 3.0
-
-            if i == max_selfcal_loops - 1:
-                strategy_steps[i]['do_update'] = False
-            else:
-                strategy_steps[i]['do_update'] = True
-                strategy_steps[i]['regroup_model'] = True
-                strategy_steps[i]['imaged_sources_only'] = True
-                strategy_steps[i]['apparent_sky'] = True
 
             if i < 1 or i == max_selfcal_loops - 1:
                 strategy_steps[i]['do_check'] = False
@@ -175,9 +121,8 @@ def set_strategy(field):
                 strategy_steps[i]['do_update'] = False
             else:
                 strategy_steps[i]['do_update'] = True
-                strategy_steps[i]['regroup_model'] = True
+                strategy_steps[i]['regroup_model'] = False
                 strategy_steps[i]['imaged_sources_only'] = True
-                strategy_steps[i]['apparent_sky'] = True
 
             if i < 1 or i == max_selfcal_loops - 1:
                 strategy_steps[i]['do_check'] = False
