@@ -335,8 +335,6 @@ class Field(object):
         for i, (sm, sn) in enumerate(zip(sector_skymodels_true_sky, sector_names)):
             if i == 0:
                 skymodel_true_sky = lsmtool.load(str(sm), beamMS=self.beam_ms_filename)
-                if not regroup:
-
                 patchNames = skymodel_true_sky.getColValues('Patch')
                 new_patchNames = np.array(['{0}_{1}'.format(p, sn) for p in patchNames])
                 skymodel_true_sky.setColValues('Patch', new_patchNames)
