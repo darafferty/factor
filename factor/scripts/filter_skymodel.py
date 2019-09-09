@@ -21,9 +21,9 @@ except ImportError:
 from factor.lib import miscellaneous as misc
 
 
-def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=5.0,
-         rmsbox=(150, 50), rmsbox_bright=(35, 7), adaptive_rmsbox=True,
-         use_adaptive_threshold=False, adaptive_thresh=150.0):
+def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
+         threshisl=3.0, threshpix=5.0, rmsbox=(150, 50), rmsbox_bright=(35, 7),
+         adaptive_rmsbox=True, use_adaptive_threshold=False, adaptive_thresh=150.0):
     """
     Filter the input sky model so that they lie in islands in the image
 
@@ -31,10 +31,13 @@ def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=
     ----------
     input_image : str
         Filename of input image to blank
-    input_skymodel : str
-        Filename of input makesourcedb sky model
-    output_skymodel : str
-        Filename of output makesourcedb sky model
+    input_skymodel_nonpb : str
+        Filename of input makesourcedb sky model, without primary-beam corrections
+    input_skymodel_pb : str, optional
+        Filename of input makesourcedb sky model, with primary-beam corrections
+    output_root : str
+        Root of filename of output makesourcedb sky models. Output filenames will be
+        output_root+'.apparent_sky' and output_root+'.true_sky'
     threshisl : float, optional
         Value of thresh_isl PyBDSF parameter
     threshpix : float, optional
@@ -94,10 +97,15 @@ def main(input_image, input_skymodel, output_skymodel, threshisl=3.0, threshpix=
         maskfile = input_image + '.mask'
         img.export_image(outfile=maskfile, clobber=True, img_type='island_mask')
 
-        s = lsmtool.load(input_skymodel)
+        s = lsmtool.load(input_skymodel_nonpb)
         s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
         s.group(maskfile)  # group the sky model by mask islands
-        s.write(output_skymodel, clobber=True)
+        s.write(output_root+'.apparent_sky', clobber=True)
+
+        s = lsmtool.load(input_skymodel_pb)
+        s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
+        s.group(maskfile)  # group the sky model by mask islands
+        s.write(output_root+'.true_sky', clobber=True)
 
 
 if __name__ == '__main__':

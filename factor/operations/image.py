@@ -48,7 +48,8 @@ class Image(Operation):
         """
         Finalize this operation
         """
-        # Save output mapfiles for later use
+        # Save output mapfiles for later use:
+        # The FITS image and model
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'image-MFS-image-pb.fits.mapfile'))
         self.direction.I_image_file = in_map[0].file
@@ -69,9 +70,13 @@ class Image(Operation):
 #         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
 #                                            'image-MFS-V-image-pb.fits.mapfile'))
 #         self.direction.V_image_file = in_map[0].file
+
+        # The sky models, both true sky and apparent sky (the filenames are defined
+        # in the factor/scripts/filter_skymodel.py file)
         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'filter.mapfile'))
-        self.direction.image_skymodel_file = in_map[0].file
+        self.direction.image_skymodel_file_true_sky = in_map[0].file + '.true_sky'
+        self.direction.image_skymodel_file_apparent_sky = in_map[0].file + '.apparent_sky'
 
         # Delete temp data
         self.cleanup_mapfiles = [os.path.join(self.pipeline_mapfile_dir,
