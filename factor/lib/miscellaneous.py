@@ -219,7 +219,36 @@ def string2bool(invar):
     elif isinstance(invar, int) or isinstance(invar, float):
         return bool(invar)
     else:
-        raise TypeError('input2bool: Unsupported data type:'+str(type(invar)))
+        raise TypeError('Unsupported data type:'+str(type(invar)))
+
+
+def string2list(invar):
+    """
+    Converts a string to a list
+
+    Parameters
+    ----------
+    invar : str
+        String to be converted
+
+    Returns
+    -------
+    result : list
+        Converted list
+    """
+    if invar is None:
+        return None
+    str_list = None
+    if type(invar) is str:
+        if invar.startswith('[') and invar.endswith(']'):
+            str_list = [f.strip(' \'\"') for f in invar.strip('[]').split(',')]
+        else:
+            str_list = [invar.strip(' \'\"')]
+    elif type(invar) is list:
+        str_list = [str(f).strip(' \'\"') for f in invar]
+    else:
+        raise TypeError('Unsupported data type:'+str(type(invar)))
+    return str_list
 
 
 def regrid(img_data, img_hdr, regrid_hdr):

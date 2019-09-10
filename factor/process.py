@@ -7,6 +7,7 @@ from factor.parset import parset_read
 from factor.strategy import set_strategy
 from factor.operations.calibrate import Calibrate
 from factor.operations.image import Image
+from factor.operations.mosaic import Mosaic
 from factor.operations.predict import Predict
 from factor.lib.scheduler import Scheduler
 from factor.lib.field import Field
@@ -79,7 +80,10 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
                                    if not sector.multiscale])
             ops = [Image(field, sector, iter+1) for sector in sorted_sectors]
             scheduler.run(ops)
-            field.make_mosaic(iter+1)
+
+            # Mosaic the sectors
+            op = Mosaic(field, iter+1)
+            scheduler.run(op)
 
         # Check for convergence
         if step['do_check']:

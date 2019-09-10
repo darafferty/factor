@@ -1,0 +1,79 @@
+pipeline.steps = [update_mapfile_hosts, create_sector_images_map, create_vertices_map, create_compressed_sector_mapfile, create_compressed_vertices_mapfile, make_mosaic_template, regrid_image, create_compressed_regridded_mapfile, make_mosaic]
+
+pipeline.pluginpath = {{ pipeline_dir }}/plugins
+
+# update host entries in all mapfiles
+update_mapfile_hosts.control.kind        = plugin
+update_mapfile_hosts.control.type        = updateHosts
+update_mapfile_hosts.control.mapfile_dir = input.output.mapfile_dir
+update_mapfile_hosts.control.hosts       = {{ hosts }}
+
+# create a mapfile with input images from supplied list, length = nsectors
+create_sector_images_map.control.kind        = plugin
+create_sector_images_map.control.type        = addListMapfile
+create_sector_images_map.control.hosts       = {{ hosts }}
+create_sector_images_map.control.files       = {{ sector_image_filename }}
+create_sector_images_map.control.mapfile_dir = input.output.mapfile_dir
+create_sector_images_map.control.filename    = sector_images.mapfile
+
+# create a mapfile with each sector's vertices file, length = nsectors
+create_vertices_map.control.kind        = plugin
+create_vertices_map.control.type        = addListMapfile
+create_vertices_map.control.hosts       = {{ hosts }}
+create_vertices_map.control.files       = {{ sector_vertices_filename }}
+create_vertices_map.control.mapfile_dir = input.output.mapfile_dir
+create_vertices_map.control.filename    = freqstep.mapfile
+
+# make a compressed sector-images mapfile, length = 1
+create_compressed_sector_mapfile.control.kind        = plugin
+create_compressed_sector_mapfile.control.type        = compressMapfile
+create_compressed_sector_mapfile.control.mapfile_in  = create_sector_images_map.output.mapfile
+create_compressed_sector_mapfile.control.mapfile_dir = input.output.mapfile_dir
+create_compressed_sector_mapfile.control.filename    = mosaic_template_input.mapfile
+
+# make a compressed vertices-files mapfile, length = 1
+create_compressed_vertices_mapfile.control.kind        = plugin
+create_compressed_vertices_mapfile.control.type        = compressMapfile
+create_compressed_vertices_mapfile.control.mapfile_in  = create_vertices_map.output.mapfile
+create_compressed_vertices_mapfile.control.mapfile_dir = input.output.mapfile_dir
+create_compressed_vertices_mapfile.control.filename    = make_mosaic_vertices_input.mapfile
+
+# set up the mosaic, length = 1
+make_mosaic_template.control.type        = make_mosaic_template
+make_mosaic_template.control.mapfiles_in = [create_compressed_sector_mapfile.output.mapfile,create_compressed_vertices_mapfile.output.mapfile]
+make_mosaic_template.control.inputkeys   = [infile,vertices]
+make_mosaic_template.control.outputkey   = outfile
+make_mosaic_template.argument.flags      = [infile,vertices,outfile]
+make_mosaic_template.argument.skip       = {{ skip_processing }}
+
+# expand the template mapfile so that there is one entry for every sector, length = nsectors
+expand_template_mapfile.control.kind             = plugin
+expand_template_mapfile.control.type             = expandMapfile
+expand_template_mapfile.control.mapfile_in       = make_mosaic_template.output.mapfile
+expand_template_mapfile.control.mapfile_to_match = create_sector_images_map.output.mapfile
+expand_template_mapfile.control.mapfile_dir      = input.output.mapfile_dir
+expand_template_mapfile.control.filename         = expand_template.mapfile
+
+# regrid the images, length = nsectors
+regrid_image.control.type        = regrid_image
+regrid_image.control.mapfiles_in = [create_sector_images_map.output.mapfile,expand_template.output.mapfile,create_vertices_map.output.mapfile]
+regrid_image.control.inputkeys   = [infile,template,vertices]
+regrid_image.control.outputkey   = outfile
+regrid_image.argument.flags      = [infile,template,vertices,outfile]
+regrid_image.argument.skip       = {{ skip_processing }}
+
+# make a compressed regridded-images mapfile, length = 1
+create_compressed_regridded_mapfile.control.kind        = plugin
+create_compressed_regridded_mapfile.control.type        = compressMapfile
+create_compressed_regridded_mapfile.control.mapfile_in  = regrid_image.output.mapfile
+create_compressed_regridded_mapfile.control.mapfile_dir = input.output.mapfile_dir
+create_compressed_regridded_mapfile.control.filename    = make_mosaic_input.mapfile
+
+# make the mosaic, length = 1
+make_mosaic.control.type        = make_mosaic
+make_mosaic.argument.skip       = {{ skip_processing }}
+make_mosaic.control.mapfiles_in = [create_compressed_regridded_mapfile.output.mapfile,make_mosaic_template.output.mapfile,create_compressed_vertices_mapfile.output.mapfile]
+make_mosaic.control.inputkeys   = [infile,template,vertices]
+make_mosaic.control.outputkey   = outfile
+make_mosaic.argument.flags      = [infile,template,vertices,outfile]
+make_mosaic.argument.skip       = {{ skip_processing }}

@@ -46,8 +46,9 @@ class Sector(object):
         self.field = field
         self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.pkl'.format(self.name))
         self.region_file = '[]'
-        self.output_image_filename = {}
-        self.output_skymodel_filename = {}
+        self.I_image_file = None  # set by the Image operation
+        self.image_skymodel_file_apparent_sky = None  # set by the Image operation
+        self.image_skymodel_file_true_sky = None  # set by the Image operation
         self.is_outlier = False
 
         # Make copies of the observation objects, as each sector may have its own

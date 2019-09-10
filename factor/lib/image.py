@@ -11,9 +11,9 @@ import logging
 import re
 
 
-class Image(object):
+class FITSImage(object):
     """
-    The Image class is used for processing/manipulation of FITS images
+    The FITSImage class is used for processing/manipulation of FITS images
 
     Parameters
     ----------
