@@ -9,11 +9,11 @@ import lsmtool
 import lsmtool.skymodel
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
-from factor.lib.image import Image
 from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon, MultiPolygon
 from astropy.io import fits as pyfits
 from astropy.wcs import WCS as pywcs
+from astropy.table import vstack
 from reproject import reproject_interp
 import rtree
 import glob
@@ -224,7 +224,7 @@ class Field(object):
             needed if the input sky model was filtered by PyBDSF in the imaging
             pipeline
         """
-        self.log.info('Reading sky model(s)...')
+        self.log.info('Analyzing sky model(s)...')
         if type(skymodel_true_sky) is not lsmtool.skymodel.SkyModel:
             skymodel_true_sky = lsmtool.load(str(skymodel_true_sky),
                                              beamMS=self.beam_ms_filename)
@@ -274,24 +274,36 @@ class Field(object):
 
         # Now regroup source sky model into calibration patches if desired
         if regroup:
-            target_flux = self.parset['calibration_specific']['patch_target_flux_jy']
-
             # Find groups of bright sources to use as basis for calibrator patches
             source_skymodel.group('meanshift', byPatch=True, applyBeam=applyBeam_group)
             source_skymodel.setPatchPositions(method='wmean')
 
             # Tessellate
+            target_flux = self.parset['calibration_specific']['patch_target_flux_jy']
+            target_number = self.parset['calibration_specific']['patch_target_number']
+            if target_number is not None:
+                # Set target_flux so that the target_number-brightest calibrators are
+                # kept
+                fluxes = source_skymodel.getColValues('I', aggregate='sum',
+                                                      applyBeam=applyBeam_group)
+                fluxes.sort()
+                if target_number > len(fluxes):
+                    target_number = len(fluxes)
+                target_flux = fluxes[-target_number] - 0.001
             source_skymodel.group('voronoi', targetFlux=target_flux, applyBeam=applyBeam_group)
             source_skymodel.setPatchPositions(method='wmean')
 
             # Transfer patches to the true-flux sky model
-            skymodel_true_sky.transfer(source_skymodel)
+            skymodel_true_sky.table['Patch'] = source_skymodel.table['Patch']
+            skymodel_true_sky._updateGroups()
+            skymodel_true_sky.setPatchPositions(method='wmean')
 
         # Write sky model to disk for use in calibration, etc.
         calibration_skymodel = skymodel_true_sky
         self.num_patches = len(calibration_skymodel.getPatchNames())
         self.log.info('Using {} calibration patches'.format(self.num_patches))
-        self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels', 'calibration_skymodel.txt')
+        self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels',
+                                                      'calibration_skymodel.txt')
         calibration_skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.calibration_skymodel = calibration_skymodel
 
@@ -311,7 +323,7 @@ class Field(object):
         imaged_sources_only : bool
             Only use imaged sources
         """
-        self.log.info('Updating sky model...')
+        self.log.info('Updating sky model(s)...')
         if imaged_sources_only:
             # Use new models from the imaged sectors only
             sector_skymodels_apparent_sky = [sector.image_skymodel_file_apparent_sky for
@@ -330,7 +342,7 @@ class Field(object):
                     sector_skymodels_true_sky.append(sector.sector_skymodels_true_sky)
             sector_names = [sector.name for sector in self.sectors]
 
-        # Concatenate the sky models from all sectors, being careful not to mix the
+        # Concatenate the sky models from all sectors, being careful not to duplicate
         # source and patch names
         for i, (sm, sn) in enumerate(zip(sector_skymodels_true_sky, sector_names)):
             if i == 0:
@@ -338,7 +350,7 @@ class Field(object):
                 patchNames = skymodel_true_sky.getColValues('Patch')
                 new_patchNames = np.array(['{0}_{1}'.format(p, sn) for p in patchNames], dtype='U100')
                 skymodel_true_sky.setColValues('Patch', new_patchNames)
-                sourceNames = skymodel_true_sky.getColValues('Patch')
+                sourceNames = skymodel_true_sky.getColValues('Name')
                 new_sourceNames = np.array(['{0}_{1}'.format(s, sn) for s in sourceNames], dtype='U100')
                 skymodel_true_sky.setColValues('Name', new_sourceNames)
             else:
@@ -346,10 +358,15 @@ class Field(object):
                 patchNames = skymodel2.getColValues('Patch')
                 new_patchNames = np.array(['{0}_{1}'.format(p, sn) for p in patchNames], dtype='U100')
                 skymodel2.setColValues('Patch', new_patchNames)
-                sourceNames = skymodel2.getColValues('Patch')
+                sourceNames = skymodel2.getColValues('Name')
                 new_sourceNames = np.array(['{0}_{1}'.format(s, sn) for s in sourceNames], dtype='U100')
                 skymodel2.setColValues('Name', new_sourceNames)
-                skymodel_true_sky.concatenate(skymodel2)
+                table1 = skymodel_true_sky.table.filled()
+                table2 = skymodel2.table.filled()
+                skymodel_true_sky.table = vstack([table1, table2], metadata_conflicts='silent')
+        skymodel_true_sky._updateGroups()
+        skymodel_true_sky.setPatchPositions(method='wmean')
+
         if sector_skymodels_apparent_sky is not None:
             for i, (sm, sn) in enumerate(zip(sector_skymodels_apparent_sky, sector_names)):
                 if i == 0:
@@ -357,7 +374,7 @@ class Field(object):
                     patchNames = skymodel_apparent_sky.getColValues('Patch')
                     new_patchNames = np.array(['{0}_{1}'.format(p, sn) for p in patchNames], dtype='U100')
                     skymodel_apparent_sky.setColValues('Patch', new_patchNames)
-                    sourceNames = skymodel_apparent_sky.getColValues('Patch')
+                    sourceNames = skymodel_apparent_sky.getColValues('Name')
                     new_sourceNames = np.array(['{0}_{1}'.format(s, sn) for s in sourceNames], dtype='U100')
                     skymodel_apparent_sky.setColValues('Name', new_sourceNames)
                 else:
@@ -365,14 +382,19 @@ class Field(object):
                     patchNames = skymodel2.getColValues('Patch')
                     new_patchNames = np.array(['{0}_{1}'.format(p, sn) for p in patchNames], dtype='U100')
                     skymodel2.setColValues('Patch', new_patchNames)
-                    sourceNames = skymodel2.getColValues('Patch')
+                    sourceNames = skymodel2.getColValues('Name')
                     new_sourceNames = np.array(['{0}_{1}'.format(s, sn) for s in sourceNames], dtype='U100')
                     skymodel2.setColValues('Name', new_sourceNames)
-                    skymodel_apparent_sky.concatenate(skymodel2)
+                    table1 = skymodel_apparent_sky.table.filled()
+                    table2 = skymodel2.table.filled()
+                    skymodel_apparent_sky.table = vstack([table1, table2], metadata_conflicts='silent')
+            skymodel_apparent_sky._updateGroups()
+            skymodel_apparent_sky.setPatchPositions(method='wmean')
 
-        # Use concatenated sky models to make new calibration and source models
+        # Use concatenated sky models to make new calibration model (we set find_sources
+        # to False to preserve the source patches defined in the image pipeline by PyBDSF)
         self.make_skymodels(skymodel_true_sky, skymodel_apparent_sky=skymodel_apparent_sky,
-                            regroup=regroup)
+                            regroup=regroup, find_sources=False)
 
         # Re-adjust sector boundaries and update their sky models
         self.adjust_sector_boundaries()
@@ -698,85 +720,3 @@ class Field(object):
             True if all sectors have converged, False if not
         """
         return False
-
-    def make_mosaic(self, iter):
-        """
-        Make mosaic of the sector images
-
-        Parameters
-        ----------
-        iter : int
-            Iteration index
-        """
-        # TODO: make QUV mosaics as well
-        dst_dir = os.path.join(self.parset['dir_working'], 'images', 'image_{}'.format(iter))
-        create_directory(dst_dir)
-        self.field_image_filename = os.path.join(dst_dir, 'field-MFS-I-image.fits')
-        self.field_model_filename = os.path.join(dst_dir, 'field-MFS-I-model.fits')
-        if os.path.exists(self.field_image_filename):
-            os.remove(self.field_image_filename)
-
-        if len(self.imaging_sectors) == 1:
-            # No need to mosaic a single image; just copy it
-            output_image_filename = self.imaging_sectors[0].I_image_file
-            os.system('cp {0} {1}'.format(output_image_filename, self.field_image_filename))
-        else:
-            # Set up images used in mosaic
-            directions = []
-            for sector in self.imaging_sectors:
-                d = Image(sector.I_image_file)
-                d.vertices_file = sector.vertices_file
-                d.blank()
-                d.calc_weight()
-                directions.append(d)
-
-            # Prepare header for final gridding
-            mra = np.mean(np.array([d.get_wcs().wcs.crval[0] for d in directions]))
-            mdec = np.mean(np.array([d.get_wcs().wcs.crval[1] for d in directions]))
-
-            # Make a reference WCS and use it to find the extent in pixels
-            # needed for the combined image
-            rwcs = pywcs(naxis=2)
-            rwcs.wcs.ctype = directions[0].get_wcs().wcs.ctype
-            rwcs.wcs.cdelt = directions[0].get_wcs().wcs.cdelt
-            rwcs.wcs.crval = [mra, mdec]
-            rwcs.wcs.crpix = [1, 1]
-            xmin, xmax, ymin, ymax = 0, 0, 0, 0
-            for d in directions:
-                w = d.get_wcs()
-                ys, xs = np.where(d.img_data)
-                axmin, aymin, axmax, aymax = xs.min(), ys.min(), xs.max(), ys.max()
-                del xs, ys
-                for x, y in ((axmin, aymin), (axmax, aymin), (axmin, aymax), (axmax, aymax)):
-                    ra, dec = [float(f) for f in w.wcs_pix2world(x, y, 0)]
-                    nx, ny = [float(f) for f in rwcs.wcs_world2pix(ra, dec, 0)]
-                    xmin, xmax, ymin, ymax = min(nx, xmin), max(nx, xmax), min(ny, ymin), max(ny, ymax)
-            xsize = int(xmax-xmin)
-            ysize = int(ymax-ymin)
-            rwcs.wcs.crpix = [-int(xmin)+1, -int(ymin)+1]
-            regrid_hdr = rwcs.to_header()
-            regrid_hdr['NAXIS'] = 2
-            regrid_hdr['NAXIS1'] = xsize
-            regrid_hdr['NAXIS2'] = ysize
-
-            # Regrid images and add them to mosaic
-            isum = np.zeros([ysize, xsize])
-            wsum = np.zeros_like(isum)
-            mask = np.zeros_like(isum, dtype=np.bool)
-            for i, d in enumerate(directions):
-                r, footprint = reproject_interp((d.img_data, d.img_hdr), regrid_hdr)
-                r[np.isnan(r)] = 0
-                w, footprint = reproject_interp((d.weight_data, d.img_hdr), regrid_hdr)
-                mask |= ~np.isnan(w)
-                w[np.isnan(w)] = 0
-                isum += r*w
-                wsum += w
-            isum /= wsum
-            isum[~mask] = np.nan
-
-            for ch in ('BMAJ', 'BMIN', 'BPA'):
-                regrid_hdr[ch] = pyfits.open(directions[0].imagefile)[0].header[ch]
-            regrid_hdr['ORIGIN'] = 'Factor'
-            regrid_hdr['UNITS'] = 'Jy/beam'
-            hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)
-            hdu.writeto(self.field_image_filename, overwrite=True)

@@ -66,8 +66,10 @@ input_skymodel = /data/skymodel.txt
 # max_selfcal_loops = 10
 
 # Target flux per patch when grouping the sky model for calibration (default = 3.0 for
-# HBA and 6.0 for LBA)
+# HBA and 6.0 for LBA). Alternatively, one can specify the target number of patches
+# (default = None). If the number is specified, the target flux will be ignored
 # patch_target_flux_jy = 3.0
+# patch_target_number = None
 
 # Solve mode: tec or tecscreen (default = tec), and whether to solve separately for
 # the core stations in the tec solve

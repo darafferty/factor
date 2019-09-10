@@ -229,6 +229,14 @@ def get_calibration_options(parset):
     else:
         parset_dict['patch_target_flux_jy'] = 2.5
 
+    # Target number of patches for grouping
+    if 'patch_target_number' in parset_dict:
+        parset_dict['patch_target_number'] = parset.getint('calibration', 'patch_target_number')
+        if parset_dict['patch_target_number'] < 1:
+            parset_dict['patch_target_number'] = 1
+    else:
+        parset_dict['patch_target_number'] = None
+
     # Maximum number of cycles of the last step of selfcal to perform (default =
     # 10). The last step is looped until the number of cycles reaches this value or
     # until the improvement in dynamic range over the previous image is less than
@@ -335,7 +343,7 @@ def get_calibration_options(parset):
                        'fast_freqstep_hz', 'solve_core_separately',
                        'slow_timestep_sec', 'slow_freqstep_hz',
                        'approximatetec', 'propagatesolutions', 'maxapproxiter',
-                       'maxiter', 'stepsize', 'tolerance',
+                       'maxiter', 'stepsize', 'tolerance', 'patch_target_number',
                        'patch_target_flux_jy', 'smoothnessconstraint',
                        'use_beam', 'tecscreen_max_order', 'use_idg_predict']
     for option in given_options:
