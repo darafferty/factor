@@ -281,6 +281,8 @@ class Sector(object):
         yshift = int(min(y)) - ypadding
         xsize = int(np.ceil(max(x) - min(x))) + 2*xpadding
         ysize = int(np.ceil(max(y) - min(y))) + 2*ypadding
+        xsize = max(xsize, 5)  # don't let xsize become too small, or mask below will fail
+        ysize = max(ysize, 5)  # don't let ysize become too small, or mask below will fail
         x -= xshift
         y -= yshift
         prepared_polygon = prep(self.poly)
