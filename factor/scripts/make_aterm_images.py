@@ -379,7 +379,7 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
 
 
 def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname='sol000',
-         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.2, smooth=0, gsize=0,
+         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.1, smooth_deg=0, gsize_deg=0,
          mapfile_dir='.', filename='aterm_images.mapfile'):
     """
     Make a-term FITS images
@@ -404,11 +404,11 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         Fraction of total size to pad with (e.g., 0.2 => 20% padding all around)
     cellsize_deg : float, optional
         Cellsize of output image
-    smooth : float, optional
-        Size of smoothing kernel to apply (in units of output pixels)
-    gsize : float, optional
-        FWHM of Gaussian to add at patch locations (to enforce that solutions at these
-        locations are exactly equal to those in the h5parm)
+    smooth_deg : float, optional
+        Size of smoothing kernel in degrees to apply
+    gsize_deg : float, optional
+        FWHM in degrees of Gaussian to add at patch locations (to enforce that
+        solutions at these locations are exactly equal to those in the h5parm)
     mapfile_dir : str, optional
         Directory in which to store output mapfile
     filename : str, optional
@@ -441,8 +441,10 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         bounds_deg[2] += padding_ra
         bounds_deg[3] += padding_dec
     cellsize_deg = float(cellsize_deg)
-    gsize = float(gsize)
-    smooth = float(smooth)
+    gsize_deg = float(gsize_deg)
+    gsize_pix = gsize_deg / cellsize_deg
+    smooth_deg = float(smooth_deg)
+    smooth_pix = smooth_deg / cellsize_deg
 
     if 'screen' in soltab.getType():
         # Handle screen solutions
@@ -659,16 +661,18 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                                 data[t, f, s, ind[0], ind[1]] = vals[t+g_start, s, poly.index, 0]
 
                             # Smooth if desired
-                            if smooth > 0:
-                                data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :], sigma=(smooth, smooth), order=0)
+                            if smooth_pix > 0:
+                                data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :],
+                                                      sigma=(smooth_pix, smooth_pix), order=0)
 
                             # Add Gaussians at patch positions if desired
-                            if gsize > 0:
+                            if gsize_pix > 0:
                                 for i, (x, y) in enumerate(xy):
                                     # Only do this if patch is inside the region of interest
                                     if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
                                         A = vals[t+g_start, s, i, 0] - data[t, f, s, int(y), int(x)]
-                                        data[t, f, s, :, :] += guassian_image(A, x, y, data.shape[4], data.shape[3], gsize)
+                                        data[t, f, s, :, :] += guassian_image(A, x, y, data.shape[4],
+                                                               data.shape[3], gsize_pix)
                 g_start = g_stop
 
                 # Write FITS file
@@ -716,11 +720,11 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                                 data[t, f, s, 3, ind[0], ind[1]] = val_amp_yy * np.sin(val_phase_yy)
 
                             # Smooth if desired
-                            if smooth > 0:
-                                data[t, f, s, :, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :, :], sigma=(0, smooth, smooth), order=0)
+                            if smooth_pix > 0:
+                                data[t, f, s, :, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :, :], sigma=(0, smooth_pix, smooth_pix), order=0)
 
                             # Add Gaussians at patch positions if desired
-                            if gsize > 0:
+                            if gsize_pix > 0:
                                 for i, (x, y) in enumerate(xy):
                                     # Only do this if patch is inside the region of interest
                                     if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
@@ -729,13 +733,13 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                                         val_phase_xx = vals_ph[t+g_start, f, s, i, 0]
                                         val_phase_yy = vals_ph[t+g_start, f, s, i, 1]
                                         A = val_amp_xx * np.cos(val_phase_xx) - data[t, f, s, 0, int(y), int(x)]
-                                        data[t, f, s, 0, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                        data[t, f, s, 0, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
                                         A = val_amp_yy * np.cos(val_phase_yy) - data[t, f, s, 2, int(y), int(x)]
-                                        data[t, f, s, 2, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                        data[t, f, s, 2, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
                                         A = val_amp_xx * np.sin(val_phase_xx) - data[t, f, s, 1, int(y), int(x)]
-                                        data[t, f, s, 1, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                        data[t, f, s, 1, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
                                         A = val_amp_yy * np.sin(val_phase_yy) - data[t, f, s, 3, int(y), int(x)]
-                                        data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize)
+                                        data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
                 g_start = g_stop
 
                 # Write FITS file

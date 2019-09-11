@@ -5,6 +5,7 @@ import os
 import logging
 from factor.lib.operation import Operation
 from lofarpipe.support.data_map import DataMap
+from lofarpipe.support.utilities import create_directory
 
 log = logging.getLogger('factor:image')
 
@@ -78,7 +79,19 @@ class Image(Operation):
         self.direction.image_skymodel_file_true_sky = in_map[0].file + '.true_sky'
         self.direction.image_skymodel_file_apparent_sky = in_map[0].file + '.apparent_sky'
 
-        # Delete temp data
-        self.cleanup_mapfiles = [os.path.join(self.pipeline_mapfile_dir,
-                                 'prepare_imaging_data.mapfile')]
+        # Symlink to datasets and remove old ones
+        dst_dir = os.path.join(self.parset['dir_working'], 'datasets', self.direction.name)
+        create_directory(dst_dir)
+        ms_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+                                           'prepare_imaging_data.mapfile'))
+        for ms in ms_map:
+            dst = os.path.join(dst_dir, ms.file)
+            if os.path.exists(dst):
+                os.remove(dst)
+            os.system('ln -s {0} {1}'.format(ms.file, dst))
+        if self.index > 1:
+            prev_iter_mapfile_dir = self.pipeline_mapfile_dir.replace('image_{}'.format(self.index),
+                                                                      'image_{}'.format(self.index-1))
+            self.cleanup_mapfiles = [os.path.join(prev_iter_mapfile_dir,
+                                     'prepare_imaging_data.mapfile')]
         self.cleanup()

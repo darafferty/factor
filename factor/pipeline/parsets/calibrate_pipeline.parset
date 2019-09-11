@@ -483,8 +483,8 @@ make_fast_aterms.control.inputkey     = infile
 make_fast_aterms.control.mapfile_out  = create_fast_aterms_output_map.output.mapfile
 make_fast_aterms.control.outputkey    = outroot
 make_fast_aterms.argument.flags       = [infile,origtec000,outroot,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
-make_fast_aterms.argument.smooth      = 3
-make_fast_aterms.argument.gsize       = 5
+make_fast_aterms.argument.smooth_deg  = 0.1
+make_fast_aterms.argument.gsize_deg   = 0.1
 make_fast_aterms.argument.mapfile_dir = input.output.mapfile_dir
 make_fast_aterms.argument.filename    = fast_aterms_images.mapfile
 
@@ -592,8 +592,8 @@ make_slow_aterms.control.inputkey     = infile
 make_slow_aterms.control.mapfile_out  = create_slow_aterms_output_map.output.mapfile
 make_slow_aterms.control.outputkey    = outfile
 make_slow_aterms.argument.flags       = [infile,gain000,outfile,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }}]
-make_slow_aterms.argument.smooth      = 3
-make_slow_aterms.argument.gsize       = 5
+make_slow_aterms.argument.smooth_deg  = 0.1
+make_slow_aterms.argument.gsize_deg   = 0.1
 make_slow_aterms.argument.mapfile_dir = input.output.mapfile_dir
 make_slow_aterms.argument.filename    = slow_aterms_images.mapfile
 
