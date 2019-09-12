@@ -8,7 +8,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 
-def main(h5file, soltype, root=None, refstat=None):
+def main(h5file, soltype, root=None, refstat=None, soltab=None):
     """
     Plot solutions vs. time
 
@@ -22,36 +22,53 @@ def main(h5file, soltype, root=None, refstat=None):
         Root name for output plots. If None, the soltype is used
     refstat : str, optional
         Name of referance station. If None, the first stations is used
+    soltab : str, optional
+        Name of soltab to use. If None, the default for the given soltype is used
     """
     h = h5parm(h5file)
     ss = h.getSolset('sol000')
 
     if soltype == 'tec':
-        st = ss.getSoltab('screentec000')
+        if soltab is None:
+            st = ss.getSoltab('screentec000')
+        else:
+            st = ss.getSoltab(soltab)
         ref = st.ant[0]
         ncol = 1
         color = ''
         minmax = [-0.3, 0.3]
     if soltype == 'tecerror':
-        st = ss.getSoltab('error000')
+        if soltab is None:
+            st = ss.getSoltab('error000')
+        else:
+            st = ss.getSoltab(soltab)
         ref = ''
         ncol = 1
         color = ''
         minmax = [0, 0]
     elif soltype == 'scalaraphase':
-        st = ss.getSoltab('screenphase000')
+        if soltab is None:
+            st = ss.getSoltab('screenphase000')
+        else:
+            st = ss.getSoltab(soltab)
         ref = st.ant[0]
         ncol = 0
         color = ''
         minmax = [-3.2, 3.2]
     elif soltype == 'amplitude':
-        st = ss.getSoltab('screenamplitude000')
+        if soltab is None:
+            st = ss.getSoltab('screenamplitude000')
+        else:
+            st = ss.getSoltab(soltab)
         ref = ''
         ncol = 0
         color = 'pol'
         minmax = [0, 0]
     elif soltype == 'phase':
-        st = ss.getSoltab('screenphase000')
+        if soltab is None:
+            st = ss.getSoltab('screenphase000')
+        else:
+            st = ss.getSoltab(soltab)
         ref = st.ant[0]
         ncol = 0
         color = 'pol'
