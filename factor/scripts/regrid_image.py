@@ -38,12 +38,12 @@ def main(input_image, template_image, vertices_file, output_image, do_weights=Fa
     d = FITSImage(input_image)
     d.vertices_file = vertices_file
     d.blank()
-    d.calc_weight()
     r, footprint = reproject_interp((d.img_data, d.img_hdr), regrid_hdr)
     d.img_data = r
     d.img_hdr = regrid_hdr
     d.write(output_image)
     if do_weights:
+        d.calc_weight()
         w, footprint = reproject_interp((d.weight_data, d.img_hdr), regrid_hdr)
         d.img_data = w
         d.img_hdr = regrid_hdr

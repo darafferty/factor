@@ -54,10 +54,20 @@ expand_template_mapfile.control.mapfile_to_match = create_sector_images_map.outp
 expand_template_mapfile.control.mapfile_dir      = input.output.mapfile_dir
 expand_template_mapfile.control.filename         = expand_template.mapfile
 
+# make a compressed sector-images mapfile, length = 1
+create_regrid_output_mapfile.control.kind         = plugin
+create_regrid_output_mapfile.control.type         = compressMapfile
+create_regrid_output_mapfile.control.mapfile_in   = create_sector_images_map.output.mapfile
+create_regrid_output_mapfile.control.append       = regridded
+create_regrid_output_mapfile.control.append_index = True
+create_regrid_output_mapfile.control.mapfile_dir  = input.output.mapfile_dir
+create_regrid_output_mapfile.control.filename     = mosaic_template_input.mapfile
+
 # regrid the images, length = nsectors
 regrid_image.control.type        = regrid_image
 regrid_image.control.mapfiles_in = [create_sector_images_map.output.mapfile,expand_template_mapfile.output.mapfile,create_vertices_map.output.mapfile]
 regrid_image.control.inputkeys   = [infile,template,vertices]
+regrid_image.control.mapfile_out = create_regrid_output_mapfile.output.mapfile
 regrid_image.control.outputkey   = outfile
 regrid_image.argument.flags      = [infile,template,vertices,outfile]
 regrid_image.argument.skip       = {{ skip_processing }}
