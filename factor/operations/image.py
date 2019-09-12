@@ -85,7 +85,7 @@ class Image(Operation):
         ms_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'prepare_imaging_data.mapfile'))
         for ms in ms_map:
-            dst = os.path.join(dst_dir, ms.file)
+            dst = os.path.join(dst_dir, os.path.basename(ms.file))
             if os.path.exists(dst):
                 os.remove(dst)
             os.system('ln -s {0} {1}'.format(ms.file, dst))
