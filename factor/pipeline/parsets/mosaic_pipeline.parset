@@ -1,4 +1,4 @@
-pipeline.steps = [update_mapfile_hosts, create_sector_images_map, create_vertices_map, create_compressed_sector_mapfile, create_compressed_vertices_mapfile, make_mosaic_template, expand_template_mapfile, regrid_image, create_compressed_regridded_mapfile, make_mosaic]
+pipeline.steps = [update_mapfile_hosts, create_sector_images_map, create_vertices_map, create_compressed_sector_mapfile, create_compressed_vertices_mapfile, make_mosaic_template, expand_template_mapfile, create_regrid_output_mapfile, regrid_image, create_compressed_regridded_mapfile, make_mosaic]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
