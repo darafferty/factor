@@ -184,7 +184,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         nrows_in = tin.nrows()
 
     # If outliers are to be peeled, do that first
-    if peel_outliers:
+    if peel_outliers and nr_outliers > 0:
         # Open input and output table
         tin = pt.table(msin, readonly=True, ack=False)
         msout = '{}_field'.format(msin)
