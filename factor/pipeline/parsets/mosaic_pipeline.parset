@@ -81,7 +81,6 @@ create_compressed_regridded_mapfile.control.filename    = make_mosaic_input.mapf
 
 # make the mosaic, length = 1
 make_mosaic.control.type        = make_mosaic
-make_mosaic.argument.skip       = {{ skip_processing }}
 make_mosaic.control.mapfiles_in = [create_compressed_regridded_mapfile.output.mapfile,make_mosaic_template.output.mapfile,create_compressed_vertices_mapfile.output.mapfile]
 make_mosaic.control.inputkeys   = [infile,template,vertices]
 make_mosaic.control.outputkey   = outfile
