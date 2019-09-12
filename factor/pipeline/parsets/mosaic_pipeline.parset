@@ -22,7 +22,7 @@ create_vertices_map.control.type        = addListMapfile
 create_vertices_map.control.hosts       = {{ hosts }}
 create_vertices_map.control.files       = {{ sector_vertices_filename }}
 create_vertices_map.control.mapfile_dir = input.output.mapfile_dir
-create_vertices_map.control.filename    = freqstep.mapfile
+create_vertices_map.control.filename    = vertices_files.mapfile
 
 # make a compressed sector-images mapfile, length = 1
 create_compressed_sector_mapfile.control.kind        = plugin
@@ -54,14 +54,14 @@ expand_template_mapfile.control.mapfile_to_match = create_sector_images_map.outp
 expand_template_mapfile.control.mapfile_dir      = input.output.mapfile_dir
 expand_template_mapfile.control.filename         = expand_template.mapfile
 
-# make a compressed sector-images mapfile, length = 1
+# make output mapfile for the regrid_image step, length = 1
 create_regrid_output_mapfile.control.kind         = plugin
 create_regrid_output_mapfile.control.type         = compressMapfile
 create_regrid_output_mapfile.control.mapfile_in   = create_sector_images_map.output.mapfile
 create_regrid_output_mapfile.control.append       = regridded
 create_regrid_output_mapfile.control.append_index = True
 create_regrid_output_mapfile.control.mapfile_dir  = input.output.mapfile_dir
-create_regrid_output_mapfile.control.filename     = mosaic_template_input.mapfile
+create_regrid_output_mapfile.control.filename     = regrid_input.mapfile
 
 # regrid the images, length = nsectors
 regrid_image.control.type        = regrid_image
