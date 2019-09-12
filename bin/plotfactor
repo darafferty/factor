@@ -94,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument('soltype', help="Type of solution to plot: tec, tecerror, scalarphase, phase, or amplitude")
     parser.add_argument('--root', help="Root name for output plots (default: 'soltype_')", default=None)
     parser.add_argument('--refstat', help="Name of referance station (default: first)", default=None)
+    parser.add_argument('--soltab', help="Name of solution table (default: default for soltype)", default=None)
 
     args = parser.parse_args()
     main(args.h5file, args.soltype, args.root, args.refstat)
