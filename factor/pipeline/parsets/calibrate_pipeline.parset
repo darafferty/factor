@@ -572,9 +572,9 @@ fit_slow_screens.control.type               = fit_gain_screens
 fit_slow_screens.control.mapfile_in         = combine_slow_gains.output.mapfile
 fit_slow_screens.control.inputkey           = infile
 fit_slow_screens.argument.flags             = [infile]
-fit_slow_screens.argument.smooth_amplitudes = True
+fit_slow_screens.argument.smooth_amplitudes = False
 fit_slow_screens.argument.normalize         = True
-fit_slow_screens.argument.smooth_phases     = True
+fit_slow_screens.argument.smooth_phases     = False
 
 # create a mapfile for output of a-term step, length = 1
 create_slow_aterms_output_map.control.kind        = plugin
