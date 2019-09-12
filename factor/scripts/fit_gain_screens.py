@@ -356,16 +356,17 @@ def smooth(soltab, smooth_amplitudes=True, normalize=True):
 
         # Normalize the amplitude solutions to a mean of one across all channels
         if normalize:
-            # First find the normalization factor from unflagged solutions
-            norm_factor = 1.0/(np.nanmean(parms[initial_unflagged_indx]))
-            print("smooth_amps_spline.py: Normalization-Factor is:", norm_factor)
-            parms *= norm_factor
+            for dir in range(len(soltab.dir[:])):
+                # First find the normalization factor from unflagged solutions
+                norm_factor = 1.0/(np.nanmean(parms[initial_unflagged_indx][:, :, :, dir, :]))
+                print("smooth_amps_spline.py: Normalization-Factor is:", norm_factor)
+                parms[:, :, :, dir, :] *= norm_factor
 
-            # Clip extremely low amplitude solutions to prevent very high
-            # amplitudes in the corrected data
-            unflagged = np.where(~np.isnan(parms))
-            low_ind = np.where(parms[unflagged] < 0.2)
-            parms[unflagged][low_ind] = 0.2
+                # Clip extremely low amplitude solutions to prevent very high
+                # amplitudes in the corrected data
+                unflagged = np.where(~np.isnan(parms[:, :, :, dir, :]))
+                low_ind = np.where(parms[:, :, :, dir, :][unflagged] < 0.2)
+                parms[:, :, :, dir, :][unflagged][low_ind] = 0.2
 
         # Make sure flagged solutions are still flagged
         parms[initial_flagged_indx] = np.nan
