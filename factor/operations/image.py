@@ -87,7 +87,7 @@ class Image(Operation):
         for ms in ms_map:
             dst = os.path.join(dst_dir, os.path.basename(ms.file))
             if os.path.exists(dst):
-                os.remove(dst)
+                os.unlink(dst)
             os.system('ln -s {0} {1}'.format(ms.file, dst))
         if self.index > 1:
             prev_iter_mapfile_dir = self.pipeline_mapfile_dir.replace('image_{}'.format(self.index),
