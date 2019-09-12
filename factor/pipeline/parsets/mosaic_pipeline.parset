@@ -56,7 +56,7 @@ expand_template_mapfile.control.filename         = expand_template.mapfile
 
 # make output mapfile for the regrid_image step, length = 1
 create_regrid_output_mapfile.control.kind         = plugin
-create_regrid_output_mapfile.control.type         = compressMapfile
+create_regrid_output_mapfile.control.type         = appendMapfile
 create_regrid_output_mapfile.control.mapfile_in   = create_sector_images_map.output.mapfile
 create_regrid_output_mapfile.control.append       = regridded
 create_regrid_output_mapfile.control.append_index = True
