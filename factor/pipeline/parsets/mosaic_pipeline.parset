@@ -56,7 +56,7 @@ expand_template_mapfile.control.filename         = expand_template.mapfile
 
 # regrid the images, length = nsectors
 regrid_image.control.type        = regrid_image
-regrid_image.control.mapfiles_in = [create_sector_images_map.output.mapfile,expand_template.output.mapfile,create_vertices_map.output.mapfile]
+regrid_image.control.mapfiles_in = [create_sector_images_map.output.mapfile,expand_template_mapfile.output.mapfile,create_vertices_map.output.mapfile]
 regrid_image.control.inputkeys   = [infile,template,vertices]
 regrid_image.control.outputkey   = outfile
 regrid_image.argument.flags      = [infile,template,vertices,outfile]
