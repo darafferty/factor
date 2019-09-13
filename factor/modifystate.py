@@ -8,6 +8,7 @@ import logging
 import glob
 import os
 import sys
+import numpy as np
 
 log = logging.getLogger('factor:state')
 logging.getLogger('factor:parset').setLevel(logging.CRITICAL)
@@ -49,21 +50,12 @@ def get_number_of_sectors(field):
         sector_center_dec_list = field.parset['imaging_specific']['sector_center_dec_list']
         sector_width_ra_deg_list = field.parset['imaging_specific']['sector_width_ra_deg_list']
         sector_width_dec_deg_list = field.parset['imaging_specific']['sector_width_dec_deg_list']
-        sector_do_multiscale_list = field.parset['imaging_specific']['sector_do_multiscale_list']
         n = 1
         for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list,
                                                 sector_width_ra_deg_list, sector_width_dec_deg_list):
             n += 1
     else:
         # Make a regular grid of sectors
-        if field.parset['imaging_specific']['grid_center_ra'] is None:
-            image_ra = field.ra
-        else:
-            image_ra = field.parset['imaging_specific']['grid_center_ra']
-        if field.parset['imaging_specific']['grid_center_dec'] is None:
-            image_dec = field.dec
-        else:
-            image_dec = field.parset['imaging_specific']['grid_center_dec']
         if field.parset['imaging_specific']['grid_width_ra_deg'] is None:
             image_width_ra = field.fwhm_ra_deg
         else:
