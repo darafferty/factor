@@ -33,6 +33,59 @@ def check_operation(operation):
     return pipelines
 
 
+def get_number_of_sectors(field):
+    """
+    Returns number of imaging sectors
+
+    Parameters
+    ----------
+    field : Field object
+        Input Field object
+    """
+    # Determine whether we use a user-supplied list of sectors or a grid
+    if len(field.parset['imaging_specific']['sector_center_ra_list']) > 0:
+        # Use user-supplied list
+        sector_center_ra_list = field.parset['imaging_specific']['sector_center_ra_list']
+        sector_center_dec_list = field.parset['imaging_specific']['sector_center_dec_list']
+        sector_width_ra_deg_list = field.parset['imaging_specific']['sector_width_ra_deg_list']
+        sector_width_dec_deg_list = field.parset['imaging_specific']['sector_width_dec_deg_list']
+        sector_do_multiscale_list = field.parset['imaging_specific']['sector_do_multiscale_list']
+        n = 1
+        for ra, dec, width_ra, width_dec in zip(sector_center_ra_list, sector_center_dec_list,
+                                                sector_width_ra_deg_list, sector_width_dec_deg_list):
+            n += 1
+    else:
+        # Make a regular grid of sectors
+        if field.parset['imaging_specific']['grid_center_ra'] is None:
+            image_ra = field.ra
+        else:
+            image_ra = field.parset['imaging_specific']['grid_center_ra']
+        if field.parset['imaging_specific']['grid_center_dec'] is None:
+            image_dec = field.dec
+        else:
+            image_dec = field.parset['imaging_specific']['grid_center_dec']
+        if field.parset['imaging_specific']['grid_width_ra_deg'] is None:
+            image_width_ra = field.fwhm_ra_deg
+        else:
+            image_width_ra = field.parset['imaging_specific']['grid_width_ra_deg']
+        if field.parset['imaging_specific']['grid_width_dec_deg'] is None:
+            image_width_dec = field.fwhm_dec_deg
+        else:
+            image_width_dec = field.parset['imaging_specific']['grid_width_dec_deg']
+
+        nsectors_ra = field.parset['imaging_specific']['grid_nsectors_ra']
+        if nsectors_ra == 0:
+            # Force a single sector
+            nsectors_ra = 1
+            nsectors_dec = 1
+        else:
+            nsectors_dec = int(np.ceil(image_width_dec / (image_width_ra / nsectors_ra)))
+
+        n = nsectors_ra*nsectors_dec
+
+    return n
+
+
 def run(parset_file):
     """
     Modifies the state of one or more pipelines
@@ -49,7 +102,7 @@ def run(parset_file):
     # Initialize field object
     field = Field(parset, mininmal=True)
     field.outlier_sectors = [None]
-    field.imaging_sectors = [None]
+    field.imaging_sectors = [None] * get_number_of_sectors(field)
 
     # Get the processing strategy
     strategy_steps = set_strategy(field)
@@ -66,6 +119,8 @@ def run(parset_file):
                 pipelines.extend(check_operation(operation))
             if step['do_image']:
                 operation = os.path.join(parset['dir_working'], 'pipelines', 'image_{}'.format(iter+1))
+                pipelines.extend(check_operation(operation))
+                operation = os.path.join(parset['dir_working'], 'pipelines', 'mosaic_{}'.format(iter+1))
                 pipelines.extend(check_operation(operation))
 
         # List pipelines and query user
