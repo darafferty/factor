@@ -360,7 +360,7 @@ def smooth(soltab, smooth_amplitudes=True, normalize=True):
             for dir in range(len(soltab.dir[:])):
                 # First find the normalization factor from unflagged solutions
                 norm_factor = 1.0/(np.nanmean(parms[initial_unflagged_indx].reshape(parms.shape)[:, :, :, dir, :]))
-                print("smooth_amps_spline.py: Normalization-Factor is:", norm_factor)
+                print("smooth_amps_spline.py: Normalization factor for direction {0} is {1}".format(dir, norm_factor))
                 parms[:, :, :, dir, :] *= norm_factor
 
                 # Clip extremely low amplitude solutions to prevent very high
