@@ -16,6 +16,7 @@ from scipy.interpolate import LSQUnivariateSpline, interp1d, interp2d
 import sys
 import scipy.ndimage
 import astropy.convolution
+from factor.lib import miscellaneous as misc
 
 
 def std(inputData, Zero=False, axis=None, dtype=None):
@@ -436,11 +437,11 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
         Index of reference station
     """
     ref_id = int(ref_id)
-    if type(normalize) is str:
-        if normalize.lower() == 'true':
-            normalize = True
-        else:
-            normalize = False
+    normalize = misc.string2bool(normalize)
+    fit_screens = misc.string2bool(fit_screens)
+    calculate_weights = misc.string2bool(calculate_weights)
+    smooth_amplitudes = misc.string2bool(smooth_amplitudes)
+    smooth_phases = misc.string2bool(smooth_phases)
 
     # Read in solutions
     H = h5parm(h5parmfile, readonly=False)

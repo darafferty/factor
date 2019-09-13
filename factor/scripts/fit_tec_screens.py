@@ -10,6 +10,7 @@ import sys
 if sys.version_info < (3,):
     from itertools import izip as zip
 import multiprocessing
+from factor.lib import miscellaneous as misc
 
 
 def _rolling_window_lastaxis(a, window):
@@ -310,6 +311,10 @@ def main(h5parmfile, solsetname='sol000', tecsoltabname='tec000',
     """
     ref_id = int(ref_id)
     order = int(order)
+    fit_screens = misc.string2bool(fit_screens)
+    calculate_weights = misc.string2bool(calculate_weights)
+    remove_jumps = misc.string2bool(remove_jumps)
+    flag_on_err = misc.string2bool(flag_on_err)
 
     # Read in solutions
     H = h5parm(h5parmfile, readonly=False)
