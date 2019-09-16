@@ -387,7 +387,5 @@ def main(h5parmfile, solsetname='sol000', tecsoltabname='tec000',
         soltab = solset.getSoltab('tecscreen000')
         source_dict = solset.getSou()
         operations.screenvalues.run(soltab, source_dict, 'screentec000')
-    else:
-        soltab = solset.getSoltab('tec000')
-        soltab.rename('screentec000', overwrite=True)
+
     H.close()

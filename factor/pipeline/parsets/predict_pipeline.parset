@@ -93,7 +93,7 @@ predict_model_data.argument.predict.sourcedb                      = sourcedb
 predict_model_data.argument.predict.operation                     = replace
 predict_model_data.argument.predict.applycal.parmdb               = combined_h5parm
 # Note: the following parameter seems to be needed but is not used
-predict_model_data.argument.predict.applycal.correction           = screentec000
+predict_model_data.argument.predict.applycal.correction           = origtec000
 predict_model_data.argument.predict.directions                    = directions
 {% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,slowamp,slowphase]
