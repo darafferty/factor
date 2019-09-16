@@ -453,7 +453,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
     ph = np.array(phsoltab.val)
     dph = np.ones(ph.shape)
 
-    ampsoltab.rename('origampiltude000', overwrite=True)
+    ampsoltab.rename('origamplitude000', overwrite=True)
     if smooth_amplitudes or normalize:
         amp, damp = smooth(ampsoltab, smooth_amplitudes=smooth_amplitudes, normalize=normalize)
     solset.makeSoltab('amplitude', 'amplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
