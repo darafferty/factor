@@ -453,38 +453,37 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
     ph = np.array(phsoltab.val)
     dph = np.ones(ph.shape)
 
+    ampsoltab.rename('origampiltude000', overwrite=True)
     if smooth_amplitudes or normalize:
         amp, damp = smooth(ampsoltab, smooth_amplitudes=smooth_amplitudes, normalize=normalize)
-        ampsoltab.rename('origampiltude000', overwrite=True)
         solset.makeSoltab('amplitude', 'amplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                           axesVals=[ampsoltab.time[:], ampsoltab.freq[:], ampsoltab.ant[:],
                           ampsoltab.dir[:], ampsoltab.pol[:]], vals=amp, weights=damp)
 
+    phsoltab.rename('origphase000', overwrite=True)
     if smooth_phases:
         ph, dph = smooth(phsoltab)
-        phsoltab.rename('origphase000', overwrite=True)
         solset.makeSoltab('phase', 'phase000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                           axesVals=[phsoltab.time[:], phsoltab.freq[:], phsoltab.ant[:],
                           phsoltab.dir[:], phsoltab.pol[:]], vals=ph, weights=dph)
 
     if fit_screens:
-        # Rename smoothed soltabs
         if smooth_amplitudes:
-            soltaba = solset.getSoltab('amplitude000')
-        if smooth_phases:
-            soltabp = solset.getSoltab('phase000')
+            ampsoltab = solset.getSoltab('amplitude000')
+        if ampsoltab:
+            phsoltab = solset.getSoltab('phase000')
 
         # Find weights
         if calculate_weights:
-            operations.reweight.run(soltaba, 'window', nmedian=3, nstddev=501)
-            operations.reweight.run(soltabp, 'window', nmedian=3, nstddev=501)
+            operations.reweight.run(ampsoltab, 'window', nmedian=3, nstddev=501)
+            operations.reweight.run(phsoltab, 'window', nmedian=3, nstddev=501)
 
         # Fit screens
         remove_soltabs(solset, ['amplitudescreen000', 'amplitudescreen000resid'])
-        operations.stationscreen.run(soltaba, 'amplitudescreen000', niter=1, nsigma=5,
+        operations.stationscreen.run(ampsoltab, 'amplitudescreen000', niter=1, nsigma=5,
             refAnt=ref_id, order=20, scale_order=False)
         remove_soltabs(solset, ['phasescreen000', 'phasescreen000resid'])
-        operations.stationscreen.run(soltabp, 'phasescreen000', niter=1, nsigma=5,
+        operations.stationscreen.run(phsoltab, 'phasescreen000', niter=1, nsigma=5,
             refAnt=ref_id, order=20, scale_order=False)
 
     H.close()
