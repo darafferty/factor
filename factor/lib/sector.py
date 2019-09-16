@@ -275,14 +275,12 @@ class Sector(object):
         y = np.array(y)
 
         # Now check the actual sector boundary against filtered sky model
-        xpadding = int(0.1 * (max(x) - min(x)))
-        ypadding = int(0.1 * (max(y) - min(y)))
+        xpadding = max(int(0.1 * (max(x) - min(x))), 3)
+        ypadding = max(int(0.1 * (max(y) - min(y))), 3)
         xshift = int(min(x)) - xpadding
         yshift = int(min(y)) - ypadding
         xsize = int(np.ceil(max(x) - min(x))) + 2*xpadding
         ysize = int(np.ceil(max(y) - min(y))) + 2*ypadding
-        xsize = max(xsize, 5)  # don't let xsize become too small, or mask below will fail
-        ysize = max(ysize, 5)  # don't let ysize become too small, or mask below will fail
         x -= xshift
         y -= yshift
         prepared_polygon = prep(self.poly)
