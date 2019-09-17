@@ -58,7 +58,7 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
             field.__dict__.update(step['predict_parameters'])
             op = Predict(field, iter+1)
             scheduler.run(op)
-            if field.peel_outliers:
+            if field.peel_outliers and len(field.outlier_sectors) > 0:
                 # Update the observations to use the new peeled datasets and remove the
                 # outlier sectors (since, once peeled, they are no longer needed)
                 for obs in field.observations:
