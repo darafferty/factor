@@ -9,7 +9,7 @@ from astropy.wcs import WCS as pywcs
 import numpy as np
 
 
-def main(input_image_list, vertices_file_list, output_image, skip=False):
+def main(input_image_list, vertices_file_list, output_image, skip=False, padding=1.1):
     """
     Make a mosaic template image
 
@@ -23,6 +23,8 @@ def main(input_image_list, vertices_file_list, output_image, skip=False):
         Filename of output image
     skip : bool
         If True, skip all processing
+    padding : float
+        Fraction with which to increase the final mosaic size
     """
     input_image_list = misc.string2list(input_image_list)
     vertices_file_list = misc.string2list(vertices_file_list)
@@ -59,8 +61,14 @@ def main(input_image_list, vertices_file_list, output_image, skip=False):
             ra, dec = [float(f) for f in w.wcs_pix2world(x, y, 0)]
             nx, ny = [float(f) for f in rwcs.wcs_world2pix(ra, dec, 0)]
             xmin, xmax, ymin, ymax = min(nx, xmin), max(nx, xmax), min(ny, ymin), max(ny, ymax)
-    xsize = int(xmax-xmin)
-    ysize = int(ymax-ymin)
+    xsize = int(xmax - xmin)
+    ysize = int(ymax - ymin)
+    xmax += int(xsize * (padding - 1.0) / 2.0)
+    xmin -= int(xsize * (padding - 1.0) / 2.0)
+    ymax += int(ysize * (padding - 1.0) / 2.0)
+    ymin -= int(ysize * (padding - 1.0) / 2.0)
+    xsize = int(xmax - xmin)
+    ysize = int(ymax - ymin)
     rwcs.wcs.crpix = [-int(xmin)+1, -int(ymin)+1]
     regrid_hdr = rwcs.to_header()
     regrid_hdr['NAXIS'] = 2

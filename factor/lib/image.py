@@ -143,7 +143,7 @@ class FITSImage(object):
             verts.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
 
         # Blank pixels (= NaN) outside of the polygon
-        self.img_data = misc.rasterize(verts, self.img_data)
+        self.img_data = misc.rasterize(verts, self.img_data, blank_value=np.nan)
 
     def calc_noise(self, niter=1000, eps=None):
         """

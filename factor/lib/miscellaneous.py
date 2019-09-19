@@ -154,7 +154,7 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
     hdulist.close()
 
 
-def rasterize(verts, data):
+def rasterize(verts, data, blank_value=0):
     """
     Rasterize a polygon into a data array
 
@@ -164,6 +164,8 @@ def rasterize(verts, data):
         List of input vertices of polygon to rasterize
     data : 2-D array
         Array into which rasterize polygon
+    blank_value : int or float, optional
+        Value to use for blanking regions outside the poly
 
     Returns
     -------
@@ -187,6 +189,9 @@ def rasterize(verts, data):
     outside_points = [v for v in points if prepared_polygon.disjoint(v)]
     for outside_point in outside_points:
         data[int(outside_point.y), int(outside_point.x)] = 0
+
+    if blank_value != 0:
+        data[data==0] = blank_value
 
     return data
 
