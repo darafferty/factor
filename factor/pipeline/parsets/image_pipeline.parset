@@ -104,7 +104,7 @@ make_aterm_config.control.outputkey     = outfile
 make_aterm_config.argument.flags        = [infile,outfile]
 make_aterm_config.argument.tec_mapfile  = {{ fast_aterms_mapfile }}
 make_aterm_config.argument.gain_mapfile = {{ slow_aterms_mapfile }}
-make_aterm_config.argument.use_beam     = True
+make_aterm_config.argument.use_beam     = {{ use_beam }}
 
 # do the imaging, length = 1
 # NOTE: the beam parameters are specified in the aterm config file made above. We need
@@ -112,7 +112,11 @@ make_aterm_config.argument.use_beam     = True
 image.control.type                    = wsclean
 image.control.mapfiles_in             = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
 image.control.inputkeys               = [msfile,fitsmask,atermconfig]
+{% if use_beam %}
 image.argument.flags                  = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-apply-primary-beam,msfile]
+{% else %}
+image.argument.flags                  = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
+{% endif %}
 image.argument.fits-mask              = fitsmask
 image.argument.size                   = {{ wsclean_imsize }}
 image.argument.niter                  = {{ wsclean_niter }}
@@ -156,10 +160,11 @@ image.argument.parallel-deconvolution = 512
 
 # filter the sky model using PyBDSF, length = 1
 filter.control.type                   = filter_skymodel
-filter.control.mapfiles_in            = [image.output.image-MFS-image.fits.mapfile,image.output.image-sources.txt.mapfile,image.output.image-sources-pb.txt.mapfile]
+filter.control.mapfiles_in            = [image.output.image-MFS-image.fits.mapfile,image.output.image-sources.txt.mapfile,image.output.image-sources-pb.txt.mapfile,create_compressed_mapfile.output.mapfile]
 # NOTE: currently, -save-source-list only works with pol=I -- when it works with other
 # pols, enable IQUV imaging with the following line
 # filter.control.mapfiles_in            = [image.output.image-MFS-I-image.fits.mapfile,image.output.image-sources.txt.mapfile,image.output.image-sources-pb.txt.mapfile]
-filter.control.inputkeys              = [imagefile,nonpb_modelfile,pb_modelfile]
+filter.control.inputkeys              = [imagefile,nonpb_modelfile,pb_modelfile,msfile]
 filter.control.outputkey              = outroot
 filter.argument.flags                 = [imagefile,nonpb_modelfile,pb_modelfile,outroot]
+filter.argument.beamMS                = msfile

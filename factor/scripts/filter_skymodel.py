@@ -23,7 +23,8 @@ from factor.lib import miscellaneous as misc
 
 def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
          threshisl=3.0, threshpix=5.0, rmsbox=(150, 50), rmsbox_bright=(35, 7),
-         adaptive_rmsbox=True, use_adaptive_threshold=False, adaptive_thresh=150.0):
+         adaptive_rmsbox=True, use_adaptive_threshold=False, adaptive_thresh=150.0,
+         beamMS=None):
     """
     Filter the input sky model so that they lie in islands in the image
 
@@ -32,9 +33,9 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
     input_image : str
         Filename of input image to blank
     input_skymodel_nonpb : str
-        Filename of input makesourcedb sky model, without primary-beam corrections
+        Filename of input makesourcedb sky model, without primary-beam correction
     input_skymodel_pb : str, optional
-        Filename of input makesourcedb sky model, with primary-beam corrections
+        Filename of input makesourcedb sky model, with primary-beam correction
     output_root : str
         Root of filename of output makesourcedb sky models. Output filenames will be
         output_root+'.apparent_sky' and output_root+'.true_sky'
@@ -61,6 +62,8 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         rmsbox_bright = eval(rmsbox_bright)
     adaptive_rmsbox = misc.string2bool(adaptive_rmsbox)
     use_adaptive_threshold = misc.string2bool(use_adaptive_threshold)
+    if isinstance(beamMS, str):
+        beamMS = misc.string2list(beamMS)
 
     if use_adaptive_threshold:
         # Get an estimate of the rms
@@ -102,10 +105,21 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         s.group(maskfile)  # group the sky model by mask islands
         s.write(output_root+'.apparent_sky', clobber=True)
 
-        s = lsmtool.load(input_skymodel_pb)
+        if not os.path.exists(input_skymodel_pb):
+            # No true-sky model available, so use apparent-sky one and correct for beam
+            s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[0])
+            applyBeam = True
+            invertBeam = True
+            adjustSI = True
+        else:
+            s = lsmtool.load(input_skymodel_pb)
+            applyBeam = False
+            invertBeam = False
+            adjustSI = False
         s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
         s.group(maskfile)  # group the sky model by mask islands
-        s.write(output_root+'.true_sky', clobber=True)
+        s.write(output_root+'.true_sky', clobber=True, applyBeam=applyBeam,
+                invertBeam=invertBeam, adjustSI=adjustSI)
 
 
 if __name__ == '__main__':
@@ -119,7 +133,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--threshpix', help='', type=float, default=5.0)
     parser.add_argument('-r', '--rmsbox', help='rms box width and step (e.g., "(60, 20)")',
                         type=str, default='(60, 20)')
-    parser.add_argument('--rmsbox_bright', help='rms box for bright sources(?) width and step (e.g., "(60, 20)")',
+    parser.add_argument('--rmsbox_bright', help='rms box for bright sources, width and step (e.g., "(60, 20)")',
                         type=str, default='(60, 20)')
     parser.add_argument('-o', '--adaptive_rmsbox', help='use an adaptive rms box', type=bool, default=False)
 
