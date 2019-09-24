@@ -9,6 +9,7 @@ import numpy as np
 import os
 import bdsf
 from factor.lib import miscellaneous as misc
+import casacore.tables as pt
 
 
 def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
@@ -97,7 +98,18 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
 
         if not os.path.exists(input_skymodel_pb):
             # No true-sky model available, so use apparent-sky one and correct for beam
-            s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[0])
+            if len(beamMS) > 1:
+                ms_times = []
+                for ms in beamMS:
+                    tab = pt.table(ms, ack=False)
+                    ms_times.append(np.mean(tab.getcol('TIME')))
+                    tab.close()
+                ms_times_sorted = sorted(ms_times)
+                mid_time = ms_times_sorted[int(len(ms_times)/2)]
+                beam_ind = ms_times.index(mid_time)
+            else:
+                beam_ind = 0
+            s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[beam_ind])
             applyBeam = True
             invertBeam = True
             adjustSI = True
