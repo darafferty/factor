@@ -319,7 +319,7 @@ def get_calibration_options(parset):
     if 'tolerance' in parset_dict:
         parset_dict['tolerance'] = parset.getfloat('calibration', 'tolerance')
     else:
-        parset_dict['tolerance'] = 1e-2
+        parset_dict['tolerance'] = 1e-3
     if 'tecscreen_max_order' in parset_dict:
         parset_dict['tecscreen_max_order'] = parset.getint('calibration', 'tecscreen_max_order')
     else:

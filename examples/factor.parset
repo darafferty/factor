@@ -80,7 +80,7 @@ input_skymodel = /data/skymodel.txt
 # maxiter = 50
 # propagatesolutions = True
 # stepsize = 0.02
-# tolerance = 1e-2
+# tolerance = 1e-3
 # solve_min_uv_lambda = 80.0
 
 # Fast solve parameters (defaults shown):
