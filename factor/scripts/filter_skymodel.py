@@ -6,18 +6,8 @@ import argparse
 from argparse import RawTextHelpFormatter
 import lsmtool
 import numpy as np
-# workaround for a bug / ugly behavior in matplotlib / pybdsf
-# (some installtaions of matplotlib.pyplot fail if there is no X-Server available
-# which is not caught in pybdsf.)
-try:
-    import matplotlib
-    matplotlib.use('Agg')
-except (RuntimeError, ImportError):
-    pass
-try:
-    import bdsf
-except ImportError:
-    from lofar import bdsm as bdsf
+import os
+import bdsf
 from factor.lib import miscellaneous as misc
 
 
