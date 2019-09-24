@@ -679,6 +679,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                 hdu[0].data = data
                 hdu.writeto(outfile, overwrite=True)
                 outfiles.append(outfile)
+                os.remove(temp_image)
 
             map_out = DataMap([])
             map_out.data.append(DataProduct('localhost', ','.join(outfiles), False))
@@ -746,6 +747,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
                 hdu[0].data = data
                 hdu.writeto(outfile, overwrite=True)
                 outfiles.append(outfile)
+                os.remove(temp_image)
 
             map_out = DataMap([])
             map_out.data.append(DataProduct('localhost', ','.join(outfiles), False))
