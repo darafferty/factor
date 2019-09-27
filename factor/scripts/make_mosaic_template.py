@@ -74,9 +74,8 @@ def main(input_image_list, vertices_file_list, output_image, skip=False, padding
     regrid_hdr['NAXIS'] = 2
     regrid_hdr['NAXIS1'] = xsize
     regrid_hdr['NAXIS2'] = ysize
-    subim_hdr = pyfits.open(directions[0].imagefile)[0].header
     for ch in ('BMAJ', 'BMIN', 'BPA', 'FREQ', 'RESTFREQ', 'EQUINOX'):
-        regrid_hdr[ch] = subim_hdr[ch]
+        regrid_hdr[ch] = directions[0].header[ch]
     regrid_hdr['ORIGIN'] = 'Raptor'
     regrid_hdr['UNITS'] = 'Jy/beam'
     regrid_hdr['TELESCOP'] = 'LOFAR'
