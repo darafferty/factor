@@ -46,13 +46,11 @@ def main(input_image_list, vertices_file_list, output_image, skip=False, padding
 
     # Make a reference WCS and use it to find the extent in pixels
     # needed for the combined image
-    rwcs = pywcs(naxis=4)
+    rwcs = pywcs(naxis=2)
     rwcs.wcs.ctype = directions[0].get_wcs().wcs.ctype
     rwcs.wcs.cdelt = directions[0].get_wcs().wcs.cdelt
-    rwcs.wcs.crval = directions[0].get_wcs().wcs.crval
-    rwcs.wcs.crval[0] = mra
-    rwcs.wcs.crval[1] = mdec
-    rwcs.wcs.crpix = directions[0].get_wcs().wcs.crpix
+    rwcs.wcs.crval = [mra, mdec]
+    rwcs.wcs.crpix = [1, 1]
     xmin, xmax, ymin, ymax = 0, 0, 0, 0
     for d in directions:
         w = d.get_wcs()
@@ -71,20 +69,18 @@ def main(input_image_list, vertices_file_list, output_image, skip=False, padding
     ymin -= int(ysize * (padding - 1.0) / 2.0)
     xsize = int(xmax - xmin)
     ysize = int(ymax - ymin)
-    rwcs.wcs.crpix = [-int(xmin)+1, -int(ymin)+1, 1.0, 1.0]
+    rwcs.wcs.crpix = [-int(xmin)+1, -int(ymin)+1]
     regrid_hdr = rwcs.to_header()
-    regrid_hdr['NAXIS'] = 4
+    regrid_hdr['NAXIS'] = 2
     regrid_hdr['NAXIS1'] = xsize
     regrid_hdr['NAXIS2'] = ysize
-    regrid_hdr['NAXIS3'] = 1
-    regrid_hdr['NAXIS4'] = 1
-
-    for ch in ('BMAJ', 'BMIN', 'BPA'):
-        regrid_hdr[ch] = pyfits.open(directions[0].imagefile)[0].header[ch]
+    subim_hdr = pyfits.open(directions[0].imagefile)[0].header
+    for ch in ('BMAJ', 'BMIN', 'BPA', 'FREQ', 'RESTFREQ', 'EQUINOX'):
+        regrid_hdr[ch] = subim_hdr[ch]
     regrid_hdr['ORIGIN'] = 'Raptor'
-    regrid_hdr['UNITS'] = 'JY/BEAM'
+    regrid_hdr['UNITS'] = 'Jy/beam'
     regrid_hdr['TELESCOP'] = 'LOFAR'
-    regrid_hdr['EQUINOX'] = 2000.0
+
     isum = np.zeros([ysize, xsize])
     hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)
     hdu.writeto(output_image, overwrite=True)
