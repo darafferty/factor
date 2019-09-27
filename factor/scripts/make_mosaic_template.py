@@ -75,7 +75,7 @@ def main(input_image_list, vertices_file_list, output_image, skip=False, padding
     regrid_hdr['NAXIS1'] = xsize
     regrid_hdr['NAXIS2'] = ysize
     for ch in ('BMAJ', 'BMIN', 'BPA', 'FREQ', 'RESTFREQ', 'EQUINOX'):
-        regrid_hdr[ch] = directions[0].header[ch]
+        regrid_hdr[ch] = directions[0].img_hdr[ch]
     regrid_hdr['ORIGIN'] = 'Raptor'
     regrid_hdr['UNITS'] = 'Jy/beam'
     regrid_hdr['TELESCOP'] = 'LOFAR'
