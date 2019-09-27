@@ -6,7 +6,6 @@ import argparse
 from argparse import RawTextHelpFormatter
 import lsmtool
 import numpy as np
-import os
 import bdsf
 from factor.lib import miscellaneous as misc
 import casacore.tables as pt
@@ -91,37 +90,34 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         maskfile = input_image + '.mask'
         img.export_image(outfile=maskfile, clobber=True, img_type='island_mask')
 
-        s = lsmtool.load(input_skymodel_nonpb)
-        s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
-        s.group(maskfile)  # group the sky model by mask islands
-        s.write(output_root+'.apparent_sky', clobber=True)
-
-        if not os.path.exists(input_skymodel_pb):
-            # No true-sky model available, so use apparent-sky one and correct for beam
-            if len(beamMS) > 1:
-                ms_times = []
-                for ms in beamMS:
-                    tab = pt.table(ms, ack=False)
-                    ms_times.append(np.mean(tab.getcol('TIME')))
-                    tab.close()
-                ms_times_sorted = sorted(ms_times)
-                mid_time = ms_times_sorted[int(len(ms_times)/2)]
-                beam_ind = ms_times.index(mid_time)
-            else:
-                beam_ind = 0
-            s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[beam_ind])
-            applyBeam = True
-            invertBeam = True
-            adjustSI = True
+        # TODO: remove the following once WSClean correctly produces pb-corrected and
+        # uncorrected images and sky models. For now, we use WSClean without the
+        # "-apply-primary-beam" option, which produces a pb-corrected image and sky
+        # model (but with out the "-pb" infix), so we use that and attenuate it to get
+        # the apparent sky
+        if len(beamMS) > 1:
+            ms_times = []
+            for ms in beamMS:
+                tab = pt.table(ms, ack=False)
+                ms_times.append(np.mean(tab.getcol('TIME')))
+                tab.close()
+            ms_times_sorted = sorted(ms_times)
+            mid_time = ms_times_sorted[int(len(ms_times)/2)]
+            beam_ind = ms_times.index(mid_time)
         else:
-            s = lsmtool.load(input_skymodel_pb)
-            applyBeam = False
-            invertBeam = False
-            adjustSI = False
+            beam_ind = 0
+#         s = lsmtool.load(input_skymodel_nonpb)  # normally, load nonpb model and don't attenuate!
+        s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[beam_ind])  # nonpb model is really the pb model!
         s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
         s.group(maskfile)  # group the sky model by mask islands
-        s.write(output_root+'.true_sky', clobber=True, applyBeam=applyBeam,
-                invertBeam=invertBeam, adjustSI=adjustSI)
+#         s.write(output_root+'.apparent_sky', clobber=True)  # normally don't attenuate!
+        s.write(output_root+'.apparent_sky', clobber=True, applyBeam=True)
+
+#         s = lsmtool.load(input_skymodel_pb)  # normally load the pb model here!
+        s = lsmtool.load(input_skymodel_nonpb)  # nonpb model is really the pb model!
+        s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
+        s.group(maskfile)  # group the sky model by mask islands
+        s.write(output_root+'.true_sky', clobber=True)
 
 
 if __name__ == '__main__':
