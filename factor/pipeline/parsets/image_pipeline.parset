@@ -139,7 +139,7 @@ image.argument.temp-dir               = {{ local_dir_parent }}
 {% endif %}
 image.argument.deconvolution-channels = 4
 image.argument.fit-spectral-pol       = 3
-image.argument.channels-out           = 12
+image.argument.channels-out           = {{ channels_out }}
 image.argument.multiscale-shape       = gaussian
 image.argument.weighting-rank-filter  = 3
 {% if taper_arcsec > 0.0 %}

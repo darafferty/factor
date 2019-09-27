@@ -126,15 +126,19 @@ class Sector(object):
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
 
-        # Set number of output channels to get 5 channels, but of no less than ~ 2 MHz each
-        target_nchannels = 5
+        # Set number of output channels to get ~ 2 MHz per channel equivalent at 120 MHz
+        # (the maximum averaging allowed for typical maximum dTEC values)
+        min_freq = np.min([obs.startfreq for obs in self.observations])
+#         target_bandwidth = 4e6 * min_freq / 120e6  # for testing, set higher and accept some smearing
+        target_bandwidth = 2e6 * min_freq / 120e6
+        min_nchannels = 4
         tot_bandwidth = 0.0
         for obs in self.observations:
             # Find observation with largest bandwidth
             obs_bandwidth = obs.numchannels * obs.channelwidth
             if obs_bandwidth > tot_bandwidth:
                 tot_bandwidth = obs_bandwidth
-        self.wsclean_nchannels = min(target_nchannels, int(np.ceil(tot_bandwidth / 2e6)))
+        self.wsclean_nchannels = max(min_nchannels, int(np.ceil(tot_bandwidth / target_bandwidth)))
 
         # Set number of iterations and threshold
         total_time_hr = 0.0

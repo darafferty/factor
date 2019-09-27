@@ -43,7 +43,8 @@ class Image(Operation):
                                 'fast_aterms_mapfile': field.fast_aterms_mapfile,
                                 'slow_aterms_mapfile': field.slow_aterms_mapfile,
                                 'image_freqstep': image_freqstep,
-                                'image_timestep': image_timestep})
+                                'image_timestep': image_timestep,
+                                'channels_out': sector.wsclean_nchannels})
 
     def finalize(self):
         """
