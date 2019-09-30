@@ -126,11 +126,10 @@ class Sector(object):
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))
 
-        # Set number of output channels to get ~ 2 MHz per channel equivalent at 120 MHz
-        # (the maximum averaging allowed for typical maximum dTEC values)
+        # Set number of output channels to get ~ 4 MHz per channel equivalent at 120 MHz
+        # (the maximum averaging allowed for typical dTEC values of -0.3 < dTEC < 0.3)
         min_freq = np.min([obs.startfreq for obs in self.observations])
-#         target_bandwidth = 4e6 * min_freq / 120e6  # for testing, set higher and accept some smearing
-        target_bandwidth = 2e6 * min_freq / 120e6
+        target_bandwidth = 4e6 * min_freq / 120e6
         min_nchannels = 4
         tot_bandwidth = 0.0
         for obs in self.observations:
