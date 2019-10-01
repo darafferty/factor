@@ -182,6 +182,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     else:
         startrow_in = 0
         nrows_in = tin.nrows()
+    tin.close()
 
     # If outliers are to be peeled, do that first
     if peel_outliers and nr_outliers > 0:

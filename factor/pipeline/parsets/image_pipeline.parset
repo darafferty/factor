@@ -155,7 +155,7 @@ image.argument.local-rms-window       = 50
 image.argument.local-rms-method       = rms-with-min
 image.argument.idg-mode               = {{ idg_mode }}
 image.argument.aterm-config           = atermconfig
-image.argument.aterm-kernel-size      = 16
+image.argument.aterm-kernel-size      = 32
 image.argument.nmiter                 = 8
 # image.argument.parallel-deconvolution = 512
 
@@ -169,3 +169,6 @@ filter.control.inputkeys              = [imagefile,nonpb_modelfile,pb_modelfile,
 filter.control.outputkey              = outroot
 filter.argument.flags                 = [imagefile,nonpb_modelfile,pb_modelfile,outroot]
 filter.argument.beamMS                = msfile
+filter.argument.threshisl             = {{ threshisl }}
+filter.argument.threshpix             = {{ threshpix }}
+

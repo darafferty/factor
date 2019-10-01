@@ -12,8 +12,8 @@ import casacore.tables as pt
 
 
 def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
-         threshisl=3.0, threshpix=5.0, rmsbox=(150, 50), rmsbox_bright=(35, 7),
-         adaptive_rmsbox=True, use_adaptive_threshold=False, adaptive_thresh=150.0,
+         threshisl=5.0, threshpix=7.5, rmsbox=(150, 50), rmsbox_bright=(35, 7),
+         adaptive_rmsbox=True, use_adaptive_threshold=False, adaptive_thresh=75.0,
          beamMS=None):
     """
     Filter the input sky model so that they lie in islands in the image

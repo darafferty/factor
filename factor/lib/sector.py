@@ -101,6 +101,8 @@ class Sector(object):
         self.target_fast_timestep = self.field.parset['calibration_specific']['fast_timestep_sec']
         self.target_slow_freqstep = self.field.parset['calibration_specific']['slow_freqstep_hz']
         self.auto_mask = 3.0
+        self.threshisl = 4.0
+        self.threshpix = 5.0
 
         # Set image size based on current sector polygon
         xmin, ymin, xmax, ymax = self.poly.bounds
@@ -121,7 +123,6 @@ class Sector(object):
             padding_pix *= minsize / max(self.imsize)  # scale padding to new imsize
             self.poly_padded = self.poly.buffer(padding_pix)
             self.imsize = [minsize, minsize]
-
         self.wsclean_imsize = '{0} {1}'.format(self.imsize[0], self.imsize[1])
         self.log.debug('Image size is {0} x {1} pixels'.format(
                        self.imsize[0], self.imsize[1]))

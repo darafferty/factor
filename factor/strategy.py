@@ -57,10 +57,16 @@ def set_strategy(field):
             strategy_steps[i]['do_image'] = True
             if i == 0:
                 strategy_steps[i]['image_parameters']['auto_mask'] = 3.6
+                strategy_steps[i]['image_parameters']['threshisl'] = 5.0
+                strategy_steps[i]['image_parameters']['threshpix'] = 7.5
             elif i == 1:
                 strategy_steps[i]['image_parameters']['auto_mask'] = 3.3
+                strategy_steps[i]['image_parameters']['threshisl'] = 5.0
+                strategy_steps[i]['image_parameters']['threshpix'] = 6.0
             else:
                 strategy_steps[i]['image_parameters']['auto_mask'] = 3.0
+                strategy_steps[i]['image_parameters']['threshisl'] = 4.0
+                strategy_steps[i]['image_parameters']['threshpix'] = 5.0
 
             if i == max_selfcal_loops - 1:
                 strategy_steps[i]['do_update'] = False
@@ -112,10 +118,16 @@ def set_strategy(field):
             strategy_steps[i]['do_image'] = True
             if i == 0:
                 strategy_steps[i]['image_parameters']['auto_mask'] = 3.6
+                strategy_steps[i]['image_parameters']['threshisl'] = 5.0
+                strategy_steps[i]['image_parameters']['threshpix'] = 7.5
             elif i == 1:
                 strategy_steps[i]['image_parameters']['auto_mask'] = 3.3
+                strategy_steps[i]['image_parameters']['threshisl'] = 5.0
+                strategy_steps[i]['image_parameters']['threshpix'] = 6.0
             else:
                 strategy_steps[i]['image_parameters']['auto_mask'] = 3.0
+                strategy_steps[i]['image_parameters']['threshisl'] = 4.0
+                strategy_steps[i]['image_parameters']['threshpix'] = 5.0
 
             if i == max_selfcal_loops - 1:
                 strategy_steps[i]['do_update'] = False
@@ -147,6 +159,8 @@ def set_strategy(field):
 
         strategy_steps[0]['do_image'] = True
         strategy_steps[0]['image_parameters']['auto_mask'] = 3.0
+        strategy_steps[i]['image_parameters']['threshisl'] = 4.0
+        strategy_steps[i]['image_parameters']['threshpix'] = 5.0
 
         strategy_steps[0]['do_update'] = False
 
