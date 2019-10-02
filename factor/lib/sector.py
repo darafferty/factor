@@ -128,7 +128,7 @@ class Sector(object):
                        self.imsize[0], self.imsize[1]))
 
         # Set number of output channels to get ~ 4 MHz per channel equivalent at 120 MHz
-        # (the maximum averaging allowed for typical dTEC values of -0.3 < dTEC < 0.3)
+        # (the maximum averaging allowed for typical dTEC values of -0.5 < dTEC < 0.5)
         min_freq = np.min([obs.startfreq for obs in self.observations])
         target_bandwidth = 4e6 * min_freq / 120e6
         min_nchannels = 4

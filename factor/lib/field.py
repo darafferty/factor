@@ -597,7 +597,7 @@ class Field(object):
         """
         Adjusts the imaging sector boundaries for overlaping sources
         """
-        self.log.info('Adusting sector boudaries to avoid sources...')
+        self.log.info('Adusting sector boundaries to avoid sources...')
         intersecting_source_polys = self.find_intersecting_sources()
         for sector in self.imaging_sectors:
             # Make sure all sectors start from their initial polygons
