@@ -42,6 +42,7 @@ class Image(Operation):
                                 'h5parm_mapfile': field.h5parm_mapfile,
                                 'fast_aterms_mapfile': field.fast_aterms_mapfile,
                                 'slow_aterms_mapfile': field.slow_aterms_mapfile,
+                                'do_slowgain_solve': field.do_slowgain_solve,
                                 'image_freqstep': image_freqstep,
                                 'image_timestep': image_timestep,
                                 'channels_out': sector.wsclean_nchannels})
