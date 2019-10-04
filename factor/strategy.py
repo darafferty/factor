@@ -75,6 +75,7 @@ def set_strategy(field):
                 strategy_steps[i]['do_update'] = True
             strategy_steps[i]['regroup_model'] = True
             strategy_steps[i]['imaged_sources_only'] = False
+            strategy_steps[i]['target_flux'] = None
 
             if i < 1 or i == max_selfcal_loops - 1:
                 strategy_steps[i]['do_check'] = False
@@ -136,6 +137,7 @@ def set_strategy(field):
                 strategy_steps[i]['do_update'] = True
             strategy_steps[i]['regroup_model'] = True
             strategy_steps[i]['imaged_sources_only'] = True
+            strategy_steps[i]['target_flux'] = None
 
             if i < 1 or i == max_selfcal_loops - 1:
                 strategy_steps[i]['do_check'] = False
