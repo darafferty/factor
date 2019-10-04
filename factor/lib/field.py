@@ -9,12 +9,8 @@ import lsmtool
 import lsmtool.skymodel
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
-from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon, MultiPolygon
-from astropy.io import fits as pyfits
-from astropy.wcs import WCS as pywcs
 from astropy.table import vstack
-from reproject import reproject_interp
 import rtree
 import glob
 
@@ -44,6 +40,8 @@ class Field(object):
         self.flag_freqrange = self.parset['flag_freqrange']
         self.flag_expr = self.parset['flag_expr']
         self.input_h5parm = self.parset['input_h5parm']
+        self.target_flux = self.parset['calibration_specific']['patch_target_flux_jy']
+        self.target_number = self.parset['calibration_specific']['patch_target_number']
         self.solve_min_uv_lambda = self.parset['calibration_specific']['solve_min_uv_lambda']
         self.approximatetec = self.parset['calibration_specific']['approximatetec']
         self.smoothnessconstraint = self.parset['calibration_specific']['smoothnessconstraint']
@@ -202,7 +200,7 @@ class Field(object):
         return sum([obs.parameters[parameter] for obs in self.observations], [])
 
     def make_skymodels(self, skymodel_true_sky, skymodel_apparent_sky=None, regroup=True,
-                       find_sources=False):
+                       find_sources=False, target_flux=None, target_number=None):
         """
         Groups a sky model into source and calibration patches
 
@@ -223,6 +221,10 @@ class Field(object):
             If True, group the sky model by thresholding to find sources. This is not
             needed if the input sky model was filtered by PyBDSF in the imaging
             pipeline
+        target_flux : float, optional
+            Target flux in Jy for grouping
+        target_number : int, optional
+            Target number of patches for grouping
         """
         self.log.info('Analyzing sky model(s)...')
         if type(skymodel_true_sky) is not lsmtool.skymodel.SkyModel:
@@ -279,8 +281,11 @@ class Field(object):
             source_skymodel.setPatchPositions(method='wmean')
 
             # Tessellate
-            target_flux = self.parset['calibration_specific']['patch_target_flux_jy']
-            target_number = self.parset['calibration_specific']['patch_target_number']
+            if target_flux is None:
+                target_flux = self.target_flux
+            if target_number is None:
+                target_number = self.target_number
+
             if target_number is not None:
                 # Set target_flux so that the target_number-brightest calibrators are
                 # kept
@@ -310,7 +315,8 @@ class Field(object):
         # Check that the TEC screen order is not more than num_patches - 1
         self.tecscreenorder = min(self.num_patches-1, self.tecscreen_max_order)
 
-    def update_skymodels(self, iter, regroup, imaged_sources_only):
+    def update_skymodels(self, iter, regroup, imaged_sources_only, target_flux=None,
+                         target_number=None):
         """
         Updates the source and calibration sky models from the output sector sky model(s)
 
@@ -322,6 +328,10 @@ class Field(object):
             Regroup sky model
         imaged_sources_only : bool
             Only use imaged sources
+        target_flux : float, optional
+            Target flux in Jy for grouping
+        target_number : int, optional
+            Target number of patches for grouping
         """
         self.log.info('Updating sky model(s)...')
         if imaged_sources_only:
@@ -394,7 +404,8 @@ class Field(object):
         # Use concatenated sky models to make new calibration model (we set find_sources
         # to False to preserve the source patches defined in the image pipeline by PyBDSF)
         self.make_skymodels(skymodel_true_sky, skymodel_apparent_sky=skymodel_apparent_sky,
-                            regroup=regroup, find_sources=False)
+                            regroup=regroup, find_sources=False, target_flux=target_flux,
+                            target_number=target_number)
 
         # Re-adjust sector boundaries and update their sky models
         self.adjust_sector_boundaries()
