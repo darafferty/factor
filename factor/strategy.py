@@ -4,6 +4,7 @@ Module that holds all strategy-related functions
 import os
 import logging
 import sys
+import runpy
 
 log = logging.getLogger('factor:strategy')
 
@@ -165,6 +166,16 @@ def set_strategy(field):
         strategy_steps[0]['do_update'] = False
 
         strategy_steps[0]['do_check'] = False
+
+    elif os.path.exists(field.parset['strategy']):
+        # Load user-defined strategy
+        try:
+            strategy_steps = runpy.run_path(field.parset['strategy'],
+                                            init_globals={'field': field})['strategy_steps']
+        except KeyError:
+            log.error('Strategy "{}" does not define strategy_steps. '
+                      'Exiting...'.format(field.parset['strategy']))
+            sys.exit(1)
 
     else:
         log.error('Strategy "{}" not understood. Exiting...'.format(field.parset['strategy']))
