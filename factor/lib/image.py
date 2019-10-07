@@ -4,8 +4,8 @@ Definition of the Image class for handling of FITS images
 from factor.lib import miscellaneous as misc
 from astropy.wcs import WCS as pywcs
 from astropy.io import fits as pyfits
+from shapely.geometry import Polygon
 import numpy as np
-import os
 import sys
 import logging
 import re
@@ -74,8 +74,8 @@ class FITSImage(object):
         if naxis < 2:
             raise RuntimeError('Can\'t make map from this')
         if naxis == 2:
-           self.img_hdr = f[0].header
-           self.img_data = f[0].data
+            self.img_hdr = f[0].header
+            self.img_data = f[0].data
         else:
             w = pywcs(f[0].header)
             wn = pywcs(naxis=2)
@@ -141,6 +141,9 @@ class FITSImage(object):
             ra_dec[0][RAind] = RAvert
             ra_dec[0][Decind] = Decvert
             verts.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
+        poly = Polygon(verts)
+        poly_padded = poly.buffer(1)
+        verts = [(xi, yi) for xi, yi in poly_padded.exterior.coords.xy]
 
         # Blank pixels (= NaN) outside of the polygon
         self.img_data = misc.rasterize(verts, self.img_data, blank_value=np.nan)
