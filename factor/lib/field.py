@@ -226,7 +226,7 @@ class Field(object):
         target_number : int, optional
             Target number of patches for grouping
         """
-        self.log.info('Analyzing sky model(s)...')
+        self.log.info('Analyzing sky model...')
         if type(skymodel_true_sky) is not lsmtool.skymodel.SkyModel:
             skymodel_true_sky = lsmtool.load(str(skymodel_true_sky),
                                              beamMS=self.beam_ms_filename)
@@ -295,6 +295,7 @@ class Field(object):
                 if target_number > len(fluxes):
                     target_number = len(fluxes)
                 target_flux = fluxes[-target_number] - 0.001
+            self.log.info('Using a target flux density of {} Jy for grouping'.format(target_flux))
             source_skymodel.group('voronoi', targetFlux=target_flux, applyBeam=applyBeam_group)
             source_skymodel.setPatchPositions(method='wmean')
 
@@ -333,7 +334,7 @@ class Field(object):
         target_number : int, optional
             Target number of patches for grouping
         """
-        self.log.info('Updating sky model(s)...')
+        self.log.info('Updating sky model...')
         if imaged_sources_only:
             # Use new models from the imaged sectors only
             sector_skymodels_apparent_sky = [sector.image_skymodel_file_apparent_sky for
