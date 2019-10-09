@@ -201,7 +201,7 @@ class Field(object):
         return sum([obs.parameters[parameter] for obs in self.observations], [])
 
     def make_skymodels(self, skymodel_true_sky, skymodel_apparent_sky=None, regroup=True,
-                       find_sources=False, target_flux=None, target_number=None
+                       find_sources=False, target_flux=None, target_number=None,
                        iter=iter):
         """
         Groups a sky model into source and calibration patches
@@ -401,7 +401,7 @@ class Field(object):
         dst_dir = os.path.join(self.working_dir, 'skymodels', 'calibrate_{}'.format(iter))
         create_directory(dst_dir)
         skymodel_true_sky_file = os.path.join(dst_dir, 'skymodel_true_sky_concat.txt')
-        calibration_skymodel.write(skymodel_true_sky_file, clobber=True)
+        skymodel_true_sky.write(skymodel_true_sky_file, clobber=True)
         # debug
 
         if sector_skymodels_apparent_sky is not None:
