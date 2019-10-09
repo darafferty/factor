@@ -3,6 +3,7 @@ Definition of the Sector class that holds parameters for each iamge sector
 """
 import logging
 import numpy as np
+from lofarpipe.support.utilities import create_directory
 from astropy.coordinates import Angle
 from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
@@ -205,21 +206,27 @@ class Sector(object):
                                         (24 * 60 * 60) / 4)
         return wsclean_nwavelengths_time
 
-    def make_skymodel(self):
+    def make_skymodel(self, iter):
         """
         Makes predict sky model from the field calibration sky model
+
+        Parameters
+        ----------
+        iter : int
+            Iteration index
         """
         # Filter the predict sky model
         if self.is_outlier:
             # For outlier sector, we use the sky model made earlier
             skymodel = self.predict_skymodel
         else:
-            skymodel = self.field.calibration_skymodel.copy()
+            skymodel = self.calibration_skymodel.copy()
             skymodel = self.filter_skymodel(skymodel)
 
         # Write filtered sky model to file
-        self.predict_skymodel_file = os.path.join(self.field.working_dir, 'skymodels',
-                                                  '{}_predict_skymodel.txt'.format(self.name))
+        dst_dir = os.path.join(self.field.working_dir, 'skymodels', 'predict_{}'.format(iter))
+        create_directory(dst_dir)
+        self.predict_skymodel_file = os.path.join(dst_dir, '{}_predict_skymodel.txt'.format(self.name))
         skymodel.write(self.predict_skymodel_file, clobber=True)
 
         # Save list of patches (directions) in the format written by DDECal in the h5parm

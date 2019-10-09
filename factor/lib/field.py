@@ -9,6 +9,7 @@ import lsmtool
 import lsmtool.skymodel
 from factor.lib.observation import Observation
 from factor.lib.sector import Sector
+from lofarpipe.support.utilities import create_directory
 from shapely.geometry import Point, Polygon, MultiPolygon
 from astropy.table import vstack
 import rtree
@@ -200,7 +201,8 @@ class Field(object):
         return sum([obs.parameters[parameter] for obs in self.observations], [])
 
     def make_skymodels(self, skymodel_true_sky, skymodel_apparent_sky=None, regroup=True,
-                       find_sources=False, target_flux=None, target_number=None):
+                       find_sources=False, target_flux=None, target_number=None
+                       iter=iter):
         """
         Groups a sky model into source and calibration patches
 
@@ -225,6 +227,8 @@ class Field(object):
             Target flux in Jy for grouping
         target_number : int, optional
             Target number of patches for grouping
+        iter : int
+            Iteration index
         """
         self.log.info('Analyzing sky model...')
         if type(skymodel_true_sky) is not lsmtool.skymodel.SkyModel:
@@ -280,6 +284,13 @@ class Field(object):
             source_skymodel.group('meanshift', byPatch=True, applyBeam=applyBeam_group)
             source_skymodel.setPatchPositions(method='wmean')
 
+            # debug
+            dst_dir = os.path.join(self.working_dir, 'skymodels', 'calibrate_{}'.format(iter))
+            create_directory(dst_dir)
+            skymodel_true_sky_file = os.path.join(dst_dir, 'skymodel_meanshift.txt')
+            source_skymodel.write(skymodel_true_sky_file, clobber=True)
+            # debug
+
             # Tessellate
             if target_flux is None:
                 target_flux = self.target_flux
@@ -299,6 +310,13 @@ class Field(object):
             source_skymodel.group('voronoi', targetFlux=target_flux, applyBeam=applyBeam_group)
             source_skymodel.setPatchPositions(method='wmean')
 
+            # debug
+            dst_dir = os.path.join(self.working_dir, 'skymodels', 'calibrate_{}'.format(iter))
+            create_directory(dst_dir)
+            skymodel_true_sky_file = os.path.join(dst_dir, 'skymodel_voronoi.txt')
+            source_skymodel.write(skymodel_true_sky_file, clobber=True)
+            # debug
+
             # Transfer patches to the true-flux sky model
             skymodel_true_sky.table['Patch'] = source_skymodel.table['Patch']
             skymodel_true_sky._updateGroups()
@@ -308,8 +326,9 @@ class Field(object):
         calibration_skymodel = skymodel_true_sky
         self.num_patches = len(calibration_skymodel.getPatchNames())
         self.log.info('Using {} calibration patches'.format(self.num_patches))
-        self.calibration_skymodel_file = os.path.join(self.working_dir, 'skymodels',
-                                                      'calibration_skymodel.txt')
+        dst_dir = os.path.join(self.working_dir, 'skymodels', 'calibrate_{}'.format(iter))
+        create_directory(dst_dir)
+        self.calibration_skymodel_file = os.path.join(dst_dir, 'calibration_skymodel.txt')
         calibration_skymodel.write(self.calibration_skymodel_file, clobber=True)
         self.calibration_skymodel = calibration_skymodel
 
@@ -378,6 +397,13 @@ class Field(object):
         skymodel_true_sky._updateGroups()
         skymodel_true_sky.setPatchPositions(method='wmean')
 
+        # debug
+        dst_dir = os.path.join(self.working_dir, 'skymodels', 'calibrate_{}'.format(iter))
+        create_directory(dst_dir)
+        skymodel_true_sky_file = os.path.join(dst_dir, 'skymodel_true_sky_concat.txt')
+        calibration_skymodel.write(skymodel_true_sky_file, clobber=True)
+        # debug
+
         if sector_skymodels_apparent_sky is not None:
             for i, (sm, sn) in enumerate(zip(sector_skymodels_apparent_sky, sector_names)):
                 if i == 0:
@@ -406,12 +432,13 @@ class Field(object):
         # to False to preserve the source patches defined in the image pipeline by PyBDSF)
         self.make_skymodels(skymodel_true_sky, skymodel_apparent_sky=skymodel_apparent_sky,
                             regroup=regroup, find_sources=False, target_flux=target_flux,
-                            target_number=target_number)
+                            target_number=target_number, iter=iter)
 
         # Re-adjust sector boundaries and update their sky models
         self.adjust_sector_boundaries()
         for sector in self.sectors:
-            sector.make_skymodel()
+            sector.calibration_skymodel = self.calibration_skymodel.copy()
+            sector.make_skymodel(iter)
 
     def define_sectors(self):
         """
