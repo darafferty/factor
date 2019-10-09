@@ -65,11 +65,11 @@ class Field(object):
             self.make_skymodels(self.parset['input_skymodel'],
                                 skymodel_apparent_sky=self.parset['apparent_skymodel'],
                                 regroup=self.parset['regroup_input_skymodel'],
-                                find_sources=True)
+                                find_sources=True, iter=1)
 
             # Set up imaging sectors
             self.makeWCS()
-            self.define_sectors()
+            self.define_sectors(1)
 
     def scan_observations(self, data_fraction=1.0):
         """
@@ -440,9 +440,12 @@ class Field(object):
             sector.calibration_skymodel = self.calibration_skymodel.copy()
             sector.make_skymodel(iter)
 
-    def define_sectors(self):
+    def define_sectors(self, iter):
         """
         Defines the imaging sectors
+
+        iter : int
+            Iteration index
         """
         self.imaging_sectors = []
 
@@ -531,7 +534,7 @@ class Field(object):
         self.adjust_sector_boundaries()
         self.log.info('Making sector sky models (for predicting)...')
         for sector in self.imaging_sectors:
-            sector.make_skymodel()
+            sector.make_skymodel(iter)
 
         # Set the imaging parameters for each imaging sector
         sector_do_multiscale_list = self.parset['imaging_specific']['sector_do_multiscale_list']
@@ -576,7 +579,7 @@ class Field(object):
                 else:
                     endind = startind + int(nsources/nnodes)
                 outlier_sector.predict_skymodel.select(np.array(list(range(startind, endind))))
-                outlier_sector.make_skymodel()
+                outlier_sector.make_skymodel(iter)
                 self.outlier_sectors.append(outlier_sector)
 
         # Finally, make a list of all sectors
