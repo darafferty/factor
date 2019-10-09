@@ -534,6 +534,7 @@ class Field(object):
         self.adjust_sector_boundaries()
         self.log.info('Making sector sky models (for predicting)...')
         for sector in self.imaging_sectors:
+            sector.calibration_skymodel = self.calibration_skymodel.copy()
             sector.make_skymodel(iter)
 
         # Set the imaging parameters for each imaging sector
