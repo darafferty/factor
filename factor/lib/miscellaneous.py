@@ -7,7 +7,6 @@ from shapely.geometry import Point, Polygon
 from shapely.prepared import prep
 from astropy.io import fits as pyfits
 from PIL import Image, ImageDraw
-from reproject import reproject_interp
 
 
 def read_vertices(filename):
@@ -20,8 +19,8 @@ def read_vertices(filename):
 
 
 def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
-    ximsize=512, yimsize=512, cellsize_deg=0.000417, freqs=None, times=None,
-    antennas=None, aterm_type='tec', fill_val=0):
+                        ximsize=512, yimsize=512, cellsize_deg=0.000417, freqs=None, times=None,
+                        antennas=None, aterm_type='tec', fill_val=0):
     """
     Make a blank image and save it to disk
 
@@ -191,7 +190,7 @@ def rasterize(verts, data, blank_value=0):
         data[int(outside_point.y), int(outside_point.x)] = 0
 
     if blank_value != 0:
-        data[data==0] = blank_value
+        data[data == 0] = blank_value
 
     return data
 
@@ -300,7 +299,7 @@ def approx_equal(x, y, *args, **kwargs):
         # Allow the objects to specify what they consider "approximately equal",
         # giving precedence to x. If either object has the appropriate method, we
         # pass on any optional arguments untouched.
-        for a,b in ((x, y), (y, x)):
+        for a, b in ((x, y), (y, x)):
             try:
                 method = getattr(a, methodname)
             except AttributeError:
