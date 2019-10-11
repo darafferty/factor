@@ -33,17 +33,15 @@ def main(input_image_list, template_image, output_image, skip=False):
     regrid_hdr = pyfits.open(template_image)[0].header
     isum = pyfits.open(template_image)[0].data
     wsum = np.zeros_like(isum)
-    mask = np.zeros_like(isum, dtype=np.bool)
     for sector_image in input_image_list:
         r = pyfits.open(sector_image)[0].data
-        nan_pixels = np.isnan(r)
-        mask |= ~nan_pixels
-        r[nan_pixels] = 0
-        isum += r
         w = np.ones_like(r)
-        w[nan_pixels] = 0
+        w[np.isnan(r)] = 0
+        r[np.isnan(r)] = 0
+        isum += r
         wsum += w
     isum /= wsum
-    isum[~mask] = np.nan
+    del wsum, r, w
+    isum[np.isnan(isum)] = np.nan
     hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)
     hdu.writeto(output_image, overwrite=True)
