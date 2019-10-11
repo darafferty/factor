@@ -151,12 +151,6 @@ input_skymodel = /data/skymodel.txt
 # sector_width_dec_deg_list = [0.532, 0.127]
 # sector_do_multiscale_list = [None, True]
 
-# A target region can be specified to ensure that it is not broken between two imaging
-# sectors
-# target_ra = 14h41m01.884
-# target_dec = +35d30m31.52
-# target_radius_arcmin = 10
-
 # Padding factor for WSClean images (default = 1.2)
 # wsclean_image_padding = 1.2
 
