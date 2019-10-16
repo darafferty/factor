@@ -281,7 +281,8 @@ class Field(object):
         # Now regroup source sky model into calibration patches if desired
         if regroup:
             # Find groups of bright sources to use as basis for calibrator patches
-            source_skymodel.group('meanshift', byPatch=True, applyBeam=applyBeam_group)
+            source_skymodel.group('meanshift', byPatch=True, applyBeam=applyBeam_group,
+                                  lookDistance=0.075, groupingDistance=0.01)
             source_skymodel.setPatchPositions(method='wmean')
 
             # debug
@@ -307,7 +308,8 @@ class Field(object):
                     target_number = len(fluxes)
                 target_flux = fluxes[-target_number] - 0.001
             self.log.info('Using a target flux density of {} Jy for grouping'.format(target_flux))
-            source_skymodel.group('voronoi', targetFlux=target_flux, applyBeam=applyBeam_group)
+            source_skymodel.group('voronoi', targetFlux=target_flux, applyBeam=applyBeam_group,
+                                  weightBySize=True)
             source_skymodel.setPatchPositions(method='wmean')
 
             # debug
@@ -412,7 +414,7 @@ class Field(object):
         if sector_skymodels_apparent_sky is not None:
             for i, (sm, sn) in enumerate(zip(sector_skymodels_apparent_sky, sector_names)):
                 if i == 0:
-                    skymodel_apparent_sky = lsmtool.load(str(sm), beamMS=self.beam_ms_filename)
+                    skymodel_apparent_sky = lsmtool.load(str(sm))
                     patchNames = skymodel_apparent_sky.getColValues('Patch')
                     new_patchNames = np.array(['{0}_{1}'.format(p, sn) for p in patchNames], dtype='U100')
                     skymodel_apparent_sky.setColValues('Patch', new_patchNames)
