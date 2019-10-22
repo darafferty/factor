@@ -188,7 +188,11 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     if peel_outliers and nr_outliers > 0:
         # Open input and output table
         tin = pt.table(msin, readonly=True, ack=False)
-        msout = '{}_field'.format(msin)
+        if starttime is not None:
+            infix = "mjd{}_".format(convert_mvt2mjd(starttime))
+            msout = '{0}.{1}_field'.format(msin, infix)
+        else:
+            msout = '{}_field'.format(msin)
         if not os.path.exists(msout):
             os.system('/bin/cp -r {0} {1}'.format(msin, msout))
         tout = pt.table(msout, readonly=False, ack=False)
