@@ -48,7 +48,7 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
     # Run the strategy
     for iter, step in enumerate(strategy_steps):
         # Update the sky models using results of previous iteration
-        if step['do_update'] and iter > 0:
+        if iter > 0:
             field.update_skymodels(iter+1, step['regroup_model'],
                                    step['imaged_sources_only'],
                                    target_flux=step['target_flux'])

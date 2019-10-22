@@ -37,6 +37,16 @@ class Observation(object):
         self.parameters = {}
         self.scan_ms()
 
+        # Define the infix for filenames
+        if self.startsat_startofms and self.goesto_endofms:
+            # Don't include starttime if observation covers full MS
+            self.infix = ""
+            self.ms_field = '{0}_field'.format(self.ms_filename)
+        else:
+            # Include starttime to avoid naming conflicts
+            self.infix = "mjd{}_".format(self.starttime)
+            self.ms_field = '{0}.{1}_field'.format(self.ms_filename, self.infix)
+
     def scan_ms(self):
         """
         Scans input MS and stores info
@@ -242,19 +252,13 @@ class Observation(object):
         self.parameters['ms_filename'] = self.ms_filename
 
         # The filename of the sector's model data (from predict)
-        if self.startsat_startofms and self.goesto_endofms:
-            # Don't include starttime if observation covers full MS
-            infix = ""
-        else:
-            # Include starttime to avoid naming conflicts
-            infix = "mjd{}_".format(self.starttime)
-        ms_model_filename = '{0}.{1}{2}_modeldata'.format(self.ms_filename, infix,
+        ms_model_filename = '{0}.{1}{2}_modeldata'.format(self.ms_filename, self.infix,
                                                           sector_name)
         self.parameters['ms_model_filename'] = ms_model_filename
 
         # The filename of the sector's data with all non-sector sources peeled off (i.e.,
         # the data used for imaging)
-        ms_subtracted_filename = '{0}.{1}{2}'.format(self.ms_filename, infix,
+        ms_subtracted_filename = '{0}.{1}{2}'.format(self.ms_filename, self.infix,
                                                      sector_name)
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
 

@@ -275,7 +275,7 @@ class Field(object):
         # Make a source sky model, used for source avoidance
         if find_sources:
             self.log.info('Identifying sources...')
-            source_skymodel.group('threshold', FWHM='10.0 arcsec', threshold=0.05)
+            source_skymodel.group('threshold', FWHM='40.0 arcsec', threshold=0.05)
         self.source_skymodel = source_skymodel.copy()  # save and make copy before grouping
 
         # Now regroup source sky model into calibration patches if desired
