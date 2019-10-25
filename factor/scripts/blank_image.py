@@ -83,8 +83,7 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
             hdu = pyfits.open(input_image, memmap=False)
         data = hdu[0].data
 
-        # Transpose the array (since FITS standard is [0, 0, y, x]), rasterize the poly,
-        # the transpose back
+        # Rasterize the poly
         data_rasertize = data[0, 0, :, :]
         data_rasertize = misc.rasterize(verts, data_rasertize)
         data[0, 0, :, :] = data_rasertize

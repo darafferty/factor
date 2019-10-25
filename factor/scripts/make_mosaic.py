@@ -1,11 +1,11 @@
 #! /usr/bin/env python
 """
-Script to make a mosiac
+Script to make a mosiac from FITS images
 """
 from factor.lib import miscellaneous as misc
 from astropy.io import fits as pyfits
 import numpy as np
-import os
+import shutil
 
 
 def main(input_image_list, template_image, output_image, skip=False):
@@ -15,18 +15,18 @@ def main(input_image_list, template_image, output_image, skip=False):
     Parameters
     ----------
     input_image_list : list
-        List of filenames of input images to mosaic
+        List of filenames of input FITS images to mosaic
     template_image : str
-        Filename of mosaic template image
+        Filename of mosaic template FITS image
     output_image : str
-        Filename of output image
+        Filename of output FITS image
     skip : bool
-        If True, skip all processing
+        If True, just copy input image and skip all other processing
     """
     input_image_list = misc.string2list(input_image_list)
     skip = misc.string2bool(skip)
     if skip:
-        os.system('cp {0} {1}'.format(input_image_list[0], output_image))
+        shutil.copyfile(input_image_list[0], output_image)
         return
 
     # Load template and sector images and add them to mosaic

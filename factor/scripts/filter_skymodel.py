@@ -9,7 +9,6 @@ import numpy as np
 import bdsf
 from factor.lib import miscellaneous as misc
 import casacore.tables as pt
-import shutil
 import astropy.io.ascii
 
 
@@ -170,9 +169,9 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         dummylines.append('s0c0,POINT,p1,{0},{1},0.00000001,'
                            '[0.0,0.0],false,100000000.0,,,\n'.format(sra, sdec))
         with open(output_root+'.apparent_sky', 'w') as f:
-                f.writelines(dummylines)
+            f.writelines(dummylines)
         with open(output_root+'.true_sky', 'w') as f:
-                f.writelines(dummylines)
+            f.writelines(dummylines)
 
 
 if __name__ == '__main__':
