@@ -10,11 +10,11 @@ import subprocess
 from lofarpipe.support.data_map import DataMap
 from astropy.time import Time
 import dateutil.parser
-import losoto
 from factor.lib import miscellaneous as misc
+import shutil
 
 
-def get_nchunks(msin, nsectors, fraction=1.0):
+def get_nchunks(msin, nsectors, fraction=1.0, reweight=False, compressed=False):
     """
     Determines number of chunks for available memory of node
 
@@ -25,16 +25,22 @@ def get_nchunks(msin, nsectors, fraction=1.0):
     nsectors : int
         Number of imaging sectors
     fraction : float
-        Fraction of total memory to use
+        Fraction of MS file to be read
 
     Returns
     -------
     nchunks : int
         Number of chunks
     """
+    if reweight:
+        scale_factor = 10.0
+    else:
+        scale_factor = 4.0
+    if compressed:
+        scale_factor *= 5.0
     tot_m, used_m, free_m = list(map(int, os.popen('free -tm').readlines()[-1].split()[1:]))
     msin_m = float(subprocess.check_output(['du', '-sm', msin]).split()[0]) * fraction
-    tot_required_m = msin_m * nsectors * 2.0
+    tot_required_m = msin_m * nsectors * scale_factor
     nchunks = max(1, int(np.ceil(tot_required_m / tot_m)))
     return nchunks
 
@@ -77,8 +83,8 @@ def convert_mvt2mjd(mvt_str):
         MJD time in seconds
     """
     day_str = mvt_str.split('/')[0].lower()
-    months = {'jan':1, 'feb':2, 'mar':3, 'apr':4, 'may':5, 'jun':6,
-              'jul':7, 'aug':8, 'sep':9, 'oct':10, 'nov':11, 'dec':12}
+    months = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+              'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
     for m in months:
         if m in day_str:
             p = day_str.split(m)
@@ -118,6 +124,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         If True, use Dysco compression
     peel_outliers : bool, optional
         If True, outliers are peeled before sector models are subtracted
+    reweight : bool, optional
+        If True, reweight using the residuals
     starttime : str, optional
         Start time in JD seconds
     """
@@ -176,8 +184,12 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     nbl = np.where(tarray == tarray[0])[0].size
     tarray = None
     if starttime is not None:
-        times = [convert_mjd2mvt(t) for t in tin.getcol('TIME')]
-        startrow_in = times.index(starttime_exact)
+        tapprox = convert_mvt2mjd(starttime_exact) - 100.0
+        approx_indx = np.where(tin.getcol('TIME') > tapprox)[0][0]
+        for tind, t in enumerate(tin.getcol('TIME')[approx_indx:]):
+            if convert_mjd2mvt(t) == starttime_exact:
+                startrow_in = tind + approx_indx
+                break
         nrows_in = nrows_list[0]
     else:
         startrow_in = 0
@@ -189,17 +201,22 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         # Open input and output table
         tin = pt.table(msin, readonly=True, ack=False)
         if starttime is not None:
-            infix = "mjd{}_".format(convert_mvt2mjd(starttime))
+            infix = "mjd{}".format(int(convert_mvt2mjd(starttime)))
             msout = '{0}.{1}_field'.format(msin, infix)
+
+            # Use a model ms file as source for the copy (since otherwise we could copy the
+            # entire msin and not just the data for the correct time range)
+            mssrc = model_list[-1]
         else:
             msout = '{}_field'.format(msin)
+            mssrc = msin
         if not os.path.exists(msout):
-            os.system('/bin/cp -r {0} {1}'.format(msin, msout))
+            shutil.copytree(mssrc, msout)
         tout = pt.table(msout, readonly=False, ack=False)
 
         # Define chunks based on available memory
         fraction = float(nrows_in) / float(tin.nrows())
-        nchunks = get_nchunks(msin, nr_outliers, fraction)
+        nchunks = get_nchunks(msin, nr_outliers, fraction, compressed=True)
         nrows_per_chunk = int(nrows_in / nchunks)
         startrows_tin = [startrow_in]
         startrows_tmod = [0]
@@ -246,6 +263,10 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         model_list = model_list[:-nr_outliers]
         nsectors = len(model_list)
         nr_outliers = 0
+        startrow_in = 0
+        datain = None
+        datamod_all = None
+        datamod_list = None
 
     # Open input and output tables
     tin = pt.table(msin, readonly=True, ack=False)
@@ -255,14 +276,20 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
             # Break so we don't open output tables for the outliers
             break
         msout = msmod.rstrip('_modeldata')
+        if starttime is not None:
+            # Use a model ms file as source for the copy (since otherwise we could copy the
+            # entire msin and not just the data for the correct time range)
+            mssrc = model_list[-1]
+        else:
+            mssrc = msin
         if not os.path.exists(msout):
-            os.system('/bin/cp -r {0} {1}'.format(msin, msout))
+            shutil.copytree(mssrc, msout)
         tout_list.append(pt.table(msout, readonly=False, ack=False))
 
     # Define chunks based on available memory, making sure each chunk gives a full
     # timeslot (needed for reweighting)
     fraction = float(nrows_in) / float(tin.nrows())
-    nchunks = get_nchunks(msin, nsectors, fraction)
+    nchunks = get_nchunks(msin, nsectors, fraction, reweight=reweight)
     nrows_per_chunk = int(nrows_in / nchunks)
     while nrows_per_chunk % nbl > 0.0:
         nrows_per_chunk -= 1
@@ -314,6 +341,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
                                             dirname=dirname, quiet=quiet)
                     coefficients = covweights.FindWeights(datain-datamod_all, flags)
                     weights = covweights.calcWeights(coefficients)
+                    covweights = None
                 tout.putcol(weights_colname, weights, startrow=startrow_tmod, nrow=nrow)
             tout.flush()
     for tout in tout_list:
@@ -453,7 +481,7 @@ class CovWeights:
         # do gains stuff
         ant1gainarray, ant2gainarray = readGainFile(self.gainfile, ms, nt, nchan, nbl,
                                                     tarray, nAnt, self.MSName, self.phaseonly,
-                                                    self.dirname)
+                                                    self.dirname, self.startrow, self.nrow)
         ant1gainarray = ant1gainarray.reshape((nt, nbl, nchan))
         ant2gainarray = ant2gainarray.reshape((nt, nbl, nchan))
         for t in range(nt):
@@ -500,7 +528,8 @@ class CovWeights:
         return self.freq_divisors[idx]
 
 
-def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, dirname):
+def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, dirname,
+                 startrow, nrow):
     if phaseonly:
         ant1gainarray1 = np.ones((nt*nbl, nchan))
         ant2gainarray1 = np.ones((nt*nbl, nchan))
@@ -525,8 +554,8 @@ def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, 
         dindx = gfile.dir.tolist().index(dirname)
         ant1gainarray = np.zeros((nt*nbl, nchan))
         ant2gainarray = np.zeros((nt*nbl, nchan))
-        A0arr = ms.getcol("ANTENNA1", startrow=self.startrow, nrow=self.nrow)
-        A1arr = ms.getcol("ANTENNA2", startrow=self.startrow, nrow=self.nrow)
+        A0arr = ms.getcol("ANTENNA1", startrow=startrow, nrow=nrow)
+        A1arr = ms.getcol("ANTENNA2", startrow=startrow, nrow=nrow)
         deltime = (times[1] - times[0]) / 2.0
         delfreq = (gfreqs[1] - gfreqs[0]) / 2.0
         for i in range(len(times)):

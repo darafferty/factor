@@ -44,7 +44,7 @@ class Observation(object):
             self.ms_field = '{0}_field'.format(self.ms_filename)
         else:
             # Include starttime to avoid naming conflicts
-            self.infix = "mjd{}_".format(self.starttime)
+            self.infix = "mjd{}".format(int(self.starttime))
             self.ms_field = '{0}.{1}_field'.format(self.ms_filename, self.infix)
 
     def scan_ms(self):

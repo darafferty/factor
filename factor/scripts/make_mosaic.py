@@ -32,15 +32,21 @@ def main(input_image_list, template_image, output_image, skip=False):
     # Load template and sector images and add them to mosaic
     regrid_hdr = pyfits.open(template_image)[0].header
     isum = pyfits.open(template_image)[0].data
-    wsum = np.zeros_like(isum)
-    for sector_image in input_image_list:
-        r = pyfits.open(sector_image)[0].data
-        w = np.ones_like(r)
-        w[np.isnan(r)] = 0
-        r[np.isnan(r)] = 0
-        isum += r
-        wsum += w
-    isum /= wsum
+    xslices = [slice(0, int(isum.shape[0] / 2.0)),
+               slice(int(isum.shape[0] / 2.0), isum.shape[0])]
+    yslices = [slice(0, int(isum.shape[1] / 2.0)),
+               slice(int(isum.shape[1] / 2.0), isum.shape[1])]
+    for xs in xslices:
+        for ys in yslices:
+            wsum = np.zeros_like(isum[xs, ys])
+            for sector_image in input_image_list:
+                r = pyfits.open(sector_image)[0].section[xs, ys]
+                w = np.ones_like(r)
+                w[np.isnan(r)] = 0
+                r[np.isnan(r)] = 0
+                isum[xs, ys] += r
+                wsum += w
+            isum[xs, ys] /= wsum
     del wsum, r, w
     isum[np.isnan(isum)] = np.nan
     hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)

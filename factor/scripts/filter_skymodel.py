@@ -9,6 +9,33 @@ import numpy as np
 import bdsf
 from factor.lib import miscellaneous as misc
 import casacore.tables as pt
+import shutil
+import astropy.io.ascii
+
+
+def ra2hhmmss(deg):
+    """Convert RA coordinate (in degrees) to HH MM SS"""
+
+    from math import modf
+    if deg < 0:
+        deg += 360.0
+    x, hh = modf(deg/15.)
+    x, mm = modf(x*60)
+    ss = x*60
+
+    return (int(hh), int(mm), ss)
+
+
+def dec2ddmmss(deg):
+    """Convert DEC coordinate (in degrees) to DD MM SS"""
+
+    from math import modf
+    sign = (-1 if deg < 0 else 1)
+    x, dd = modf(abs(deg))
+    x, ma = modf(x*60)
+    sa = x*60
+
+    return (int(dd), int(ma), sa, sign)
 
 
 def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
@@ -86,6 +113,7 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
                              adaptive_thresh=adaptive_thresh, rms_box_bright=rmsbox_bright,
                              rms_map=True, quiet=True, stop_at='isl')
 
+    emptysky = False
     if img.nisl > 0:
         maskfile = input_image + '.mask'
         img.export_image(outfile=maskfile, clobber=True, img_type='island_mask')
@@ -106,18 +134,45 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
             beam_ind = ms_times.index(mid_time)
         else:
             beam_ind = 0
-#         s = lsmtool.load(input_skymodel_nonpb)  # normally, load nonpb model and don't attenuate!
-        s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[beam_ind])  # nonpb model is really the pb model!
-        s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
-        s.group(maskfile)  # group the sky model by mask islands
-#         s.write(output_root+'.apparent_sky', clobber=True)  # normally don't attenuate!
-        s.write(output_root+'.apparent_sky', clobber=True, applyBeam=True)
+        try:
+    #         s = lsmtool.load(input_skymodel_nonpb)  # normally, load nonpb model and don't attenuate!
+            s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[beam_ind])  # nonpb model is really the pb model!
+            s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
+            s.group(maskfile)  # group the sky model by mask islands
+    #         s.write(output_root+'.apparent_sky', clobber=True)  # normally don't attenuate!
+            s.write(output_root+'.apparent_sky', clobber=True, applyBeam=True)
 
-#         s = lsmtool.load(input_skymodel_pb)  # normally load the pb model here!
-        s = lsmtool.load(input_skymodel_nonpb)  # nonpb model is really the pb model!
-        s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
-        s.group(maskfile)  # group the sky model by mask islands
-        s.write(output_root+'.true_sky', clobber=True)
+    #         s = lsmtool.load(input_skymodel_pb)  # normally load the pb model here!
+            s = lsmtool.load(input_skymodel_nonpb)  # nonpb model is really the pb model!
+            s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
+            s.group(maskfile)  # group the sky model by mask islands
+            s.write(output_root+'.true_sky', clobber=True)
+        except astropy.io.ascii.InconsistentTableError:
+            # Empty sky model
+            emptysky = True
+    else:
+        emptysky = True
+
+    if emptysky:
+        # No sources cleaned/found in image, so just make a dummy sky model with single,
+        # very faint source at center
+        dummylines = ["Format = Name, Type, Patch, Ra, Dec, I, SpectralIndex, LogarithmicSI, "
+                      "ReferenceFrequency='100000000.0', MajorAxis, MinorAxis, Orientation\n"]
+        ra, dec = img.pix2sky((img.shape[-2]/2.0, img.shape[-1]/2.0))
+        if ra < 0.0:
+            ra += 360.0
+        ra = ra2hhmmss(ra)
+        sra = str(ra[0]).zfill(2)+':'+str(ra[1]).zfill(2)+':'+str("%.6f" % (ra[2])).zfill(6)
+        dec = dec2ddmmss(dec)
+        decsign = ('-' if dec[3] < 0 else '+')
+        sdec = decsign+str(dec[0]).zfill(2)+'.'+str(dec[1]).zfill(2)+'.'+str("%.6f" % (dec[2])).zfill(6)
+        dummylines.append(',,p1,{0},{1}\n'.format(sra, sdec))
+        dummylines.append('s0c0,POINT,p1,{0},{1},0.00000001,'
+                           '[0.0,0.0],false,100000000.0,,,\n'.format(sra, sdec))
+        with open(output_root+'.apparent_sky', 'w') as f:
+                f.writelines(dummylines)
+        with open(output_root+'.true_sky', 'w') as f:
+                f.writelines(dummylines)
 
 
 if __name__ == '__main__':
