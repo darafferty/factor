@@ -109,13 +109,13 @@ make_aterm_config.argument.gain_mapfile = {{ slow_aterms_mapfile }}
 make_aterm_config.argument.use_beam     = {{ use_beam }}
 
 # do the imaging, length = 1
-# NOTE: the beam parameters are specified in the aterm config file made above. We need
-# to add the -apply-primary-beam flag to get the pb-corrected source list and
+# NOTE: the beam parameters are specified in the aterm config file made above
 image.control.type                    = wsclean
 image.control.mapfiles_in             = [create_compressed_mapfile.output.mapfile,premask.output.mapfile,make_aterm_config.output.mapfile]
 image.control.inputkeys               = [msfile,fitsmask,atermconfig]
 {% if use_beam %}
 image.argument.flags                  = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
+# image.argument.flags                  = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,-use-weights-as-taper,msfile]
 {% else %}
 image.argument.flags                  = [-no-update-model-required,-multiscale,-fit-beam,-reorder,-save-source-list,-local-rms,-join-channels,-use-idg,msfile]
 {% endif %}
@@ -159,6 +159,7 @@ image.argument.idg-mode               = {{ idg_mode }}
 image.argument.aterm-config           = atermconfig
 image.argument.aterm-kernel-size      = 32
 image.argument.nmiter                 = 8
+# image.argument.parallel-gridding      = 0
 # image.argument.parallel-deconvolution = 512
 
 # filter the sky model using PyBDSF, length = 1

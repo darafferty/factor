@@ -137,17 +137,19 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
     #         s = lsmtool.load(input_skymodel_nonpb)  # normally, load nonpb model and don't attenuate!
             s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[beam_ind])  # nonpb model is really the pb model!
             s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
-            s.group(maskfile)  # group the sky model by mask islands
-    #         s.write(output_root+'.apparent_sky', clobber=True)  # normally don't attenuate!
-            s.write(output_root+'.apparent_sky', clobber=True, applyBeam=True)
+            if len(s) == 0:
+                emptysky = True
+            else:
+                s.group(maskfile)  # group the sky model by mask islands
+        #         s.write(output_root+'.apparent_sky', clobber=True)  # normally don't attenuate!
+                s.write(output_root+'.apparent_sky', clobber=True, applyBeam=True)
 
-    #         s = lsmtool.load(input_skymodel_pb)  # normally load the pb model here!
-            s = lsmtool.load(input_skymodel_nonpb)  # nonpb model is really the pb model!
-            s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
-            s.group(maskfile)  # group the sky model by mask islands
-            s.write(output_root+'.true_sky', clobber=True)
+        #         s = lsmtool.load(input_skymodel_pb)  # normally load the pb model here!
+                s = lsmtool.load(input_skymodel_nonpb)  # nonpb model is really the pb model!
+                s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
+                s.group(maskfile)  # group the sky model by mask islands
+                s.write(output_root+'.true_sky', clobber=True)
         except astropy.io.ascii.InconsistentTableError:
-            # Empty sky model
             emptysky = True
     else:
         emptysky = True

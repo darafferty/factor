@@ -40,7 +40,7 @@ def get_nchunks(msin, nsectors, fraction=1.0, reweight=False, compressed=False):
         scale_factor *= 5.0
     tot_m, used_m, free_m = list(map(int, os.popen('free -tm').readlines()[-1].split()[1:]))
     msin_m = float(subprocess.check_output(['du', '-sm', msin]).split()[0]) * fraction
-    tot_required_m = msin_m * nsectors * scale_factor
+    tot_required_m = msin_m * nsectors * scale_factor * 2.0
     nchunks = max(1, int(np.ceil(tot_required_m / tot_m)))
     return nchunks
 

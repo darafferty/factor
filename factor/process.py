@@ -88,6 +88,7 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
             scheduler.run(ops)
 
             # Mosaic the sectors
+            # TODO: run mosaic ops for IQUV+residuals
             op = Mosaic(field, iter+1)
             scheduler.run(op)
 
