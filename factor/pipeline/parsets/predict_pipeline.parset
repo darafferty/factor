@@ -1,4 +1,4 @@
-pipeline.steps = [create_sector_files_map, create_starttime_map, create_ntimes_map, create_sector_skymodels_map, create_sector_sourcedbs, expand_sourcedbs_map, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, create_obs_starttime_map, create_solint_sec_map, create_solint_hz_map, subtract_models]
+pipeline.steps = [create_sector_files_map, create_starttime_map, create_ntimes_map, create_sector_skymodels_map, create_sector_sourcedbs, expand_sourcedbs_map, create_predict_output_map, expand_combined_h5parms_map, create_sector_patches_map, predict_model_data, create_obs_files_map, create_obs_starttime_map, create_obs_infix_map, create_solint_sec_map, create_solint_hz_map, subtract_models]
 
 pipeline.pluginpath = {{ pipeline_dir }}/plugins
 
@@ -127,6 +127,14 @@ create_obs_starttime_map.control.files       = {{ obs_starttime }}
 create_obs_starttime_map.control.mapfile_dir = input.output.mapfile_dir
 create_obs_starttime_map.control.filename    = obs_starttime.mapfile
 
+# create a mapfile with the infix string for each obs, length = nobs
+create_obs_infix_map.control.kind        = plugin
+create_obs_infix_map.control.type        = addListMapfile
+create_obs_infix_map.control.hosts       = {{ hosts }}
+create_obs_infix_map.control.files       = {{ obs_infix }}
+create_obs_infix_map.control.mapfile_dir = input.output.mapfile_dir
+create_obs_infix_map.control.filename    = obs_infix.mapfile
+
 # create a mapfile with each observation's solint_sec value, length = nobs
 create_solint_sec_map.control.kind        = plugin
 create_solint_sec_map.control.type        = addListMapfile
@@ -147,8 +155,8 @@ create_solint_hz_map.control.filename    = solint_hz.mapfile
 # also create residual data (just needed once, since they are the same
 # for every sector) for reweighting
 subtract_models.control.type             = subtract_sector_models
-subtract_models.control.mapfiles_in      = [create_obs_files_map.output.mapfile,create_obs_starttime_map.output.mapfile,create_solint_sec_map.output.mapfile,create_solint_hz_map.output.mapfile]
-subtract_models.control.inputkeys        = [infile,starttime,solint_sec,solint_hz]
+subtract_models.control.mapfiles_in      = [create_obs_files_map.output.mapfile,create_obs_starttime_map.output.mapfile,create_solint_sec_map.output.mapfile,create_solint_hz_map.output.mapfile,create_obs_infix_map.output.mapfile]
+subtract_models.control.inputkeys        = [infile,starttime,solint_sec,solint_hz,infix]
 subtract_models.argument.flags           = [infile,{{ mapfile_dir }},sector_files_output_map.mapfile]
 subtract_models.argument.nr_outliers     = {{ nr_outliers }}
 subtract_models.argument.peel_outliers   = {{ peel_outliers }}
@@ -160,3 +168,4 @@ subtract_models.argument.uvcut_max       = {{ max_uv_lambda }}
 subtract_models.argument.phaseonly       = True
 subtract_models.argument.solint_sec      = solint_sec
 subtract_models.argument.solint_hz       = solint_hz
+subtract_models.argument.infix           = infix

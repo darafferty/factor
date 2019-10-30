@@ -40,12 +40,11 @@ class Observation(object):
         # Define the infix for filenames
         if self.startsat_startofms and self.goesto_endofms:
             # Don't include starttime if observation covers full MS
-            self.infix = ""
-            self.ms_field = '{0}_field'.format(self.ms_filename)
+            self.infix = ''
         else:
             # Include starttime to avoid naming conflicts
-            self.infix = "mjd{}".format(int(self.starttime))
-            self.ms_field = '{0}.{1}_field'.format(self.ms_filename, self.infix)
+            self.infix = '.mjd{}'.format(int(self.starttime))
+        self.ms_field = '{0}{1}_field'.format(self.ms_filename, self.infix)
 
     def scan_ms(self):
         """

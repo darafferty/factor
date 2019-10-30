@@ -99,7 +99,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
          out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False,
          reweight=True, starttime=None, solint_sec=None, solint_hz=None,
          weights_colname="CAL_WEIGHT", gainfile="", uvcut_min=80.0, uvcut_max=1e6,
-         phaseonly=True, dirname=None, quiet=True):
+         phaseonly=True, dirname=None, quiet=True, infix=''):
     """
     Subtract sector model data
 
@@ -128,6 +128,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
         If True, reweight using the residuals
     starttime : str, optional
         Start time in JD seconds
+    infix : str, optional
+        Infix string used in filenames
     """
     use_compression = misc.string2bool(use_compression)
     peel_outliers = misc.string2bool(peel_outliers)
@@ -145,7 +147,7 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     if msin.endswith('_field'):
         msin_root = msin.rstrip('_field')
     else:
-        msin_root = msin
+        msin_root = '{0}{1}'.format(msin, infix)
     mapfile = os.path.join(mapfile_dir, filename)
     model_map = DataMap.load(mapfile)
     model_list = [item.file for item in model_map if msin_root in item.file]
@@ -200,15 +202,13 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     if peel_outliers and nr_outliers > 0:
         # Open input and output table
         tin = pt.table(msin, readonly=True, ack=False)
-        if starttime is not None:
-            infix = "mjd{}".format(int(convert_mvt2mjd(starttime)))
-            msout = '{0}.{1}_field'.format(msin, infix)
-
-            # Use a model ms file as source for the copy (since otherwise we could copy the
-            # entire msin and not just the data for the correct time range)
+        msout = '{0}{1}_field'.format(msin, infix)
+        if infix != '':
+            # This implies we have a subrange of a full dataset, so use a model ms
+            # file as source for the copy (since otherwise we could copy the
+            # entire msin and not just the data for the correct subrange)
             mssrc = model_list[-1]
         else:
-            msout = '{}_field'.format(msin)
             mssrc = msin
         if not os.path.exists(msout):
             shutil.copytree(mssrc, msout)

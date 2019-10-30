@@ -44,12 +44,14 @@ class Predict(Operation):
         sector_patches = '[{}]'.format(';'.join(sector_patches))  # convert to ;-separated list
         obs_filename = []
         obs_starttime = []
+        obs_infix = []
         obs_solint_sec = []
         obs_solint_hz = []
         for obs in field.observations:
             # Set observation-specific parameters
             obs_filename.append(obs.ms_filename)
             obs_starttime.append(obs.convert_mjd(obs.starttime))
+            obs_infix.append(obs.infix)
             obs_solint_sec.append(obs.parameters['solint_fast_timestep'][0] * obs.timepersample)
             obs_solint_hz.append(obs.parameters['solint_slow_freqstep'][0] * obs.channelwidth)
         nr_outliers = len(field.outlier_sectors)
@@ -69,5 +71,6 @@ class Predict(Operation):
                                 'max_uv_lambda': max_uv_lambda,
                                 'obs_filename': obs_filename,
                                 'obs_starttime': obs_starttime,
+                                'obs_infix': obs_infix,
                                 'nr_outliers': nr_outliers,
                                 'peel_outliers': peel_outliers})
