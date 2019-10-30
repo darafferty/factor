@@ -47,7 +47,8 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
     Parameters
     ----------
     input_image : str
-        Filename of input image to blank
+        Filename of input image to use to detect sources for filtering. Ideally, this
+        should be a flat-noise image (i.e., without primary-beam correction)
     input_skymodel_nonpb : str
         Filename of input makesourcedb sky model, without primary-beam correction
     input_skymodel_pb : str, optional
@@ -118,8 +119,8 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         img.export_image(outfile=maskfile, clobber=True, img_type='island_mask')
 
         # TODO: remove the following once WSClean correctly produces pb-corrected and
-        # uncorrected images and sky models. For now, we use WSClean without the
-        # "-apply-primary-beam" option, which produces a pb-corrected image and sky
+        # uncorrected sky models. For now, we use WSClean without the
+        # "-apply-primary-beam" option, which produces only a pb-corrected sky
         # model (but with out the "-pb" infix), so we use that and attenuate it to get
         # the apparent sky
         if len(beamMS) > 1:
