@@ -447,6 +447,12 @@ class Field(object):
             sector.calibration_skymodel = self.calibration_skymodel.copy()
             sector.make_skymodel(iter)
 
+        # Clean up to minimize memory usage
+        self.calibration_skymodel = None
+        self.source_skymodel = None
+        for sector in self.sectors:
+            sector.calibration_skymodel = None
+
     def define_sectors(self, iter):
         """
         Defines the imaging sectors
