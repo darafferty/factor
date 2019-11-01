@@ -166,6 +166,10 @@ input_skymodel = /data/skymodel.txt
 # reserved nodes and cluster_type = slurm to use SLURM reserved ones
 # clusterdesc_type = slurm
 
+# Exclude the master node that Factor is running on from use in processing (useful for
+# low-memory nodes). Only valid if more than one node is available
+# exclude_master = False
+
 # Full path to a local disk on the nodes for I/O-intensive processing. The path
 # must be the same for all nodes
 # dir_local = /tmp

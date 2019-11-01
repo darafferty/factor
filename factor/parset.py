@@ -9,6 +9,7 @@ import configparser
 from factor._logging import set_log_file
 from factor.cluster import find_executables, get_compute_nodes
 from astropy.coordinates import Angle
+import platform
 
 log = logging.getLogger('factor:parset')
 
@@ -177,7 +178,7 @@ def get_global_options(parset):
         for f in flag_list:
             if f not in parset_dict['flag_expr']:
                 log.error('Flag selection "{}" was specified but does not '
-                    'appear in flag_expr'.format(f))
+                          'appear in flag_expr'.format(f))
                 sys.exit(1)
 
     # Check for invalid options
@@ -477,9 +478,9 @@ def get_imaging_options(parset):
     # Check that all the above options have the same number of entries
     if len(set(len_list)) > 1:
         log.error('The options sector_center_ra_list, sector_center_dec_list, '
-            'sector_width_ra_deg_list, sector_width_dec_deg_list, and '
-            'sector_do_multiscale_list (if specified) must all have the same number of '
-            'entires')
+                  'sector_width_ra_deg_list, sector_width_dec_deg_list, and '
+                  'sector_do_multiscale_list (if specified) must all have the same number of '
+                  'entires')
         sys.exit(1)
 
     # IDG (image domain gridder) mode to use in WSClean (default = hybrid). The mode can
@@ -590,7 +591,7 @@ def get_imaging_options(parset):
                        'robust', 'padding', 'sector_center_ra_list', 'sector_center_dec_list',
                        'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
                        'idg_mode', 'sector_do_multiscale_list', 'target_ra',
-                       'target_dec', 'target_radius_arcmin','use_beam']
+                       'target_dec', 'target_radius_arcmin', 'use_beam']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [imaging] section of the '
@@ -665,6 +666,16 @@ def get_cluster_options(parset):
     if 'cluster_type' not in parset_dict:
         parset_dict['cluster_type'] = 'localhost'
     parset_dict['node_list'] = get_compute_nodes(parset_dict['cluster_type'])
+
+    # Exclude the node that Factor is running on from use in processing (useful for low-
+    # memory nodes)
+    if 'exclude_master' in parset_dict:
+        parset_dict['exclude_master'] = parset.getboolean('cluster', 'exclude_master')
+    else:
+        parset_dict['exclude_master'] = False
+    if parset_dict['exclude_master'] and len(parset_dict['node_list']) > 1:
+        master_node = platform.node()
+        parset_dict['node_list'].remove(master_node)
 
     # Full path to a local disk on the nodes for I/O-intensive processing. The path
     # must be the same for all nodes
