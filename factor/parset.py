@@ -686,7 +686,7 @@ def get_cluster_options(parset):
 
     # Check for invalid options
     allowed_options = ['ncpu', 'fmem', 'cluster_type', 'dir_local', 'lofarroot',
-                       'lofarpythonpath']
+                       'lofarpythonpath', 'exclude_master']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [cluster] section of the '
