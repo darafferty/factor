@@ -301,8 +301,8 @@ def smooth(soltab, smooth_amplitudes=True, normalize=True):
         weights = soltab.weight[:]
         ntimes = len(soltab.time[:])
         nfreqs = len(soltab.freq[:])
-        initial_flagged_indx = np.where(np.logical_or(np.isnan(parms), weights == 0.0))
-        initial_unflagged_indx = np.where(np.logical_and(~np.isnan(parms), weights != 0.0))
+        initial_flagged_indx = np.logical_or(np.isnan(parms), weights == 0.0)
+        initial_unflagged_indx = np.logical_and(~np.isnan(parms), weights != 0.0)
         parms[initial_flagged_indx] = 1.0
 
         # Do smoothing
@@ -359,7 +359,7 @@ def smooth(soltab, smooth_amplitudes=True, normalize=True):
         if normalize:
             for dir in range(len(soltab.dir[:])):
                 # First find the normalization factor from unflagged solutions
-                norm_factor = 1.0/(np.nanmean(parms[initial_unflagged_indx].reshape(parms.shape)[:, :, :, dir, :]))
+                norm_factor = 1.0/(np.nanmean(parms[:, :, :, dir, :][initial_unflagged_indx[:, :, :, dir, :]]))
                 print("smooth_amps_spline.py: Normalization factor for direction {0} is {1}".format(dir, norm_factor))
                 parms[:, :, :, dir, :] *= norm_factor
 
