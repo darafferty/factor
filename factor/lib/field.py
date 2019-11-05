@@ -280,10 +280,13 @@ class Field(object):
 
         # Now regroup source sky model into calibration patches if desired
         if regroup:
-            # Find groups of bright sources to use as basis for calibrator patches
+            # Find groups of bright sources to use as basis for calibrator patches. The
+            # patch positions are set to the flux-weighted mean position. This position
+            # is then propagated and used for the calibrate and predict sky models
             source_skymodel.group('meanshift', byPatch=True, applyBeam=applyBeam_group,
                                   lookDistance=0.075, groupingDistance=0.01)
             source_skymodel.setPatchPositions(method='wmean')
+            patch_dict = source_skymodel.getPatchPositions()
 
             # debug
             dst_dir = os.path.join(self.working_dir, 'skymodels', 'calibrate_{}'.format(iter))
@@ -310,7 +313,7 @@ class Field(object):
             self.log.info('Using a target flux density of {} Jy for grouping'.format(target_flux))
             source_skymodel.group('voronoi', targetFlux=target_flux, applyBeam=applyBeam_group,
                                   weightBySize=True)
-            source_skymodel.setPatchPositions(method='wmean')
+            source_skymodel.setPatchPositions(patchDict=patch_dict)
 
             # debug
             dst_dir = os.path.join(self.working_dir, 'skymodels', 'calibrate_{}'.format(iter))
@@ -327,7 +330,7 @@ class Field(object):
             ind_ts = np.argsort(names_skymodel_true_sky)
             skymodel_true_sky.table['Patch'][ind_ts] = source_skymodel.table['Patch'][ind_ss]
             skymodel_true_sky._updateGroups()
-            skymodel_true_sky.setPatchPositions(method='wmean')
+            source_skymodel.setPatchPositions(patchDict=patch_dict)
 
         # Write sky model to disk for use in calibration, etc.
         calibration_skymodel = skymodel_true_sky
