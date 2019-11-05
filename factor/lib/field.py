@@ -330,7 +330,7 @@ class Field(object):
             ind_ts = np.argsort(names_skymodel_true_sky)
             skymodel_true_sky.table['Patch'][ind_ts] = source_skymodel.table['Patch'][ind_ss]
             skymodel_true_sky._updateGroups()
-            source_skymodel.setPatchPositions(patchDict=patch_dict)
+            skymodel_true_sky.setPatchPositions(patchDict=patch_dict)
 
         # Write sky model to disk for use in calibration, etc.
         calibration_skymodel = skymodel_true_sky
