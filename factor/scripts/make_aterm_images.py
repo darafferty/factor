@@ -378,9 +378,9 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
     return im
 
 
-def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname='sol000',
-         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.1, smooth_deg=0, gsize_deg=0,
-         mapfile_dir='.', filename='aterm_images.mapfile'):
+def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
+         solsetname='sol000', ressoltabname='', padding_fraction=1.4, cellsize_deg=0.1,
+         smooth_deg=0, gsize_deg=0, mapfile_dir='.', filename='aterm_images.mapfile'):
     """
     Make a-term FITS images
 
@@ -396,6 +396,8 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         List of [maxRA, minDec, minRA, maxDec] for image bounds
     bounds_mid_deg : list
         List of [RA, Dec] for midpoint of image bounds
+    skymodel : str
+        Filename of calibration sky model (needed for patch positions)
     solsetname : str, optional
         Name of solset
     ressoltabname : str, optional
@@ -542,7 +544,6 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         ants = soltab.ant
         axis_names = soltab.getAxesNames()
         source_names = soltab.dir[:]
-        source_dict = solset.getSou()
 
         # Make blank output FITS file (type does not matter at this point)
         midRA = bounds_mid_deg[0]
@@ -559,13 +560,17 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, solsetname
         RAind = w.axis_type_names.index('RA')
         Decind = w.axis_type_names.index('DEC')
 
-        # Get x, y coords for directions in pixels
+        # Get x, y coords for directions in pixels. We use the input calibration sky
+        # model for this, as the patch positions written to the h5parm file by DPPP may
+        # be different
+        skymod = lsmtool.load(skymodel)
+        source_dict = skymod.getPatchPositions()
         source_positions = []
         for source in source_names:
-            source_positions.append(source_dict[source.encode()])
+            source_positions.append(source_dict[source])
         source_positions = np.array(source_positions)
-        ra_deg = source_positions.T[0] * 180.0 / np.pi
-        dec_deg = source_positions.T[1] * 180.0 / np.pi
+        ra_deg = source_positions[0].value
+        dec_deg = source_positions[1].value
         xy = []
         for RAvert, Decvert in zip(ra_deg, dec_deg):
             ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
