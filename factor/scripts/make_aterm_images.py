@@ -571,8 +571,8 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
             radecpos = source_dict[source.strip('[]')]
             source_positions.append([radecpos[0].value, radecpos[1].value])
         source_positions = np.array(source_positions)
-        ra_deg = source_positions[0]
-        dec_deg = source_positions[1]
+        ra_deg = source_positions.T[0]
+        dec_deg = source_positions.T[1]
         xy = []
         for RAvert, Decvert in zip(ra_deg, dec_deg):
             ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
