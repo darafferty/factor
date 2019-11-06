@@ -142,7 +142,7 @@ class FITSImage(object):
             ra_dec[0][Decind] = Decvert
             verts.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
         poly = Polygon(verts)
-        poly_padded = poly.buffer(1)
+        poly_padded = poly.buffer(2)
         verts = [(xi, yi) for xi, yi in zip(poly_padded.exterior.coords.xy[0].tolist(),
                                             poly_padded.exterior.coords.xy[1].tolist())]
 
