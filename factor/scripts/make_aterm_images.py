@@ -568,10 +568,11 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
         source_dict = skymod.getPatchPositions()
         source_positions = []
         for source in source_names:
-            source_positions.append(source_dict[source])
+            radecpos = source_dict[source.strip('[]')]
+            source_positions.append([radecpos[0].value, radecpos[1].value])
         source_positions = np.array(source_positions)
-        ra_deg = source_positions[0].value
-        dec_deg = source_positions[1].value
+        ra_deg = source_positions[0]
+        dec_deg = source_positions[1]
         xy = []
         for RAvert, Decvert in zip(ra_deg, dec_deg):
             ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
