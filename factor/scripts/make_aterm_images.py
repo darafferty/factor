@@ -5,6 +5,7 @@ Script to make a-term images from solutions
 from losoto.h5parm import h5parm
 from losoto.operations.directionscreen import _calc_piercepoint
 from losoto.operations.plotscreen import _calculate_screen
+import lsmtool
 from numpy import kron, concatenate, newaxis
 from numpy.linalg import pinv, norm
 import os
