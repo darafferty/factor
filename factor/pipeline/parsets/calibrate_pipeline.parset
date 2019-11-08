@@ -573,6 +573,7 @@ fit_slow_screens.control.inputkey           = infile
 fit_slow_screens.argument.flags             = [infile]
 fit_slow_screens.argument.smooth_amplitudes = False
 fit_slow_screens.argument.normalize         = True
+fit_slow_screens.argument.all_to_unity      = True
 fit_slow_screens.argument.smooth_phases     = False
 
 # create a mapfile for output of a-term step, length = 1

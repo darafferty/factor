@@ -293,7 +293,7 @@ def median2Dampfilter(amp_orig):
     return amp_cleaned, amp_median, baddata
 
 
-def smooth(soltab, smooth_amplitudes=True, normalize=True):
+def smooth(soltab, smooth_amplitudes=True, normalize=True, all_to_unity=False):
 
     if soltab.getType() == 'amplitude':
         # Check for flagged solutions. If found, set to 1
@@ -358,16 +358,26 @@ def smooth(soltab, smooth_amplitudes=True, normalize=True):
         # Normalize the amplitude solutions to a mean of one across all channels
         if normalize:
             for dir in range(len(soltab.dir[:])):
-                # First find the normalization factor from unflagged solutions
-                norm_factor = 1.0/(np.nanmean(parms[:, :, :, dir, :][initial_unflagged_indx[:, :, :, dir, :]]))
-                print("smooth_amps_spline.py: Normalization factor for direction {0} is {1}".format(dir, norm_factor))
-                parms[:, :, :, dir, :] *= norm_factor
+                if all_to_unity:
+                    # Normalize each station, time, and frequency separately to unity, but
+                    # maintain the relative offset between polarizations
+                    for s in range(len(soltab.ant[:])):
+                        for t in range(len(soltab.time[:])):
+                            for f in range(len(soltab.freq[:])):
+                                norm_factor = 1.0/(np.nanmean(parms[t, f, s, dir, :][initial_unflagged_indx[t, f, s, dir, :]]))
+                                parms[t, f, s, dir, :] *= norm_factor
 
-                # Clip extremely low amplitude solutions to prevent very high
-                # amplitudes in the corrected data
-                unflagged = np.where(~np.isnan(parms[:, :, :, dir, :]))
-                low_ind = np.where(parms[:, :, :, dir, :][unflagged] < 0.2)
-                parms[:, :, :, dir, :][unflagged][low_ind] = 0.2
+                else:
+                    # First find the normalization factor from unflagged solutions
+                    norm_factor = 1.0/(np.nanmean(parms[:, :, :, dir, :][initial_unflagged_indx[:, :, :, dir, :]]))
+                    print("smooth_amps_spline.py: Normalization factor for direction {0} is {1}".format(dir, norm_factor))
+                    parms[:, :, :, dir, :] *= norm_factor
+
+                    # Clip extremely low amplitude solutions to prevent very high
+                    # amplitudes in the corrected data
+                    unflagged = np.where(~np.isnan(parms[:, :, :, dir, :]))
+                    low_ind = np.where(parms[:, :, :, dir, :][unflagged] < 0.2)
+                    parms[:, :, :, dir, :][unflagged][low_ind] = 0.2
 
         # Make sure flagged solutions are still flagged
         parms[initial_flagged_indx] = np.nan
@@ -417,7 +427,7 @@ def remove_soltabs(solset, soltabnames):
 def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
          phsoltabname='phase000', outsoltabroot='_screensols', ref_id=0,
          fit_screens=False, calculate_weights=False, smooth_amplitudes=False,
-         smooth_phases=False, normalize=False):
+         smooth_phases=False, normalize=False, all_to_unity=False):
     """
     Fit screens to gain solutions
 
@@ -438,6 +448,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
     """
     ref_id = int(ref_id)
     normalize = misc.string2bool(normalize)
+    all_to_unity = misc.string2bool(all_to_unity)
     fit_screens = misc.string2bool(fit_screens)
     calculate_weights = misc.string2bool(calculate_weights)
     smooth_amplitudes = misc.string2bool(smooth_amplitudes)
@@ -453,16 +464,21 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
     ph = np.array(phsoltab.val)
     dph = np.ones(ph.shape)
 
-    ampsoltab.rename('origamplitude000', overwrite=True)
+    if ampsoltabname != 'origamplitude000':
+        ampsoltab.rename('origamplitude000', overwrite=True)
     if smooth_amplitudes or normalize:
-        amp, damp = smooth(ampsoltab, smooth_amplitudes=smooth_amplitudes, normalize=normalize)
+        amp, damp = smooth(ampsoltab, smooth_amplitudes=smooth_amplitudes,
+                           normalize=normalize, all_to_unity=all_to_unity)
     solset.makeSoltab('amplitude', 'amplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                       axesVals=[ampsoltab.time[:], ampsoltab.freq[:], ampsoltab.ant[:],
                       ampsoltab.dir[:], ampsoltab.pol[:]], vals=amp, weights=damp)
 
-    phsoltab.rename('origphase000', overwrite=True)
+    if phsoltabname != 'origphase000':
+        phsoltab.rename('origphase000', overwrite=True)
     if smooth_phases:
         ph, dph = smooth(phsoltab)
+    if all_to_unity:
+        ph[:] = 0.0
     solset.makeSoltab('phase', 'phase000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                       axesVals=[phsoltab.time[:], phsoltab.freq[:], phsoltab.ant[:],
                       phsoltab.dir[:], phsoltab.pol[:]], vals=ph, weights=dph)
