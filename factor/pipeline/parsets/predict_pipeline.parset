@@ -97,8 +97,8 @@ predict_model_data.argument.predict.applycal.correction           = origtec000
 predict_model_data.argument.predict.directions                    = directions
 {% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,slowamp,slowphase]
-predict_model_data.argument.predict.applycal.slowamp.correction   = origamplitude000
-predict_model_data.argument.predict.applycal.slowphase.correction = origphase000
+predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude000
+predict_model_data.argument.predict.applycal.slowphase.correction = phase000
 {% else %}
 predict_model_data.argument.predict.applycal.steps                = [tec]
 {% endif %}
