@@ -588,7 +588,7 @@ class Field(object):
         outlier_skymodel = self.make_outlier_skymodel()
         nsources = len(outlier_skymodel)
         if nsources > 0:
-            nnodes = 10  # TODO: tune to number of available nodes and/or memory?
+            nnodes = min(10, nsources)  # TODO: tune to number of available nodes and/or memory?
             for i in range(nnodes):
                 outlier_sector = Sector('outlier_{0}'.format(i), self.ra, self.dec, 1.0, 1.0, self)
                 outlier_sector.is_outlier = True
