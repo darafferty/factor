@@ -247,7 +247,10 @@ class Sector(object):
             in_sector = np.array([all_source_names.index(sn) for sn in source_names])
             source_skymodel = self.field.source_skymodel.copy()
             source_skymodel.select(in_sector)
-            self.source_sizes = source_skymodel.getPatchSizes(units='degree')
+            if len(source_skymodel) > 0:
+                self.source_sizes = source_skymodel.getPatchSizes(units='degree')
+            else:
+                self.source_sizes = [0.0]
 
         # Set the parameters for predict
         self.set_prediction_parameters()
