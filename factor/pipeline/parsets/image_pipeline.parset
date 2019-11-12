@@ -102,7 +102,9 @@ make_aterm_config.control.mapfile_in    = create_compressed_mapfile.output.mapfi
 make_aterm_config.control.inputkey      = infile
 make_aterm_config.control.outputkey     = outfile
 make_aterm_config.argument.flags        = [infile,outfile]
+{% if mode == 'tec' %}
 make_aterm_config.argument.tec_mapfile  = {{ fast_aterms_mapfile }}
+{% endif %}
 {% if do_slowgain_solve %}
 make_aterm_config.argument.gain_mapfile = {{ slow_aterms_mapfile }}
 {% endif %}

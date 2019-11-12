@@ -340,11 +340,14 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
 
     # Determine if we need to reduce solint_slow_timestep to fit in memory. We adjust
     # the time step rather than the frequency step, as it is less critical and usually
-    # has a finer sampling
+    # has a finer sampling. However, we ensure that the new time step is an even
+    # divisor of the original one to avoid problems with irregular steps and IDG
     if mem_gb / gb_per_solint < 1.0:
         old_solint_slow_timestep = solint_slow_timestep
         solint_slow_timestep *= mem_gb / gb_per_solint
         solint_slow_timestep = max(1, int(round(solint_slow_timestep)))
+        while old_solint_slow_timestep % solint_slow_timestep:
+            solint_slow_timestep -= 1
         log.warn('Not enough memory available for slow-gain solve. Reducing solution '
                  'time interval from {0} to {1}'.format(old_solint_slow_timestep,
                                                         solint_slow_timestep))

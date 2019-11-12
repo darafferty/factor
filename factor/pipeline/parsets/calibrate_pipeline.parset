@@ -225,6 +225,7 @@ solve_fast_phases1.argument.solve.onebeamperpatch    = True
 solve_fast_phases1.argument.solve.h5parm             = h5parm
 solve_fast_phases1.argument.solve.solint             = timestep
 solve_fast_phases1.argument.solve.nchan              = freqstep
+# solve_fast_phases1.argument.solve.smoothnessconstraint    = {{ smoothnessconstraint }}
 {% if mode == 'tec' %}
 solve_fast_phases1.argument.solve.approximatetec     = {{ approximatetec }}
 solve_fast_phases1.argument.solve.maxapproxiter      = {{ maxapproxiter }}
@@ -383,50 +384,42 @@ combine_fast_phases.argument.add_values = True
 {% else %}
 
 # solve for fast phases (all stations), length = ntimechunks
-solve_fast_phases.control.type                      = dppp_inplace
+solve_fast_phases.control.type                        = dppp_inplace
 {% if use_idg_predict %}
-solve_fast_phases.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile]
-solve_fast_phases.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep]
+solve_fast_phases.control.mapfiles_in                 = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile]
+solve_fast_phases.control.inputkeys                   = [msin,h5parm,starttime,ntimes,timestep,freqstep]
 {% else %}
-solve_fast_phases.control.mapfiles_in               = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
-solve_fast_phases.control.inputkeys                 = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
+solve_fast_phases.control.mapfiles_in                 = [create_timechunk_files_map.output.mapfile,create_fast_h5parms_map.output.mapfile,create_starttime_map.output.mapfile,create_ntimes_map.output.mapfile,create_fast_timestep_map.output.mapfile,create_fast_freqstep_map.output.mapfile,expand_sourcedb_mapfile_time.output.mapfile]
+solve_fast_phases.control.inputkeys                   = [msin,h5parm,starttime,ntimes,timestep,freqstep,sourcedb]
 {% endif %}
-solve_fast_phases.control.max_per_node              = 1
-solve_fast_phases.argument.numthreads               = {{ max_proc_per_node }}
-solve_fast_phases.argument.msin.datacolumn          = {{ data_colname }}
-solve_fast_phases.argument.msin.starttime           = starttime
-solve_fast_phases.argument.msin.ntimes              = ntimes
-solve_fast_phases.argument.msout                    = .
-solve_fast_phases.argument.steps                    = [solve]
-solve_fast_phases.argument.solve.type               = ddecal
-solve_fast_phases.argument.solve.mode               = {{ mode }}
-{% if mode == 'tecscreen' %}
-solve_fast_phases.argument.solve.tecscreen.order    = {{ tecscreenorder }}
-solve_fast_phases.argument.solve.tecscreen.mode     = station
-{% endif %}
+solve_fast_phases.control.max_per_node                = 1
+solve_fast_phases.argument.numthreads                 = {{ max_proc_per_node }}
+solve_fast_phases.argument.msin.datacolumn            = {{ data_colname }}
+solve_fast_phases.argument.msin.starttime             = starttime
+solve_fast_phases.argument.msin.ntimes                = ntimes
+solve_fast_phases.argument.msout                      = .
+solve_fast_phases.argument.steps                      = [solve]
+solve_fast_phases.argument.solve.type                 = ddecal
+solve_fast_phases.argument.solve.mode                 = {{ mode }}
 {% if use_beam %}
-solve_fast_phases.argument.solve.usebeammodel       = True
-solve_fast_phases.argument.solve.beammode           = array_factor
-solve_fast_phases.argument.solve.onebeamperpatch    = True
+solve_fast_phases.argument.solve.usebeammodel         = True
+solve_fast_phases.argument.solve.beammode             = array_factor
+solve_fast_phases.argument.solve.onebeamperpatch      = True
 {% endif %}
-solve_fast_phases.argument.solve.h5parm             = h5parm
-solve_fast_phases.argument.solve.sourcedb           = sourcedb
-solve_fast_phases.argument.solve.solint             = timestep
-solve_fast_phases.argument.solve.nchan              = freqstep
-{% if mode == 'tec' %}
-solve_fast_phases.argument.solve.approximatetec     = {{ approximatetec }}
-solve_fast_phases.argument.solve.maxapproxiter      = {{ maxapproxiter }}
-# solve_fast_phases.argument.solve.approxchunksize    = 5
-{% endif %}
-solve_fast_phases.argument.solve.maxiter            = {{ maxiter }}
-solve_fast_phases.argument.solve.propagatesolutions = {{ propagatesolutions }}
-solve_fast_phases.argument.solve.stepsize           = {{ stepsize }}
-solve_fast_phases.argument.solve.tolerance          = {{ tolerance }}
-solve_fast_phases.argument.solve.uvlambdamin        = {{ solve_min_uv_lambda }}
+solve_fast_phases.argument.solve.h5parm               = h5parm
+solve_fast_phases.argument.solve.sourcedb             = sourcedb
+solve_fast_phases.argument.solve.solint               = timestep
+solve_fast_phases.argument.solve.nchan                = freqstep
+solve_fast_phases.argument.solve.smoothnessconstraint = {{ smoothnessconstraint }}
+solve_fast_phases.argument.solve.maxiter              = {{ maxiter }}
+solve_fast_phases.argument.solve.propagatesolutions   = {{ propagatesolutions }}
+solve_fast_phases.argument.solve.stepsize             = {{ stepsize }}
+solve_fast_phases.argument.solve.tolerance            = {{ tolerance }}
+solve_fast_phases.argument.solve.uvlambdamin          = {{ solve_min_uv_lambda }}
 {% if use_idg_predict %}
-solve_fast_phases.argument.solve.useidg             = True
-solve_fast_phases.argument.solve.idg.image          = {{ model_image_file }}
-solve_fast_phases.argument.solve.idg.regions        = {{ model_regions_file }}
+solve_fast_phases.argument.solve.useidg               = True
+solve_fast_phases.argument.solve.idg.image            = {{ model_image_file }}
+solve_fast_phases.argument.solve.idg.regions          = {{ model_regions_file }}
 {% endif %}
 
 # compress fast-phase mapfile so that all files are in one group, length = 1
@@ -481,7 +474,11 @@ make_fast_aterms.control.mapfiles_in  = [fit_fast_screens.output.mapfile,create_
 make_fast_aterms.control.inputkeys    = [infile,skymodel]
 make_fast_aterms.control.mapfile_out  = create_fast_aterms_output_map.output.mapfile
 make_fast_aterms.control.outputkey    = outroot
+{% if mode == 'tec' %}
 make_fast_aterms.argument.flags       = [infile,tec000,outroot,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }},skymodel]
+{% else %}
+make_fast_aterms.argument.flags       = [infile,phase000,outroot,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }},skymodel]
+{% endif %}
 make_fast_aterms.argument.smooth_deg  = 0.1
 make_fast_aterms.argument.gsize_deg   = 0.1
 make_fast_aterms.argument.mapfile_dir = input.output.mapfile_dir
@@ -531,7 +528,7 @@ solve_slow_gains.argument.solve.beammode                = array_factor
 solve_slow_gains.argument.solve.onebeamperpatch         = True
 {% endif %}
 solve_slow_gains.argument.solve.uvlambdamin             = {{ solve_min_uv_lambda }}
-solve_slow_gains.argument.solve.smoothnessconstraint    = {{ smoothnessconstraint }}
+# solve_slow_gains.argument.solve.smoothnessconstraint    = {{ smoothnessconstraint }}
 solve_slow_gains.argument.solve.maxiter                 = {{ maxiter }}
 solve_slow_gains.argument.solve.tolerance               = {{ tolerance }}
 solve_slow_gains.argument.msout.storagemanager          = "Dysco"
@@ -584,11 +581,16 @@ create_slow_aterms_output_map.control.files       = [input.output.working_direct
 create_slow_aterms_output_map.control.mapfile_dir = input.output.mapfile_dir
 create_slow_aterms_output_map.control.filename    = slow_aterms_output.mapfile
 
-# make a-term images for IDG, length = 1
+# make a-term images for IDG, combining with fast-phases if needed, length = 1
 # TODO: split h5parm and process in parallel
 make_slow_aterms.control.type         = make_aterm_images
+{% if mode == 'tec' %}
 make_slow_aterms.control.mapfiles_in  = [fit_slow_screens.output.mapfile,create_skymodel_map.output.mapfile]
 make_slow_aterms.control.inputkeys    = [infile,skymodel]
+{% else %}
+make_slow_aterms.control.mapfiles_in  = [fit_slow_screens.output.mapfile,create_skymodel_map.output.mapfile,fit_fast_screens.output.mapfile]
+make_slow_aterms.control.inputkeys    = [infile,skymodel,fasth5parm]
+{% endif %}
 make_slow_aterms.control.mapfile_out  = create_slow_aterms_output_map.output.mapfile
 make_slow_aterms.control.outputkey    = outfile
 make_slow_aterms.argument.flags       = [infile,gain000,outfile,{{ sector_bounds_deg }},{{ sector_bounds_mid_deg }},skymodel]
@@ -596,6 +598,10 @@ make_slow_aterms.argument.smooth_deg  = 0.1
 make_slow_aterms.argument.gsize_deg   = 0.1
 make_slow_aterms.argument.mapfile_dir = input.output.mapfile_dir
 make_slow_aterms.argument.filename    = slow_aterms_images.mapfile
+{% if mode == 'tec' %}
+make_slow_aterms.argument.fasth5parm  = fasth5parm
+make_slow_aterms.argument.fastavg     = 2
+{% endif %}
 
 # create a mapfile for output of combine step, length = 1
 create_combined_output_map.control.kind        = plugin
@@ -614,4 +620,3 @@ combine_h5parms.control.outputkey   = outfile
 combine_h5parms.argument.flags      = [h1,h2,outfile]
 
 {% endif %}
-

@@ -319,6 +319,8 @@ def main(h5parmfile, solsetname='sol000', tecsoltabname='tec000',
     # Read in solutions
     H = h5parm(h5parmfile, readonly=False)
     solset = H.getSolset(solsetname)
+    if tecsoltabname not in solset.getSoltabNames():
+        return
     tecsoltab = solset.getSoltab(tecsoltabname)
     tec = np.array(tecsoltab.val)
     errsoltab = solset.getSoltab(errsoltabname)

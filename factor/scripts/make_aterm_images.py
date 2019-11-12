@@ -381,7 +381,8 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
 
 def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
          solsetname='sol000', ressoltabname='', padding_fraction=1.4, cellsize_deg=0.1,
-         smooth_deg=0, gsize_deg=0, mapfile_dir='.', filename='aterm_images.mapfile'):
+         smooth_deg=0, gsize_deg=0, mapfile_dir='.', filename='aterm_images.mapfile',
+         fastavg=1, fasth5parm=None):
     """
     Make a-term FITS images
 
@@ -416,6 +417,10 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
         Directory in which to store output mapfile
     filename : str, optional
         Filename of output mapfile
+    fastavg : int, optional
+        Averaging factor in time for fast-phase corrections
+    fasth5parm : str, optional
+        Filename of fast-phase h5parm to be added together with input h5parm
 
     Returns
     -------
@@ -448,6 +453,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
     gsize_pix = gsize_deg / cellsize_deg
     smooth_deg = float(smooth_deg)
     smooth_pix = smooth_deg / cellsize_deg
+    fastavg = int(fastavg)
 
     if 'screen' in soltab.getType():
         # Handle screen solutions
@@ -546,6 +552,22 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
         axis_names = soltab.getAxesNames()
         source_names = soltab.dir[:]
 
+        # Load fast-phase solutions if needed and combine with slow gains
+        if 'amplitude' in soltab.getType() and fasth5parm is not None:
+            H_fast = h5parm(fasth5parm)
+            solset_fast = H_fast.getSolset('sol000')
+            soltab_fast = solset_fast.getSoltab('phase000')
+            times_fast = soltab_fast.time
+
+            # Interpolate the slow gains to the fast times
+            axis_names = soltab.getAxesNames()  # assume both have same axes
+            time_ind = axis_names.index('time')
+            f = si.interp1d(times, vals, axis=time_ind, kind='nearest', fill_value='extrapolate')
+            vals = f(times_fast)
+            f = si.interp1d(times, vals_ph, axis=time_ind, kind='nearest', fill_value='extrapolate')
+            vals_ph = f(times_fast) + soltab_fast.val
+            times = times_fast
+
         # Make blank output FITS file (type does not matter at this point)
         midRA = bounds_mid_deg[0]
         midDec = bounds_mid_deg[1]
@@ -553,8 +575,8 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
         imsize = (bounds_deg[3] - bounds_deg[1])  # deg
         imsize = int(imsize / cellsize_deg)  # pix
         misc.make_template_image(temp_image, midRA, midDec, ximsize=imsize,
-                            yimsize=imsize, cellsize_deg=cellsize_deg, freqs=freqs,
-                            times=[0.0], antennas=soltab.ant, aterm_type='tec')
+                                 yimsize=imsize, cellsize_deg=cellsize_deg, freqs=freqs,
+                                 times=[0.0], antennas=soltab.ant, aterm_type='tec')
         hdu = pyfits.open(temp_image, memmap=False)
         data = hdu[0].data
         w = wcs.WCS(hdu[0].header)

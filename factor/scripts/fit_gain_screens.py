@@ -412,6 +412,39 @@ def smooth(soltab, smooth_amplitudes=True, normalize=True, all_to_unity=False):
     return parms, weights
 
 
+def normalize(soltab):
+    """
+    Normalize values so that mean is equal to unity for amplitudes and zero for phases
+    """
+    soltype = soltab.getType()
+    parms = soltab.val[:]  # ['time', 'freq', 'ant', 'dir', 'pol']
+    weights = soltab.weight[:]
+    ntimes = len(soltab.time[:])
+    nfreqs = len(soltab.freq[:])
+    initial_flagged_indx = np.logical_or(np.isnan(parms), weights == 0.0)
+    initial_unflagged_indx = np.logical_and(~np.isnan(parms), weights != 0.0)
+    parms[initial_flagged_indx] = np.nan
+
+    # Normalize each station, time, and frequency separately to unity, but
+    # maintain the relative offset between polarizations
+    for dir in range(len(soltab.dir[:])):
+        for s in range(len(soltab.ant[:])):
+            for t in range(len(soltab.time[:])):
+                for f in range(len(soltab.freq[:])):
+                    if soltype == 'amplitude':
+                        norm_factor = 1.0/(np.nanmean(parms[t, f, s, dir, :][initial_unflagged_indx[t, f, s, dir, :]]))
+                        parms[t, f, s, dir, :] *= norm_factor
+                    else:
+                        norm_factor = np.nanmean(parms[t, f, s, dir, :][initial_unflagged_indx[t, f, s, dir, :]])
+                        parms[t, f, s, dir, :] -= norm_factor
+
+    # Make sure flagged solutions are still flagged
+    parms[initial_flagged_indx] = np.nan
+    weights[initial_flagged_indx] = 0.0
+
+    return parms, weights
+
+
 def remove_soltabs(solset, soltabnames):
     """
     Remove soltab
@@ -466,9 +499,11 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
 
     if ampsoltabname != 'origamplitude000':
         ampsoltab.rename('origamplitude000', overwrite=True)
-    if smooth_amplitudes or normalize:
+    if smooth_amplitudes:
         amp, damp = smooth(ampsoltab, smooth_amplitudes=smooth_amplitudes,
                            normalize=normalize, all_to_unity=all_to_unity)
+    if normalize:
+        amp, damp = normalize(ampsoltab)
     solset.makeSoltab('amplitude', 'amplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                       axesVals=[ampsoltab.time[:], ampsoltab.freq[:], ampsoltab.ant[:],
                       ampsoltab.dir[:], ampsoltab.pol[:]], vals=amp, weights=damp)
@@ -477,8 +512,8 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname='amplitude000',
         phsoltab.rename('origphase000', overwrite=True)
     if smooth_phases:
         ph, dph = smooth(phsoltab)
-    if all_to_unity:
-        ph[:] = 0.0
+    if normalize:
+        ph, dph = normalize(phsoltab)
     solset.makeSoltab('phase', 'phase000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                       axesVals=[phsoltab.time[:], phsoltab.freq[:], phsoltab.ant[:],
                       phsoltab.dir[:], phsoltab.pol[:]], vals=ph, weights=dph)
