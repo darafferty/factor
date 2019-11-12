@@ -254,7 +254,10 @@ def get_calibration_options(parset):
     if 'solve_core_separately' in parset_dict:
         parset_dict['solve_core_separately'] = parset.getboolean('calibration', 'solve_core_separately')
     else:
-        parset_dict['solve_core_separately'] = True
+        if parset_dict['mode'] == 'tec':
+            parset_dict['solve_core_separately'] = True
+        else:
+            parset_dict['solve_core_separately'] = False
 
     # Minimum uv distance in lambda for calibration (default = 80)
     if 'solve_min_uv_lambda' in parset_dict:
