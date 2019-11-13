@@ -382,7 +382,7 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
 def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
          solsetname='sol000', ressoltabname='', padding_fraction=1.4, cellsize_deg=0.1,
          smooth_deg=0, gsize_deg=0, mapfile_dir='.', filename='aterm_images.mapfile',
-         fastavg=1, fasth5parm=None):
+         time_avg_factor=1, fasth5parm=None):
     """
     Make a-term FITS images
 
@@ -417,7 +417,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
         Directory in which to store output mapfile
     filename : str, optional
         Filename of output mapfile
-    fastavg : int, optional
+    time_avg_factor : int, optional
         Averaging factor in time for fast-phase corrections
     fasth5parm : str, optional
         Filename of fast-phase h5parm to be added together with input h5parm
@@ -453,7 +453,7 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
     gsize_pix = gsize_deg / cellsize_deg
     smooth_deg = float(smooth_deg)
     smooth_pix = smooth_deg / cellsize_deg
-    fastavg = int(fastavg)
+    time_avg_factor = int(time_avg_factor)
 
     if 'screen' in soltab.getType():
         # Handle screen solutions
@@ -543,16 +543,22 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
 
     else:
         # Handle non-screen solutions using Voronoi tessellation + smoothing
-        vals = soltab.val
         if 'amplitude' in soltab.getType():
+            # complexgain
+            vals = soltab.val
             vals_ph = soltab_ph.val
+        else:
+            # scalarphase -> set amplitudes to unity
+            vals_ph = soltab.val
+            vals = np.ones_like(vals_ph)
         times = soltab.time
         freqs = soltab.freq
         ants = soltab.ant
         axis_names = soltab.getAxesNames()
         source_names = soltab.dir[:]
 
-        # Load fast-phase solutions if needed and combine with slow gains
+        # Load fast-phase solutions if needed and combine with slow gains by interpolating
+        # the slow gains to the fast time grid
         if 'amplitude' in soltab.getType() and fasth5parm is not None:
             H_fast = h5parm(fasth5parm)
             solset_fast = H_fast.getSolset('sol000')
@@ -664,6 +670,27 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
         gaps_ind = gaps[0] + 1
         gaps_ind = np.append(gaps_ind, np.array([len(times)]))
 
+        # Add additional breaks to gaps_ind to keep memory use within that available
+        # From experience, making a (30, 46, 62, 4, 146, 146) aterm image needs around
+        # 30 GB of memory
+        if soltab.getType() == 'tec':
+            max_ntimes = 15 * 46 * 4
+        else:
+            max_ntimes = 15
+        # TODO: adjust max_ntimes depending on available memory and time_avg_factor
+        check_gaps = True
+        while check_gaps:
+            check_gaps = False
+            g_start = 0
+            gaps_ind_copy = gaps_ind.copy()
+            for gnum, g_stop in enumerate(gaps_ind_copy):
+                if g_stop - g_start > max_ntimes:
+                    new_gap = g_start + int((g_stop - g_start) / 2)
+                    gaps_ind = np.insert(gaps_ind, gnum, np.array([new_gap]))
+                    check_gaps = True
+                    break
+                g_start = g_stop
+
         if soltab.getType() == 'tec':
             # TEC solutions
             # input data are [time, ant, dir, freq]
@@ -718,7 +745,8 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
             return {'aterm_images': ','.join(outfiles)}
         else:
             # Gain solutions
-            # input data are [time, freq, ant, dir, pol]
+            # input data are [time, freq, ant, dir, pol] for slow gains (complexgain)
+            # and [time, freq, ant, dir] for fast (non-tec) phases (scalarphase)
             # output data are [RA, DEC, MATRIX, ANTENNA, FREQ, TIME].T
             # Now loop over stations, frequencies, and times and fill in the correct
             # matrix values (matrix dimension has 4 elements: real XX, imaginary XX,
@@ -740,10 +768,16 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
                         for s, stat in enumerate(ants):
                             for p, poly in enumerate(polygons):
                                 ind = np.where(data_rasertize_template == poly.index+1)
-                                val_amp_xx = vals[t+g_start, f, s, poly.index, 0]
-                                val_amp_yy = vals[t+g_start, f, s, poly.index, 1]
-                                val_phase_xx = vals_ph[t+g_start, f, s, poly.index, 0]
-                                val_phase_yy = vals_ph[t+g_start, f, s, poly.index, 1]
+                                if 'pol' in axis_names:
+                                    val_amp_xx = vals[t+g_start, f, s, poly.index, 0]
+                                    val_amp_yy = vals[t+g_start, f, s, poly.index, 1]
+                                    val_phase_xx = vals_ph[t+g_start, f, s, poly.index, 0]
+                                    val_phase_yy = vals_ph[t+g_start, f, s, poly.index, 1]
+                                else:
+                                    val_amp_xx = vals[t+g_start, f, s, poly.index]
+                                    val_amp_yy = vals[t+g_start, f, s, poly.index]
+                                    val_phase_xx = vals_ph[t+g_start, f, s, poly.index]
+                                    val_phase_yy = vals_ph[t+g_start, f, s, poly.index]
                                 data[t, f, s, 0, ind[0], ind[1]] = val_amp_xx * np.cos(val_phase_xx)
                                 data[t, f, s, 2, ind[0], ind[1]] = val_amp_yy * np.cos(val_phase_yy)
                                 data[t, f, s, 1, ind[0], ind[1]] = val_amp_xx * np.sin(val_phase_xx)
@@ -758,10 +792,16 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
                                 for i, (x, y) in enumerate(xy):
                                     # Only do this if patch is inside the region of interest
                                     if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
-                                        val_amp_xx = vals[t+g_start, f, s, i, 0]
-                                        val_amp_yy = vals[t+g_start, f, s, i, 1]
-                                        val_phase_xx = vals_ph[t+g_start, f, s, i, 0]
-                                        val_phase_yy = vals_ph[t+g_start, f, s, i, 1]
+                                        if 'pol' in axis_names:
+                                            val_amp_xx = vals[t+g_start, f, s, i, 0]
+                                            val_amp_yy = vals[t+g_start, f, s, i, 1]
+                                            val_phase_xx = vals_ph[t+g_start, f, s, i, 0]
+                                            val_phase_yy = vals_ph[t+g_start, f, s, i, 1]
+                                        else:
+                                            val_amp_xx = vals[t+g_start, f, s, i]
+                                            val_amp_yy = vals[t+g_start, f, s, i]
+                                            val_phase_xx = vals_ph[t+g_start, f, s, i]
+                                            val_phase_yy = vals_ph[t+g_start, f, s, i]
                                         A = val_amp_xx * np.cos(val_phase_xx) - data[t, f, s, 0, int(y), int(x)]
                                         data[t, f, s, 0, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
                                         A = val_amp_yy * np.cos(val_phase_yy) - data[t, f, s, 2, int(y), int(x)]
@@ -772,11 +812,36 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
                                         data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
                 g_start = g_stop
 
+                # If averaging in time, make a new template image with
+                # fewer times and write to that instead
+                if time_avg_factor > 1:
+                    times_avg = times[g_start:g_stop:time_avg_factor]
+                    misc.make_template_image(temp_image+'.avg', midRA, midDec, ximsize=imsize,
+                                             yimsize=imsize, cellsize_deg=cellsize_deg,
+                                             times=times_avg,
+                                             freqs=freqs, antennas=soltab.ant,
+                                             aterm_type='gain')
+                    hdu = pyfits.open(temp_image+'.avg', memmap=False)
+                    data_avg = hdu[0].data
+
+                    # Average
+                    for t, time in enumerate(times_avg):
+                        incr = min(time_avg_factor, len(times[g_start:g_stop])-t*time_avg_factor)
+                        data_avg[t, :, :, :, :, :] = np.nanmean(data[t:t+incr, :, :, :, :, :], axis=0)
+                    data = data_avg
+
+                # Ensure there are no NaNs in the images, as WSClean will produced uncorrected,
+                # uncleaned images if so
+                for t, time in enumerate(times[g_start:g_stop]):
+                    data[t, np.isnan(data[t, :])] = 0.0
+
                 # Write FITS file
                 hdu[0].data = data
                 hdu.writeto(outfile, overwrite=True)
                 outfiles.append(outfile)
                 os.remove(temp_image)
+                hdu = None
+                data = None
 
             map_out = DataMap([])
             map_out.data.append(DataProduct('localhost', ','.join(outfiles), False))
