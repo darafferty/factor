@@ -37,7 +37,7 @@ def main(h5file, soltype, root=None, refstat=None, soltab=None):
         ncol = 1
         color = ''
         minmax = [-0.3, 0.3]
-    if soltype == 'tecerror':
+    elif soltype == 'tecerror':
         if soltab is None:
             st = ss.getSoltab('error000')
         else:
@@ -46,7 +46,7 @@ def main(h5file, soltype, root=None, refstat=None, soltab=None):
         ncol = 1
         color = ''
         minmax = [0, 0]
-    elif soltype == 'scalaraphase':
+    elif soltype == 'scalarphase':
         if soltab is None:
             st = ss.getSoltab('screenphase000')
         else:
