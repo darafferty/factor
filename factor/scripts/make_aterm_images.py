@@ -833,7 +833,14 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
                 # Ensure there are no NaNs in the images, as WSClean will produced uncorrected,
                 # uncleaned images if so
                 for t, time in enumerate(times[g_start:g_stop]):
-                    data[t, np.isnan(data[t, :])] = 0.0
+                    for p in range(4):
+                        if p % 2:
+                            # Imaginary elements
+                            nanval = 0.0
+                        else:
+                            # Real elements
+                            nanval = 1.0
+                        data[t, :, :, p, :, :][np.isnan(data[t, :, :, p, :, :])] = nanval
 
                 # Write FITS file
                 hdu[0].data = data
