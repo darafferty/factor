@@ -520,8 +520,13 @@ solve_slow_gains.argument.solve.solint                  = timestep
 solve_slow_gains.argument.solve.nchan                   = freqstep
 solve_slow_gains.argument.solve.propagatesolutions      = {{ propagatesolutions }}
 solve_slow_gains.argument.solve.applycal.parmdb         = fast_h5parm
+{% if mode == 'tec' %}
 solve_slow_gains.argument.solve.applycal.steps          = [tec]
 solve_slow_gains.argument.solve.applycal.tec.correction = origtec000
+{% else %}
+solve_slow_gains.argument.solve.applycal.steps          = [sph]
+solve_slow_gains.argument.solve.applycal.sph.correction = phase000
+{% endif %}
 {% if use_beam %}
 solve_slow_gains.argument.solve.usebeammodel            = True
 solve_slow_gains.argument.solve.beammode                = array_factor
