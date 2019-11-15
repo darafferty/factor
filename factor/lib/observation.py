@@ -1,6 +1,5 @@
 """
-Definition of the Observation class that holds parameters for each measurement
-set
+Definition of the Observation class that holds parameters for each measurement set
 """
 import os
 import sys
@@ -195,7 +194,7 @@ class Observation(object):
         if self.goesto_endofms:
             self.parameters['ntimes'][-1] = 0
         else:
-            self.parameters['ntimes'][-1] += int((self.numsamples - (samplesperchunk * self.ntimechunks))
+            self.parameters['ntimes'][-1] += int(self.numsamples - (samplesperchunk * self.ntimechunks))
 
         # Find solution intervals for slow-gain solve
         solint_slow_timestep = max(1, int(round(target_slow_timestep / timepersample)))
