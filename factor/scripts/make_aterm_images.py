@@ -18,6 +18,7 @@ from scipy.spatial import Voronoi
 import shapely.geometry
 import shapely.ops
 import scipy.ndimage as ndimage
+import scipy.interpolate as si
 from lofarpipe.support.data_map import DataMap, DataProduct
 
 
@@ -564,14 +565,23 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
             solset_fast = H_fast.getSolset('sol000')
             soltab_fast = solset_fast.getSoltab('phase000')
             times_fast = soltab_fast.time
+            freqs_fast = soltab_fast.freq
 
-            # Interpolate the slow gains to the fast times
+            # Interpolate the slow gains to the fast times and frequencies
             axis_names = soltab.getAxesNames()  # assume both have same axes
             time_ind = axis_names.index('time')
-            f = si.interp1d(times, vals, axis=time_ind, kind='nearest', fill_value='extrapolate')
+            freq_ind = axis_names.index('freq')
+            f = si.interp1d(times, vals, axis=time_ind, kind='linear', fill_value='extrapolate')
             vals = f(times_fast)
-            f = si.interp1d(times, vals_ph, axis=time_ind, kind='nearest', fill_value='extrapolate')
-            vals_ph = f(times_fast) + soltab_fast.val
+            f = si.interp1d(freqs, vals, axis=freq_ind, kind='linear', fill_value='extrapolate')
+            vals = f(freqs_fast)
+            f = si.interp1d(times, vals_ph, axis=time_ind, kind='linear', fill_value='extrapolate')
+            vals_ph = f(times_fast)
+            f = si.interp1d(freqs, vals_ph, axis=freq_ind, kind='linear', fill_value='extrapolate')
+            vals_ph = f(freqs_fast)
+            for p in range(2):
+                vals_ph[:, :, :, :, p] += soltab_fast.val
+            freqs = freqs_fast
             times = times_fast
 
         # Make blank output FITS file (type does not matter at this point)
@@ -810,12 +820,12 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
                                         data[t, f, s, 1, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
                                         A = val_amp_yy * np.sin(val_phase_yy) - data[t, f, s, 3, int(y), int(x)]
                                         data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
-                g_start = g_stop
 
                 # If averaging in time, make a new template image with
                 # fewer times and write to that instead
                 if time_avg_factor > 1:
                     times_avg = times[g_start:g_stop:time_avg_factor]
+                    ntimes = len(times_avg)
                     misc.make_template_image(temp_image+'.avg', midRA, midDec, ximsize=imsize,
                                              yimsize=imsize, cellsize_deg=cellsize_deg,
                                              times=times_avg,
@@ -829,10 +839,14 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
                         incr = min(time_avg_factor, len(times[g_start:g_stop])-t*time_avg_factor)
                         data_avg[t, :, :, :, :, :] = np.nanmean(data[t:t+incr, :, :, :, :, :], axis=0)
                     data = data_avg
+                else:
+                    ntimes = len(times[g_start:g_stop])
 
                 # Ensure there are no NaNs in the images, as WSClean will produced uncorrected,
-                # uncleaned images if so
-                for t, time in enumerate(times[g_start:g_stop]):
+                # uncleaned images if so. We replace NaNs with 1.0 and 0.0 for real and
+                # imaginary parts, respectively
+                # Note: we iterate over time to reduce memory usage
+                for t in range(ntimes):
                     for p in range(4):
                         if p % 2:
                             # Imaginary elements
@@ -849,6 +863,9 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
                 os.remove(temp_image)
                 hdu = None
                 data = None
+
+                # Update start time index
+                g_start = g_stop
 
             map_out = DataMap([])
             map_out.data.append(DataProduct('localhost', ','.join(outfiles), False))
