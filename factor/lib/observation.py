@@ -174,10 +174,12 @@ class Observation(object):
         chunksize = samplesperchunk * timepersample
         mystarttime = self.starttime
         myendtime = self.endtime
-        if (myendtime-mystarttime) > (2*chunksize):
+        if (myendtime - mystarttime) > (2 * chunksize):
             nchunks = int(round(float(self.numsamples) * timepersample) / chunksize)
         else:
             nchunks = 1
+        time_chunksize = (myendtime - mystarttime) / nchunks
+        samplesperchunk = int(round(time_chunksize / timepersample))
         starttimes = [mystarttime+(chunksize * i) for i in range(nchunks)]
         if starttimes[-1] >= myendtime:
             # Make sure the last start time does not equal or exceed the end time
@@ -188,8 +190,12 @@ class Observation(object):
         self.parameters['timechunk_filename'] = [self.ms_filename] * self.ntimechunks
         self.parameters['starttime'] = [self.convert_mjd(t) for t in starttimes]
         self.parameters['ntimes'] = [samplesperchunk] * self.ntimechunks
+
+        # Set last entry in ntimes list to extend to end of observation
         if self.goesto_endofms:
-            self.parameters['ntimes'][-1] = 0  # set last entry to extend until end
+            self.parameters['ntimes'][-1] = 0
+        else:
+            self.parameters['ntimes'][-1] += int((self.numsamples - (samplesperchunk * self.ntimechunks))
 
         # Find solution intervals for slow-gain solve
         solint_slow_timestep = max(1, int(round(target_slow_timestep / timepersample)))
