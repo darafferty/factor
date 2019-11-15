@@ -93,8 +93,10 @@ predict_model_data.argument.predict.sourcedb                      = sourcedb
 predict_model_data.argument.predict.operation                     = replace
 predict_model_data.argument.predict.applycal.parmdb               = combined_h5parm
 # Note: the following parameter seems to be needed but is not used
-predict_model_data.argument.predict.applycal.correction           = origtec000
 predict_model_data.argument.predict.directions                    = directions
+{% if mode == 'tec' %}
+
+predict_model_data.argument.predict.applycal.correction           = origtec000
 {% if do_slowgain_solve %}
 predict_model_data.argument.predict.applycal.steps                = [tec,slowamp,slowphase]
 predict_model_data.argument.predict.applycal.slowamp.correction   = amplitude000
@@ -103,6 +105,19 @@ predict_model_data.argument.predict.applycal.slowphase.correction = phase000
 predict_model_data.argument.predict.applycal.steps                = [tec]
 {% endif %}
 predict_model_data.argument.predict.applycal.tec.correction       = origtec000
+
+{% else %}
+
+predict_model_data.argument.predict.applycal.correction           = phase000
+{% if do_slowgain_solve %}
+predict_model_data.argument.predict.applycal.steps                = [amp,phase]
+predict_model_data.argument.predict.applycal.amp.correction       = amplitude000
+{% else %}
+predict_model_data.argument.predict.applycal.steps                = [phase]
+{% endif %}
+predict_model_data.argument.predict.applycal.phase.correction     = phase000
+
+{% endif %}
 {% if use_beam %}
 predict_model_data.argument.predict.usebeammodel                  = True
 predict_model_data.argument.predict.beammode                      = array_factor
