@@ -617,11 +617,12 @@ create_combined_output_map.control.mapfile_dir = input.output.mapfile_dir
 create_combined_output_map.control.filename    = combine_all_h5parms_output.mapfile
 
 # combine fast and slow h5parms, length = 2 -> 1
-combine_h5parms.control.type        = combine_h5parms
-combine_h5parms.control.mapfiles_in = [combine_fast_phases.output.mapfile,combine_slow_gains.output.mapfile]
-combine_h5parms.control.inputkeys   = [h1,h2]
-combine_h5parms.control.mapfile_out = create_combined_output_map.output.mapfile
-combine_h5parms.control.outputkey   = outfile
-combine_h5parms.argument.flags      = [h1,h2,outfile]
-
+combine_h5parms.control.type         = combine_h5parms
+combine_h5parms.control.mapfiles_in  = [combine_fast_phases.output.mapfile,combine_slow_gains.output.mapfile]
+combine_h5parms.control.inputkeys    = [h1,h2]
+combine_h5parms.control.mapfile_out  = create_combined_output_map.output.mapfile
+combine_h5parms.control.outputkey    = outfile
+combine_h5parms.argument.flags       = [h1,h2,outfile]
+combine_h5parms.argument.rename_from = phase000
+combine_h5parms.argument.rename_to   = phase001
 {% endif %}

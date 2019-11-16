@@ -11,7 +11,8 @@ import sys
 import os
 
 
-def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_values=False, add_soltab='tec000'):
+def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000',
+         add_values=False, add_soltab='tec000', rename_from=None, rename_to=None):
     """
     Combines two h5parms
 
@@ -29,7 +30,7 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_va
         Name of solset for h5parm2
     add_values : bool, optional
         If True, add values of the two h5parms, resampling on time if necessary (input
-        h5parms must have the same axes)
+        h5parms must be of the same type and have the same axes)
     add_soltab : str, optional
         Name of soltab values to add
     """
@@ -52,13 +53,13 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_va
         axis_names = st1.getAxesNames()  # assume both have same axes
         time_ind = axis_names.index('time')
         if st1.val.shape[time_ind] > st2.val.shape[time_ind]:
-            f = si.interp1d(st2.time, st2.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
+            f = si.interp1d(st2.time, st2.val, axis=time_ind, kind='linear', fill_value='extrapolate')
             vals = f(st1.time) + st1.val
             ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
             sto = sso.getSoltab(add_soltab)
             sto.setValues(vals)
         else:
-            f = si.interp1d(st1.time, st1.val, axis=time_ind, kind='nearest', fill_value='extrapolate')
+            f = si.interp1d(st1.time, st1.val, axis=time_ind, kind='linear', fill_value='extrapolate')
             vals = f(st2.time) + st2.val
             ss2.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
             sto = sso.getSoltab(add_soltab)
@@ -66,6 +67,9 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000', add_va
     else:
         # Just copy over both solsets
         ss1.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
+        if rename_from is not None and rename_to is not None:
+            st = sso.getSoltab(rename_from)
+            st.rename(rename_to)
         ss2.obj._f_copy_children(sso.obj, recursive=True, overwrite=True)
 
     h1.close()
