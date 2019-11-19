@@ -74,6 +74,11 @@ class Field(object):
     def scan_observations(self, data_fraction=1.0):
         """
         Checks input MS files and initializes the associated Observation objects
+
+        Parameters
+        ----------
+        data_fraction : float, optional
+            Fraction of data to use during processing
         """
         self.log.debug('Scanning observation(s)...')
         self.observations = []
@@ -455,11 +460,15 @@ class Field(object):
         self.source_skymodel = None
         for sector in self.sectors:
             sector.calibration_skymodel = None
+            sector.predict_skymodel = None
+            sector.field.source_skymodel = None
 
     def define_sectors(self, iter):
         """
         Defines the imaging sectors
 
+        Parameters
+        ----------
         iter : int
             Iteration index
         """
