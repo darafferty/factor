@@ -672,6 +672,17 @@ def main(h5parmfile, soltabname, outroot, bounds_deg, bounds_mid_deg, skymodel,
             filled = np.where(poly_raster > 0)
             data_rasertize_template[filled] = poly_raster[filled]
 
+        # Identify any duplicate times and remove
+        delta_times = times[1:] - times[:-1]  # time at center of solution interval
+        nodupind = np.where(delta_times > 0.1)
+        times = times[nodupind]
+        if 'pol' in axis_names:
+            vals = np.squeeze(vals[nodupind, :, :, :, :])
+            vals_ph = np.squeeze(vals_ph[nodupind, :, :, :, :])
+        else:
+            vals = np.squeeze(vals[nodupind, :, :, :])
+            vals_ph = np.squeeze(vals_ph[nodupind, :, :, :])
+
         # Identify any gaps in time (frequency gaps are not allowed), as we need to
         # output a separate FITS file for each time chunk
         delta_times = times[1:] - times[:-1]  # time at center of solution interval
