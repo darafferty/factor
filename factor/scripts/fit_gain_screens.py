@@ -253,7 +253,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
                 dph = np.squeeze(dph[nodupind, :, :, :, :])
             else:
                 ph = np.squeeze(ph[nodupind, :, :, :])
-                dph = np.squeeze(dph[nodupind, :, :, :, :])
+                dph = np.squeeze(dph[nodupind, :, :, :])
             if phsoltabname != 'origphase000':
                 phsoltab.rename('origphase000', overwrite=True)
             if 'pol' in axis_names:
