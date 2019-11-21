@@ -37,6 +37,7 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
     from lofarpipe.support.pipelinelogging import getSearchingLogger
     from factor.lib.context import RedirectStdStreams
     import time
+    import random
 
     genericpipeline_path = os.path.dirname(genericpipeline_executable)
     loader = imp.load_source('loader', os.path.join(genericpipeline_path,
@@ -59,8 +60,10 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
     for handler in pipeline.logger.handlers:
         handler.setLevel(logging.DEBUG)
 
-    # Run the pipeline, redirecting screen output to log files
-    time.sleep(2.0)  # pause to allow Scheduler.result_callback() to transfer resources
+    # Run the pipeline, redirecting screen output to log files.
+    # Before running, we pause to stagger start of pipelines and to allow
+    # Scheduler.result_callback() to transfer resources
+    time.sleep(random.random() * 3 + 2)
     if direction_name == 'field':
         log.info('<-- Operation {0} started'.format(op_name))
     else:
@@ -78,10 +81,8 @@ class Scheduler(object):
 
     Parameters
     ----------
-    genericpipeline_executable : str
-        Path to genericpipeline.py executable
-    nops_simul : int, optional
-        Limit the number of operations run in parallel to this number
+    parset : str
+        Factor parset
     name : str, optional
         Name of the scheduler
     """
