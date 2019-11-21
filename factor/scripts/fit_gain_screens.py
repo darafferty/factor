@@ -102,7 +102,7 @@ def find_bandpass_correction(soltab, parms_normalized):
     return parms, weights
 
 
-def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2):
+def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2, debug=False):
     """
     Smooth scalarphases. The smoothing is done in real and imaginary space
 
@@ -124,6 +124,7 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2):
     """
     parms = soltab.val[:]  # ['time', 'freq', 'ant', 'dir']
     weights = soltab.weight[:]
+    initial_flagged_indx = np.logical_or(np.isnan(parms), weights == 0.0)
 
     # Find gaps in time and treat each block separately
     times = soltab.time[:]
@@ -139,9 +140,12 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2):
         csindx = 2  # should always be a core station
         sdev = np.std(np.cos(parms[:, :, csindx, dir]))
         if sdev >= stddev_threshold:
-            # Set frac depending on sdev
-            frac = min(0.8, 0.3 * sdev / stddev_threshold)
             for s in range(len(soltab.ant[:])):
+                # Set frac depending on sdev and whether it's a core station or not
+                if 'CS' in soltab.ant[s]:
+                    frac = min(0.9, 0.6 * sdev / stddev_threshold)
+                else:
+                    frac = min(0.8, 0.3 * sdev / stddev_threshold)
                 g_start = 0
                 for gnum, g_stop in enumerate(gaps_ind):
                     # Define slices for frequency and time sampling
@@ -153,29 +157,50 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2):
                     yv /= np.min(yv)
                     xv -= np.min(xv)
                     zreal = np.cos(parms[time_slice, freq_slice, s, dir])
-                    zsreal, wreal = loess_2d.loess_2d(xv.flatten(), yv.flatten(), zreal.flatten(),
+                    nanind = np.where(~np.isnan(zreal))
+                    if len(nanind[0]) == 0:
+                        g_start = g_stop
+                        continue
+                    zsreal, wreal = loess_2d.loess_2d(xv[nanind].flatten(),
+                                                      yv[nanind].flatten(),
+                                                      zreal[nanind].flatten(),
                                                       rescale=True, frac=frac, degree=2)
                     zimag = np.sin(parms[time_slice, freq_slice, s, dir])
-                    zsimag, wimag = loess_2d.loess_2d(xv.flatten(), yv.flatten(), zimag.flatten(),
+                    zsimag, wimag = loess_2d.loess_2d(xv[nanind].flatten(),
+                                                      yv[nanind].flatten(),
+                                                      zimag[nanind].flatten(),
                                                       rescale=True, frac=frac, degree=2)
 
-                    # Interpolate back to original grid if needed
-                    if freq_sampling > 1 or time_sampling > 1:
-                        zr = zsreal.reshape((len(times[time_slice]), len(soltab.freq[freq_slice])))
-                        f = si.interp1d(times[time_slice], zr, axis=0, kind='linear', fill_value='extrapolate')
-                        zr1 = f(times)
-                        f = si.interp1d(soltab.freq[freq_slice], zr1, axis=1, kind='linear', fill_value='extrapolate')
-                        zr = f(soltab.freq)
-                        zi = zsimag.reshape((len(times[time_slice]), len(soltab.freq[freq_slice])))
-                        f = si.interp1d(times[time_slice], zi, axis=0, kind='linear', fill_value='extrapolate')
-                        zi1 = f(times)
-                        f = si.interp1d(soltab.freq[freq_slice], zi1, axis=1, kind='linear', fill_value='extrapolate')
-                        zi = f(soltab.freq)
-                    else:
-                        zr = zsreal.reshape((len(times), len(soltab.freq)))
-                        zi = zsimag.reshape((len(times), len(soltab.freq)))
-                    parms[:, :, s, dir] = np.arctan2(zr, zi)
+                    if debug:
+                        from plotbin.plot_velfield import plot_velfield
+                        import matplotlib.pyplot as plt
+                        plt.clf()
+                        plt.subplot(121)
+                        plot_velfield(xv[nanind].flatten(), yv[nanind].flatten()*1000, zreal[nanind].flatten(), vmin=-1.0, vmax=1.0)
+                        plt.title("Input Real Values")
+                        plt.subplot(122)
+                        plot_velfield(xv[nanind].flatten(), yv[nanind].flatten()*1000, zsreal, vmin=-1.0, vmax=1.0)
+                        plt.title("LOESS Recovery")
+                        plt.tick_params(labelleft=False)
+                        plt.show()
+
+                    # Interpolate back to original grid
+                    zr = zsreal.reshape((len(times[time_slice][np.array(list(set(nanind[0])))]), len(soltab.freq[freq_slice][np.array(list(set(nanind[1])))])))
+                    f = si.interp1d(times[time_slice][np.array(list(set(nanind[0])))], zr, axis=0, kind='linear', fill_value='extrapolate')
+                    zr1 = f(times[g_start:g_stop])
+                    f = si.interp1d(soltab.freq[freq_slice][np.array(list(set(nanind[1])))], zr1, axis=1, kind='linear', fill_value='extrapolate')
+                    zr = f(soltab.freq)
+                    zi = zsimag.reshape((len(times[time_slice][np.array(list(set(nanind[0])))]), len(soltab.freq[freq_slice][np.array(list(set(nanind[1])))])))
+                    f = si.interp1d(times[time_slice][np.array(list(set(nanind[0])))], zi, axis=0, kind='linear', fill_value='extrapolate')
+                    zi1 = f(times[g_start:g_stop])
+                    f = si.interp1d(soltab.freq[freq_slice][np.array(list(set(nanind[1])))], zi1, axis=1, kind='linear', fill_value='extrapolate')
+                    zi = f(soltab.freq)
+                    parms[g_start:g_stop, :, s, dir] = -np.arctan2(zr, zi)
                     g_start = g_stop
+
+    # Make sure flagged solutions are still flagged
+    parms[initial_flagged_indx] = np.nan
+    weights[initial_flagged_indx] = 0.0
 
     return parms, weights
 
@@ -232,6 +257,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
             amp, damp = normalize_values(ampsoltab)
             if find_bandpass:
                 amp, damp = find_bandpass_correction(ampsoltab, amp)
+        remove_soltabs(solset, 'amplitude000')
         solset.makeSoltab('amplitude', 'amplitude000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                           axesVals=[ampsoltab.time[:], ampsoltab.freq[:], ampsoltab.ant[:],
                           ampsoltab.dir[:], ampsoltab.pol[:]], vals=amp, weights=damp)
@@ -246,7 +272,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
         times = phsoltab.time[:]
         delta_times = times[1:] - times[:-1]
         nodupind = np.where(delta_times > 0.1)
-        if len(nodupind[0]) < len(times):
+        if len(nodupind[0]) < len(times)-1:
             times = times[nodupind]
             if 'pol' in axis_names:
                 ph = np.squeeze(ph[nodupind, :, :, :, :])
@@ -274,6 +300,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
             ph, dph = smooth(phsoltab)
         if normalize:
             ph, dph = normalize_values(phsoltab)
+        remove_soltabs(solset, 'phase000')
         if 'pol' in axis_names:
             solset.makeSoltab('phase', 'phase000', axesNames=['time', 'freq', 'ant', 'dir', 'pol'],
                               axesVals=[times, phsoltab.freq[:], phsoltab.ant[:],
