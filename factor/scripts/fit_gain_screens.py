@@ -137,7 +137,7 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2):
         # Find standard deviation of the real part of a core station and determine
         # whether we need to smooth this direction or not
         csindx = 2  # should always be a core station
-        sdev = np.stddev(np.cos(parms[:, :, csindx, dir]))
+        sdev = np.std(np.cos(parms[:, :, csindx, dir]))
         if sdev >= stddev_threshold:
             # Set frac depending on sdev
             frac = min(0.8, 0.3 * sdev / stddev_threshold)
