@@ -99,6 +99,7 @@ if __name__ == "__main__":
     parser.add_argument('--root', help="Root name for output plots (default: 'soltype_')", default=None)
     parser.add_argument('--refstat', help="Name of referance station (default: first)", default=None)
     parser.add_argument('--soltab', help="Name of solution table (default: default for soltype)", default=None)
+    parser.add_argument('--dir', help="Name of direction (default: all)", default=None)
 
     args = parser.parse_args()
-    main(args.h5file, args.soltype, args.root, args.refstat, args.soltab)
+    main(args.h5file, args.soltype, args.root, args.refstat, args.soltab, args.dir)
