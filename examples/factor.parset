@@ -71,10 +71,8 @@ input_skymodel = /data/skymodel.txt
 # patch_target_flux_jy = 3.0
 # patch_target_number = None
 
-# Solve mode: tec or tecscreen (default = tec), and whether to solve separately for
-# the core stations in the tec solve
+# Solve mode for the fast-phase corrections: tec or scalarphase (default = tec)
 # mode = tec
-# solve_core_separately = True
 
 # General solver parameters (defaults shown):
 # maxiter = 50

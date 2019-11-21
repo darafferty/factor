@@ -78,7 +78,7 @@ class Sector(object):
 
         Parameters
         ----------
-        do_multiscale : str
+        do_multiscale : bool, optional
             If True, multiscale clean is done. If None, multiscale clean is done only
             when a large source is detected
         """
