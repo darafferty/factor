@@ -452,12 +452,21 @@ combine_fast_phases.argument.insoltab   = tec000
 {% endif %}
 
 # fit screens to fast phases, length = 1
-# TODO: better to reweight, then split h5parm to allow parallel processing of screen fitting
-fit_fast_screens.control.type         = fit_tec_screens
-fit_fast_screens.control.mapfile_in   = combine_fast_phases.output.mapfile
-fit_fast_screens.control.inputkey     = infile
-fit_fast_screens.argument.flags       = [infile]
-fit_fast_screens.argument.order       = {{ tecscreenorder }}
+# TODO: split h5parm to allow parallel processing
+{% if mode == 'tec' %}
+fit_fast_screens.control.type           = fit_tec_screens
+{% else %}
+fit_fast_screens.control.type           = fit_gain_screens
+{% endif %}
+fit_fast_screens.control.mapfile_in     = combine_fast_phases.output.mapfile
+fit_fast_screens.control.inputkey       = infile
+fit_fast_screens.argument.flags         = [infile]
+{% if mode == 'tec' %}
+fit_fast_screens.argument.order         = {{ tecscreenorder }}
+{% else %}
+fit_fast_screens.argument.smooth_phases = True
+fit_fast_screens.argument.phsoltabname  = phase000
+{% endif %}
 
 # create a mapfile for output of a-term step, length = 1
 create_fast_aterms_output_map.control.kind        = plugin
@@ -568,15 +577,15 @@ combine_slow_gains.argument.flags      = [-c,infiles]
 combine_slow_gains.argument.outh5parm  = outfile
 
 # fit screens to slow gains, length = 1
-# TODO: better to reweight, then split h5parm to allow parallel processing of screen fitting
+# TODO: split h5parm to allow parallel processing of screen fitting
 fit_slow_screens.control.type               = fit_gain_screens
 fit_slow_screens.control.mapfile_in         = combine_slow_gains.output.mapfile
 fit_slow_screens.control.inputkey           = infile
 fit_slow_screens.argument.flags             = [infile]
-fit_slow_screens.argument.smooth_amplitudes = False
+fit_slow_screens.argument.ampsoltabname     = amplitude000
+fit_slow_screens.argument.phsoltabname      = phase000
 fit_slow_screens.argument.normalize         = True
-fit_slow_screens.argument.all_to_unity      = True
-fit_slow_screens.argument.smooth_phases     = False
+fit_slow_screens.argument.find_bandpass     = True
 
 # create a mapfile for output of a-term step, length = 1
 create_slow_aterms_output_map.control.kind        = plugin
