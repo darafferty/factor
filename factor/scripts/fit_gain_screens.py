@@ -126,7 +126,7 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2):
     weights = soltab.weight[:]
 
     # Find gaps in time and treat each block separately
-    times = soltab.times[:]
+    times = soltab.time[:]
     delta_times = times[1:] - times[:-1]  # time at center of solution interval
     timewidth = np.min(delta_times)
     gaps = np.where(delta_times > timewidth*1.2)
