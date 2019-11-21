@@ -8,7 +8,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 
-def main(h5file, soltype, root=None, refstat=None, soltab=None):
+def main(h5file, soltype, root=None, refstat=None, soltab=None, dir=None):
     """
     Plot solutions vs. time
 
@@ -24,6 +24,8 @@ def main(h5file, soltype, root=None, refstat=None, soltab=None):
         Name of referance station. If None, the first stations is used
     soltab : str, optional
         Name of soltab to use. If None, the default for the given soltype is used
+    dir : str, optional
+        Name of direction to use. If None, all directions are used
     """
     h = h5parm(h5file)
     ss = h.getSolset('sol000')
@@ -82,6 +84,8 @@ def main(h5file, soltype, root=None, refstat=None, soltab=None):
     if refstat is not None:
         ref = refstat
     print('Plotting {} solutions...'.format(soltype))
+    if dir is not None:
+        st.setSelection(dir=dir)
     plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, refAnt=ref,
              prefix=root, minmax=minmax, plotFlag=True, markerSize=4)
     h.close()
