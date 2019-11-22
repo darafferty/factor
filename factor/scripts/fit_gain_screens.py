@@ -35,7 +35,7 @@ def normalize_values(soltab):
     # maintain the relative offset between polarizations. Note that we work in log space
     # for these operations if the solutions are amplitudes
     if soltype == 'amplitude':
-        parms = np.log(parms)
+        parms = np.log10(parms)
     for dir in range(len(soltab.dir[:])):
         for s in range(len(soltab.ant[:])):
             for t in range(len(soltab.time[:])):
@@ -77,7 +77,7 @@ def find_bandpass_correction(soltab, parms_normalized):
 
     # Normalize each direction, time, and station to have a mean of 1 over all frequencies
     # and polarizations. Note that we work in log space for these operations
-    parms = np.log(parms)
+    parms = np.log10(parms)
     for dir in range(len(soltab.dir[:])):
         for s in range(len(soltab.ant[:])):
             for t in range(len(soltab.time[:])):
@@ -93,7 +93,15 @@ def find_bandpass_correction(soltab, parms_normalized):
         fs, ps, ws = loess_1d.loess_1d(soltab.freq[nanind]/100e8, parms[0, :, s, 0, 0][nanind], frac=0.5, degree=2)
         parms[0, :, s, 0, 0][nanind] = ps
     parms = 10**parms
-    parms *= parms_normalized  # put XX-YY offsets back
+
+    # Average the XX-YY offsets over all stations and directions for each time, freq and pol
+    parms_normalized = np.log10(parms_normalized)
+    for t in range(len(soltab.time[:])):
+        for f in range(len(soltab.freq[:])):
+            for p in range(2):
+                parms_normalized[t, f, :, :, p] = np.nanmedian(parms_normalized[t, f, :, :, p])
+    parms_normalized = 10**parms_normalized
+    parms *= parms_normalized  # add in averaged XX-YY offsets
 
     # Make sure flagged solutions are still flagged
     parms[initial_flagged_indx] = np.nan
@@ -102,7 +110,8 @@ def find_bandpass_correction(soltab, parms_normalized):
     return parms, weights
 
 
-def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2, debug=False):
+def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2, ref_id=0,
+           debug=False):
     """
     Smooth scalarphases. The smoothing is done in real and imaginary space
 
@@ -116,6 +125,8 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2, debu
         Sampling stride to use for frequency when doing LOESS smooth
     time_sampling : int, optoinal
         Sampling stride to use for time when doing LOESS smooth
+    ref_id : int, optional
+        Index of reference station
 
     Returns
     -------
@@ -123,6 +134,9 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2, debu
         The parameters with bandpass corrections and weights
     """
     parms = soltab.val[:]  # ['time', 'freq', 'ant', 'dir']
+    parms_ref = parms[:, :, ref_id, :].copy()
+    for i in range(len(soltab.ant)):
+        parms[:, :, i, :] -= parms_ref
     weights = soltab.weight[:]
     initial_flagged_indx = np.logical_or(np.isnan(parms), weights == 0.0)
 
@@ -141,11 +155,13 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2, debu
         sdev = np.std(np.cos(parms[:, :, csindx, dir]))
         if sdev >= stddev_threshold:
             for s in range(len(soltab.ant[:])):
-                # Set frac depending on sdev and whether it's a core station or not
+                # For core stations, just set phase to 0
                 if 'CS' in soltab.ant[s]:
-                    frac = min(0.9, 0.6 * sdev / stddev_threshold)
-                else:
-                    frac = min(0.8, 0.3 * sdev / stddev_threshold)
+                    parms[:, :, s, dir] = 0.0
+                    continue
+
+                # For remote stations, set smoothing parameter (frac) depending on sdev
+                frac = min(0.8, 0.3 * sdev / stddev_threshold)
                 g_start = 0
                 for gnum, g_stop in enumerate(gaps_ind):
                     # Define slices for frequency and time sampling
@@ -195,7 +211,7 @@ def smooth(soltab, stddev_threshold=0.25, freq_sampling=5, time_sampling=2, debu
                     zi1 = f(times[g_start:g_stop])
                     f = si.interp1d(soltab.freq[freq_slice][np.array(list(set(nanind[1])))], zi1, axis=1, kind='linear', fill_value='extrapolate')
                     zi = f(soltab.freq)
-                    parms[g_start:g_stop, :, s, dir] = -np.arctan2(zr, zi)
+                    parms[g_start:g_stop, :, s, dir] = np.arctan2(zi, zr)
                     g_start = g_stop
 
     # Make sure flagged solutions are still flagged
@@ -297,7 +313,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
         if phsoltabname != 'origphase000':
             phsoltab.rename('origphase000', overwrite=True)
         if smooth_phases:
-            ph, dph = smooth(phsoltab)
+            ph, dph = smooth(phsoltab, ref_id=ref_id)
         if normalize:
             ph, dph = normalize_values(phsoltab)
         remove_soltabs(solset, 'phase000')
