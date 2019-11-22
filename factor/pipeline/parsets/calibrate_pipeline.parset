@@ -464,7 +464,7 @@ fit_fast_screens.argument.flags         = [infile]
 {% if mode == 'tec' %}
 fit_fast_screens.argument.order         = {{ tecscreenorder }}
 {% else %}
-fit_fast_screens.argument.smooth_phases = True
+fit_fast_screens.argument.smooth_phases = False
 fit_fast_screens.argument.phsoltabname  = phase000
 {% endif %}
 
@@ -542,7 +542,7 @@ solve_slow_gains.argument.solve.beammode                = array_factor
 solve_slow_gains.argument.solve.onebeamperpatch         = True
 {% endif %}
 solve_slow_gains.argument.solve.uvlambdamin             = {{ solve_min_uv_lambda }}
-# solve_slow_gains.argument.solve.smoothnessconstraint    = {{ smoothnessconstraint }}
+solve_slow_gains.argument.solve.smoothnessconstraint    = {{ smoothnessconstraint }}
 solve_slow_gains.argument.solve.maxiter                 = {{ maxiter }}
 solve_slow_gains.argument.solve.tolerance               = {{ tolerance }}
 solve_slow_gains.argument.msout.storagemanager          = "Dysco"
