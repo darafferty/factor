@@ -656,29 +656,14 @@ def get_cluster_options(parset):
         import multiprocessing
         parset_dict['ncpu'] = multiprocessing.cpu_count()
 
-    # Maximum fraction of the total memory per node to use (default = 0.9)
-    if 'fmem' in parset_dict:
-        parset_dict['fmem'] = parset.getfloat('cluster', 'fmem')
-        if parset_dict['fmem'] > 1.0:
-            parset_dict['fmem'] = 1.0
-    else:
-        parset_dict['fmem'] = 0.9
-
     # Cluster type (default = localhost). Use cluster_type = pbs to use PBS / torque
     # reserved nodes and cluster_type = slurm to use SLURM reserved ones
-    if 'cluster_type' not in parset_dict:
-        parset_dict['cluster_type'] = 'localhost'
-    parset_dict['node_list'] = get_compute_nodes(parset_dict['cluster_type'])
-
-    # Exclude the node that Factor is running on from use in processing (useful for low-
-    # memory nodes)
-    if 'exclude_master' in parset_dict:
-        parset_dict['exclude_master'] = parset.getboolean('cluster', 'exclude_master')
+    if 'batch_system' not in parset_dict:
+        parset_dict['batch_system'] = 'SingleMachine'
+    if 'max_nodes' in parset_dict:
+        parset_dict['max_nodes'] = parset.getint('cluster', 'max_nodes')
     else:
-        parset_dict['exclude_master'] = False
-    if parset_dict['exclude_master'] and len(parset_dict['node_list']) > 1:
-        master_node = platform.node()
-        parset_dict['node_list'].remove(master_node)
+        parset_dict['max_nodes'] = 12
 
     # Full path to a local disk on the nodes for I/O-intensive processing. The path
     # must be the same for all nodes
@@ -689,7 +674,7 @@ def get_cluster_options(parset):
 
     # Check for invalid options
     allowed_options = ['ncpu', 'fmem', 'cluster_type', 'dir_local', 'lofarroot',
-                       'lofarpythonpath', 'exclude_master']
+                       'lofarpythonpath', 'batch_system', 'max_nodes']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [cluster] section of the '

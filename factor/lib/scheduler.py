@@ -5,19 +5,16 @@ import logging
 import multiprocessing
 import os
 import sys
-import imp
-import numpy as np
-from collections import Counter
 from factor.lib.context import Timer
 import factor.cluster
 
 log = logging.getLogger('factor:scheduler')
 
 
-def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
-                          genericpipeline_executable):
+def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logbasename,
+              batch_system):
     """
-    Creates a GenericPipeline object and runs the pipeline
+    Calls Toil to run the pipeline
 
     Parameters
     ----------
@@ -27,50 +24,40 @@ def call_generic_pipeline(op_name, direction_name, parset, config, logbasename,
         Name of direction
     parset : str
         Name of pipeline parset file
-    config : str
-        Name of pipeline config file
+    inputs : str
+        Name of pipeline inputs file
+    basedir : str
+        Path of pipeline working directory
+    dir_local : str
+        Path of local scratch directory
     logbasename : str
         Log file base name
-    genericpipeline_executable : str
-        Path to genericpipeline.py executable
+    batch_system : str
+        Type of batch system to use
     """
-    from lofarpipe.support.pipelinelogging import getSearchingLogger
+    from toil.cwl import cwltoil
     from factor.lib.context import RedirectStdStreams
-    import time
-    import random
 
-    genericpipeline_path = os.path.dirname(genericpipeline_executable)
-    loader = imp.load_source('loader', os.path.join(genericpipeline_path,
-                             'loader.py'))
-    gp = imp.load_source('gp', genericpipeline_executable)
-
-    # Initalize pipeline object
-    pipeline = gp.GenericPipeline()
-
-    # Add needed attr/methods
-    pipeline.name = '{0}_{1}'.format(op_name, direction_name)
-    pipeline.logger = getSearchingLogger(pipeline.name)
-    pipeline.inputs['args'] = [str(parset)]
-    pipeline.inputs['config'] = config
-    pipeline.inputs['job_name'] = direction_name
-
-    # Set pipeline logging to DEBUG level
-    logging.root.setLevel(logging.DEBUG)
-    pipeline.logger.setLevel(logging.DEBUG)
-    for handler in pipeline.logger.handlers:
-        handler.setLevel(logging.DEBUG)
+    # Build the args dict
+    args = {}
+    args['cwltool'] = parset
+    args['cwljob'] = inputs
+    args['batchSystem'] = batch_system
+    args['jobStore'] = os.path.join(basedir, 'jobstore')
+    args['basedir'] = os.path.join(basedir)
+    args['outdir'] = os.path.join(basedir)
+    args['preserve-environment'] = True
+    args['tmpdir-prefix'] = dir_local
+    args['tmp-outdir-prefix'] = os.path.join(basedir)
 
     # Run the pipeline, redirecting screen output to log files.
-    # Before running, we pause to stagger start of pipelines and to allow
-    # Scheduler.result_callback() to transfer resources
-    time.sleep(random.random() * 3 + 2)
     if direction_name == 'field':
         log.info('<-- Operation {0} started'.format(op_name))
     else:
         log.info('<-- Operation {0} started (direction: {1})'.format(op_name, direction_name))
     with open("{0}.log".format(logbasename), "w") as out:
         with RedirectStdStreams(stdout=out, stderr=out):
-            status = pipeline.run(pipeline.name)
+            status = cwltoil.main(args)
 
     return (op_name, direction_name, status)
 
@@ -90,96 +77,11 @@ class Scheduler(object):
 
         self.parset = parset['cluster_specific'].copy()
         factor.cluster.check_ulimit(self.parset)
-        self.genericpipeline_executable = self.parset['genericpipeline_executable']
-        self.nops_simul = len(self.parset['node_list'])
+        self.nops_simul = self.parset['max_nodes']
+        self.scratch_dir = self.parset['dir_local']
+        self.batch_system = self.parset['batch_system']
         self.name = name
         self.success = True
-
-    def allocate_resources(self, operation_list=None):
-        """
-        Divide up nodes and cpus among the operations to be run in parallel
-
-        Parameters
-        ----------
-        operation_list : list of Operation objects, optional
-            Input list of operations over which to distribute the resources. If
-            None, self.operation_list is used
-        """
-        if operation_list is None:
-            operation_list = self.operation_list
-
-        node_list = self.operation_list[0].node_list
-        ncpu_max = self.operation_list[0].parset['cluster_specific']['ncpu']
-        fmem_max = self.operation_list[0].parset['cluster_specific']['fmem']
-        ntimes = self.operation_list[0].field.ntimechunks
-        nfreqs = self.operation_list[0].field.nfreqchunks
-        nops_simul = self.nops_simul
-
-        for i in range(int(np.ceil(len(operation_list)/float(nops_simul)))):
-            op_group = operation_list[i*nops_simul:(i+1)*nops_simul]
-
-            if len(op_group) >= len(node_list):
-                for i in range(len(op_group)-len(node_list)):
-                    node_list.append(node_list[i])
-                hosts = [[n] for n in node_list]
-            else:
-                parts = len(op_group)
-                hosts = [node_list[i*len(node_list)//parts:
-                         (i+1)*len(node_list)//parts] for i in range(parts)]
-
-            # Find duplicates and divide up available nodes and cores
-            h_flat = []
-            for h in hosts:
-                h_flat.extend(h)
-            c = Counter(h_flat)
-
-            for op, h in zip(op_group, hosts):
-                if len(h) == 1:
-                    nops_per_node = min(1, c[h[0]])
-                else:
-                    nops_per_node = 1
-                op.direction.hosts = h
-
-                # Maximum number of processes that the pipeline should run at once
-                op.direction.max_proc_per_node = max(1, int(np.ceil(ncpu_max /
-                                                     float(nops_per_node))))
-
-            # Adjust resources to stay within limits for each node by adding or
-            # subtracting CPUs from the most appropriate operation(s). For now,
-            # we use the size of the facet image to determine the weights
-            resource_weights = [1.0] * len(op_group)
-            j = 0
-            while sum([op.direction.max_proc_per_node for op in op_group]) > ncpu_max * len(hosts):
-                op_take = op_group[resource_weights.index(sorted(resource_weights)[j])]
-                op_take.direction.max_proc_per_node -= 1
-                op_take.direction.save_state()
-                if j < len(op_group)-1:
-                    j += 1
-                else:
-                    j = 0
-
-            for op in op_group:
-                # Set maximum number of threads for normal and IO-intensive
-                # multithreaded processes (e.g., DPPP jobs) when run once
-                # or ntimes times per step (the most common cases)
-                op.direction.max_cpus_per_proc_single = op.direction.max_proc_per_node
-                op.direction.max_cpus_per_proc_ntimes = int(np.ceil(
-                    op.direction.max_proc_per_node /
-                    float(min(ntimes, op.direction.max_proc_per_node))))
-                op.direction.max_cpus_per_proc_nfreqs = int(np.ceil(
-                    op.direction.max_proc_per_node /
-                    float(min(nfreqs, op.direction.max_proc_per_node))))
-
-                # Maximum percentage of memory to give to jobs that allow memory
-                # limits (e.g., WSClean jobs)
-                op.direction.max_percent_memory_per_proc_single = (fmem_max /
-                    float(nops_per_node) * 100.0)
-                op.direction.max_percent_memory_per_proc_ntimes = (fmem_max /
-                    float(nops_per_node) * 100.0 /
-                    float(min(ntimes, op.direction.max_proc_per_node)))
-                op.direction.max_percent_memory_per_proc_nfreqs = (fmem_max /
-                    float(nops_per_node) * 100.0 /
-                    float(min(nfreqs, op.direction.max_proc_per_node)))
 
     def result_callback(self, result):
         """
@@ -196,13 +98,6 @@ class Scheduler(object):
                      'operations. This could indicate a problem with the operation'.
                      format(op_name, direction_name))
             return
-
-        # Reallocate resources
-        if len(self.queued_ops) > 0:
-            # Give the completed op's resources to the next one in line (if any)
-            next_op = self.queued_ops.pop(0)
-            next_op.direction.hosts = this_op.direction.hosts[:]
-            next_op.setup()
 
         # Finalize the operation
         if status == 0:
@@ -235,7 +130,6 @@ class Scheduler(object):
         self.operation_list = operation_list
 
         # Run the operation(s)
-        n_tries = 0
         while len(self.operation_list) > 0:
             self.allocate_resources()
             with Timer(log, 'operation'):
@@ -245,10 +139,10 @@ class Scheduler(object):
                 for op in self.operation_list:
                     op.setup()
                     process_list.append(
-                        pool.apply_async(call_generic_pipeline, (op.name,
+                        pool.apply_async(call_toil, (op.name,
                                          op.direction.name, op.pipeline_parset_file,
-                                         op.pipeline_config_file, op.logbasename,
-                                         self.genericpipeline_executable),
+                                         op.pipeline_inputs_file, op.pipeline_working_dir,
+                                         self.scratch_dir, op.logbasename, self.batch_system),
                                          callback=self.result_callback)
                                         )
                 pool.close()
@@ -256,27 +150,9 @@ class Scheduler(object):
 
             # Check for and handle any failed ops
             if not self.success:
-                for op in self.operation_list:
-                    # Remove any temp data left by failure
-                    op.cleanup()
-
-                # Check whether any failed ops can be restarted automatically
-                ops_can_restart = [op for op in self.operation_list if op.can_restart()]
-                ops_cannot_restart = [op for op in self.operation_list if not op.can_restart()]
-
-                if len(ops_cannot_restart) == 0:
-                    # All failed ops can be restarted, so reset success flag and
-                    # process the failed ops again (up to 3 times)
-                    n_tries += 1
-                    if n_tries > 3:
-                        log.error('One or more operations failed due to an error '
-                                  'and automatic restart did not work. Exiting...')
-                        sys.exit(1)
-                    self.success = True
-                    self.operation_list = ops_can_restart
-                else:
-                    # If any failed ops cannot be restarted, exit
-                    log.error('One or more operations failed due to an error. Exiting...')
-                    sys.exit(1)
+                log.error('One or more operations failed due to an error. Exiting...')
+                sys.exit(1)
             else:
                 self.operation_list = []
+def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logbasename,
+              batch_system):

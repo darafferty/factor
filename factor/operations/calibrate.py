@@ -3,9 +3,9 @@ Module that holds the Calibrate class
 """
 import os
 import logging
+import glob
 from factor.lib.operation import Operation
-from lofarpipe.support.data_map import DataMap
-from lofarpipe.support.utilities import create_directory
+from factor.lib import miscellaneous as misc
 
 log = logging.getLogger('factor:calibrate')
 
@@ -19,62 +19,66 @@ class Calibrate(Operation):
         super(Calibrate, self).__init__(field, name=name)
         self.index = index
 
-        # Set the pipeline parset to use
-        self.pipeline_parset_template = 'calibrate_pipeline.parset'
+    def set_parset_parameters(self):
+        """
+        Define parameters needed for the pipeline parset template
+        """
+        self.parset_parms = {'factor_pipeline_dir': self.factor_pipeline_dir,
+                             'mode': self.field.mode,
+                             'do_slowgain_solve': self.field.do_slowgain_solve,
+                             'use_beam': self.field.use_beam}
 
-        # Define extra parameters needed for this operation
-        field.set_obs_parameters()
-        timechunk_filename = field.get_obs_parameters('timechunk_filename')
-        starttime = field.get_obs_parameters('starttime')
-        ntimes = field.get_obs_parameters('ntimes')
-        slow_starttime = field.get_obs_parameters('slow_starttime')
-        slow_ntimes = field.get_obs_parameters('slow_ntimes')
-        freqchunk_filename = field.get_obs_parameters('freqchunk_filename')
-        startchan = field.get_obs_parameters('startchan')
-        nchan = field.get_obs_parameters('nchan')
-        solint_fast_timestep = field.get_obs_parameters('solint_fast_timestep')
-        solint_fast_timestep_core = field.get_obs_parameters('solint_fast_timestep_core')
-        solint_fast_timestep_remote = field.get_obs_parameters('solint_fast_timestep_remote')
-        solint_slow_timestep = field.get_obs_parameters('solint_slow_timestep')
-        solint_fast_freqstep = field.get_obs_parameters('solint_fast_freqstep')
-        solint_slow_freqstep = field.get_obs_parameters('solint_slow_freqstep')
-        output_fast_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+    def set_input_parameters(self):
+        """
+        Define parameters needed for the pipeline inputs
+        """
+        self.field.set_obs_parameters()
+        timechunk_filename = self.field.get_obs_parameters('timechunk_filename')
+        starttime = self.field.get_obs_parameters('starttime')
+        ntimes = self.field.get_obs_parameters('ntimes')
+        slow_starttime = self.field.get_obs_parameters('slow_starttime')
+        slow_ntimes = self.field.get_obs_parameters('slow_ntimes')
+        freqchunk_filename = self.field.get_obs_parameters('freqchunk_filename')
+        startchan = self.field.get_obs_parameters('startchan')
+        nchan = self.field.get_obs_parameters('nchan')
+        solint_fast_timestep = self.field.get_obs_parameters('solint_fast_timestep')
+        solint_fast_timestep_core = self.field.get_obs_parameters('solint_fast_timestep_core')
+        solint_fast_timestep_remote = self.field.get_obs_parameters('solint_fast_timestep_remote')
+        solint_slow_timestep = self.field.get_obs_parameters('solint_slow_timestep')
+        solint_fast_freqstep = self.field.get_obs_parameters('solint_fast_freqstep')
+        solint_slow_freqstep = self.field.get_obs_parameters('solint_slow_freqstep')
+        output_fast_h5parm = [str(os.path.join(self.pipeline_working_dir,
                               'fast_phase_{}.h5parm'.format(i)))
-                              for i in range(field.ntimechunks)]
-        output_fast_core_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+                              for i in range(self.field.ntimechunks)]
+        output_fast_core_h5parm = [str(os.path.join(self.pipeline_working_dir,
                                    'fast_phase_core_{}.h5parm'.format(i)))
-                                   for i in range(field.ntimechunks)]
-        output_fast_remote_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+                                   for i in range(self.field.ntimechunks)]
+        output_fast_remote_h5parm = [str(os.path.join(self.pipeline_working_dir,
                                      'fast_phase_remote_{}.h5parm'.format(i)))
-                                     for i in range(field.ntimechunks)]
-        output_slow_h5parm = [str(os.path.join(self.pipeline_parset_dir,
+                                     for i in range(self.field.ntimechunks)]
+        output_slow_h5parm = [str(os.path.join(self.pipeline_working_dir,
                               'slow_gain_{}.h5parm'.format(i)))
-                              for i in range(field.nfreqchunks)]
+                              for i in range(self.field.nfreqchunks)]
         baselines_core = self.get_baselines_core()
         antennaconstraint_core = '[[{}]]'.format(','.join(self.get_superterp_stations()))
         antennaconstraint_remote = '[[{}]]'.format(','.join(self.get_core_stations()))
+        calibration_skymodel_file = self.field.calibration_skymodel_file
 
-        self.parms_dict.update({'timechunk_filename': timechunk_filename,
-                                'freqchunk_filename': freqchunk_filename,
-                                'starttime': starttime,
-                                'ntimes': ntimes,
-                                'slow_starttime': slow_starttime,
-                                'slow_ntimes': slow_ntimes,
-                                'startchan': startchan,
-                                'nchan': nchan,
-                                'solint_fast_timestep': solint_fast_timestep,
-                                'solint_fast_timestep_core': solint_fast_timestep_core,
-                                'solint_fast_timestep_remote': solint_fast_timestep_remote,
-                                'solint_slow_timestep': solint_slow_timestep,
-                                'solint_fast_freqstep': solint_fast_freqstep,
-                                'solint_slow_freqstep': solint_slow_freqstep,
-                                'output_fast_h5parm': output_fast_h5parm,
-                                'output_fast_core_h5parm': output_fast_core_h5parm,
-                                'output_fast_remote_h5parm': output_fast_remote_h5parm,
-                                'output_slow_h5parm': output_slow_h5parm,
-                                'baselines_core': baselines_core,
-                                'antennaconstraint_core': antennaconstraint_core,
-                                'antennaconstraint_remote': antennaconstraint_remote})
+        self.input_parms = {'timechunk_filename': timechunk_filename,
+                            'freqchunk_filename': freqchunk_filename,
+                            'starttime': starttime,
+                            'ntimes': ntimes,
+                            'slow_starttime': slow_starttime,
+                            'slow_ntimes': slow_ntimes,
+                            'startchan': startchan,
+                            'nchan': nchan,
+                            'solint_fast_timestep': solint_fast_timestep,
+                            'solint_slow_timestep': solint_slow_timestep,
+                            'solint_fast_freqstep': solint_fast_freqstep,
+                            'solint_slow_freqstep': solint_slow_freqstep,
+                            'output_fast_h5parm': output_fast_h5parm,
+                            'output_slow_h5parm': output_slow_h5parm,
+                            'calibration_skymodel_file': calibration_skymodel_file}
 
     def get_baselines_core(self):
         """
@@ -141,24 +145,23 @@ class Calibrate(Operation):
         """
         # Save output mapfiles for later use
         if self.field.do_slowgain_solve:
-            self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                     'combine_all_h5parms_output.mapfile')
+            self.field.h5parm_filename = glob.glob(self.pipeline_working_dir,
+                                                   'combined_solutions.h5')
         else:
-            self.field.h5parm_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                     'combine_fast_h5parms_output.mapfile')
-        self.field.fast_aterms_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                      'fast_aterms_images.mapfile')
-        self.field.slow_aterms_mapfile = os.path.join(self.pipeline_mapfile_dir,
-                                                      'slow_aterms_images.mapfile')
+            self.field.h5parm_filename = glob.glob(self.pipeline_working_dir,
+                                                   'fast_phases.h5')
+        self.field.fast_aterms_filename = glob.glob(self.pipeline_working_dir,
+                                                    'fast_aterms*fits')
+        self.field.slow_aterms_filename = glob.glob(self.pipeline_working_dir,
+                                                    'slow_aterms*fits')
 
         # Save the solutions
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))
-        create_directory(dst_dir)
+        misc.create_directory(dst_dir)
         dst = os.path.join(dst_dir, 'field-solutions.h5')
         if os.path.exists(dst):
             os.remove(dst)
-        sol_map = DataMap.load(self.field.h5parm_mapfile)
-        os.system('cp {0} {1}'.format(sol_map[0].file, dst))
+        os.system('cp {0} {1}'.format(self.field.h5parm_filename, dst))
 
 #         dst = os.path.join(dst_dir, 'fast_aterms.fits')
 #         if os.path.exists(dst):

@@ -43,6 +43,14 @@ def normalize_values(soltab):
                     norm_factor = np.nanmean(parms[t, f, s, dir, :][initial_unflagged_indx[t, f, s, dir, :]])
                     parms[t, f, s, dir, :] -= norm_factor
 
+    # Average the XX-YY offsets over all stations and directions for each time, freq and pol
+    # Only do this for phases, as we do it for amplitudes in the bandpass correction
+    if soltype == 'phase':
+        for t in range(len(soltab.time[:])):
+            for f in range(len(soltab.freq[:])):
+                for p in range(2):
+                    parms[t, f, :, :, p] = np.nanmedian(parms[t, f, :, :, p])
+
     # Make sure flagged solutions are still flagged
     if soltype == 'amplitude':
         parms = 10**parms

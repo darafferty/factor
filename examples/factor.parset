@@ -160,21 +160,18 @@ input_skymodel = /data/skymodel.txt
 
 
 [cluster]
-# Cluster type (default = localhost). Use cluster_type = pbs to use PBS / torque
-# reserved nodes and cluster_type = slurm to use SLURM reserved ones
-# clusterdesc_type = slurm
+# Cluster batch system (default = singleMachine). Use batch_system = slurm to use SLURM
+# batch_system = singleMachine
+# max_nodes = 12
 
-# Exclude the master node that Factor is running on from use in processing (useful for
-# low-memory nodes). Only valid if more than one node is available
-# exclude_master = False
+# Slurm partition names (default = not used)
+# cpu_partition = batch
+# gpu_partition = batch
 
-# Full path to a local disk on the nodes for I/O-intensive processing. The path
-# must be the same for all nodes
+# Full path to a local disk on the nodes for I/O-intensive processing (default = not
+# used). The path must be the same for all nodes
 # dir_local = /tmp
 
-# Maximum number of CPUs per node to use (default = all)
-# ncpu = 6
+# Maximum number of CPUs per node to use
+ncpu = 6
 
-# Maximum fraction of the total memory per node that WSClean may use (default =
-# 0.9)
-# wsclean_fmem = 0.9

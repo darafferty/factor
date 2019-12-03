@@ -1,6 +1,9 @@
 """
 Miscellaneous functions
 """
+import os
+import shutil
+import errno
 import numpy as np
 import pickle
 from shapely.geometry import Point, Polygon
@@ -313,3 +316,27 @@ def approx_equal(x, y, *args, **kwargs):
     # approximate equal comparison (or are both floats). Fall back to a numeric
     # comparison.
     return _float_approx_equal(x, y, *args, **kwargs)
+
+
+def create_directory(dirname):
+    """
+    Recursively create a directory, without failing if it already exists.
+    """
+    try:
+        if dirname:
+            os.makedirs(dirname)
+    except OSError as failure:
+        if failure.errno != errno.EEXIST:
+            raise failure
+
+
+def delete_directory(dirname):
+    """
+    Recursively delete a directory tree: Without failing if the dir does not
+    exist
+    """
+    try:
+        shutil.rmtree(dirname)
+    except OSError as e:
+        if not e.errno == errno.ENOENT:
+            raise e
