@@ -43,6 +43,10 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
     args['cwltool'] = parset
     args['cwljob'] = inputs
     args['batchSystem'] = batch_system
+    if batch_system == 'slurm':
+        args['disableCaching'] = True
+        args['defaultCores'] = 6
+        args['defaultMemory'] = '1M'
     args['jobStore'] = os.path.join(basedir, 'jobstore')
     args['basedir'] = os.path.join(basedir)
     args['outdir'] = os.path.join(basedir)
