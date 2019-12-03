@@ -135,7 +135,6 @@ class Scheduler(object):
 
         # Run the operation(s)
         while len(self.operation_list) > 0:
-            self.allocate_resources()
             with Timer(log, 'operation'):
                 pool = multiprocessing.Pool(processes=self.nops_simul)
                 self.queued_ops = self.operation_list[self.nops_simul:]
@@ -158,5 +157,3 @@ class Scheduler(object):
                 sys.exit(1)
             else:
                 self.operation_list = []
-def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logbasename,
-              batch_system):

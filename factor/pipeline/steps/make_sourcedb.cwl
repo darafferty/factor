@@ -1,26 +1,30 @@
 cwlVersion: v1.0
 class: CommandLineTool
-baseCommand: [makesourcedb, format=<, append=False, outtype=blob]
-
+baseCommand: [makesourcedb]
 label: "Makes a sourcedb file from a sky model file"
 
-inputs:
-    in:
-        type: File
-        inputBinding:
-           prefix: "in="
-           separate: False
-
+requirements:
+  InlineJavascriptRequirement: {}
 
 arguments:
-    out:
-        type: File
-        inputBinding:
-           prefix: "out="
-           valueFrom: "$(inputs.in).sourcedb"
+  - format=<
+  - append=False
+  - outtype=blob
+
+inputs:
+  - id: in
+    type: string
+    inputBinding:
+      prefix: in=
+      separate: false
+  - id: out
+    type: string
+    inputBinding:
+      prefix: out=
+      separate: false
 
 outputs:
-    sourcedb:
-        type: File
-        outputBinding:
-            glob: "$(inputs.out)"
+  - id: sourcedb
+    type: string
+    outputBinding:
+      outputEval: $(inputs.out)

@@ -233,7 +233,7 @@ def check_ulimit(cluster_parset):
     try:
         import resource
         nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
-        if cluster_parset['cluster_type'] == 'localhost' and nof_files_limits[0] < nof_files_limits[1]:
+        if cluster_parset['batch_system'] == 'singleMachine' and nof_files_limits[0] < nof_files_limits[1]:
             log.debug('Setting limit for number of open files to: {}.'.format(nof_files_limits[1]))
             resource.setrlimit(resource.RLIMIT_NOFILE, (nof_files_limits[1], nof_files_limits[1]))
             nof_files_limits = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -278,7 +278,7 @@ def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_ti
         Number of directions/patches in the calibration
     """
     # TODO: check memory usage?
-    mem_gb = cluster_parset['fmem'] * get_total_memory()
+    mem_gb = get_total_memory()
     if antenna == 'HBA':
         # Memory usage in GB/timeslot/dir of a typical HBA observation
         mem_usage_gb = 0.2
@@ -290,7 +290,7 @@ def get_time_chunksize(cluster_parset, timepersample, numsamples, solint_fast_ti
     # Try to make at least as many time chunks as there are nodes, but ensure that
     # solint_fast_timestep a divisor of samplesperchunk (otherwise we could get a lot
     # of solutions with less than the target time)
-    n_nodes = len(cluster_parset['node_list'])
+    n_nodes = cluster_parset['max_nodes']
     samplesperchunk = np.ceil(numsamples / n_nodes)
     if mem_gb / gb_per_solint < 1.0:
         old_solint_fast_timestep = solint_fast_timestep
@@ -329,7 +329,7 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
         Number of directions/patches in the calibration
     """
     # Try to make at least as many time chunks as there are nodes
-    mem_gb = cluster_parset['fmem'] * get_total_memory()
+    mem_gb = get_total_memory()
     if antenna == 'HBA':
         # Memory usage in GB/chan/timeslot/dir of a typical HBA observation
         mem_usage_gb = 1e-3

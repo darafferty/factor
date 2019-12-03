@@ -15,9 +15,7 @@ class Calibrate(Operation):
     Operation to calibrate
     """
     def __init__(self, field, index):
-        name = 'Calibrate_{0}'.format(index)
-        super(Calibrate, self).__init__(field, name=name)
-        self.index = index
+        super(Calibrate, self).__init__(field, name='calibrate', index=index)
 
     def set_parset_parameters(self):
         """

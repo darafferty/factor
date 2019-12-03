@@ -29,10 +29,16 @@ class Operation(object):
     name : str, optional
         Name of the operation
     """
-    def __init__(self, field, direction=None, name=None):
+    def __init__(self, field, direction=None, name=None, index=None):
         self.parset = field.parset.copy()
         self.field = field
-        self.name = name.lower()
+        self.rootname = name.lower()
+        self.index = index
+        if self.index is not None:
+            self.name = '{0}_{1}'.format(self.rootname, self.index)
+        else:
+            self.name = self.rootname
+        self.rootname
         self.parset['op_name'] = name
         if direction is None:
             self.direction = field
@@ -48,10 +54,7 @@ class Operation(object):
         self.pipeline_working_dir = os.path.join(self.factor_working_dir,
                                                  'pipelines', self.name,
                                                  self.direction.name)
-        misc.create_directory(self.pipeline_runtime_dir)
-
-        # Scratch directory
-        self.scratch_dir = self.parset['dir_local']
+        misc.create_directory(self.pipeline_working_dir)
 
         # Directory that holds the pipeline logs in a convenient place
         self.log_dir = os.path.join(self.factor_working_dir, 'logs', self.name)
@@ -67,7 +70,7 @@ class Operation(object):
 
         # Input template name and output parset and inputs filenames for
         # the pipeline
-        self.pipeline_parset_template = '{0}_pipeline.cwl'.format(self.name)
+        self.pipeline_parset_template = '{0}_pipeline.cwl'.format(self.rootname)
         self.pipeline_parset_file = os.path.join(self.pipeline_working_dir,
                                                  'pipeline_parset.cwl')
         self.pipeline_inputs_file = os.path.join(self.pipeline_working_dir,
