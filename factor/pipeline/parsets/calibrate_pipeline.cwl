@@ -59,7 +59,7 @@ inputs:
 outputs:
   - id: sdb
     outputSource:
-      - make_sourcedb/sourcedb
+      - solve_fast_phases/fast_phases_h5parm
     type: string
 
 steps:
@@ -82,8 +82,6 @@ steps:
     in:
       - id: msin
         source: timechunk_filename
-      - id: msin.datacolumn
-        source: data_colname
       - id: msin.starttime
         source: starttime
       - id: msin.ntimes
@@ -96,8 +94,6 @@ steps:
         source: solint_fast_freqstep
       - id: solve.sourcedb
         source: make_sourcedb/sourcedb
-      - id: solve.mode
-        source: mode
       - id: solve.approximatetec
         source: approximatetec
       - id: solve.maxapproxiter
@@ -107,7 +103,7 @@ steps:
       - id: solve.propagatesolutions
         source: propagatesolutions
       - id: solve.stepsize
-        source: solint_fast_freqstep
+        source: stepsize
       - id: solve.tolerance
         source: tolerance
       - id: solve.uvlambdamin
