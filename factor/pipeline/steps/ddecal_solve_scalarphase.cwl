@@ -59,7 +59,7 @@ inputs:
       prefix: solve.maxiter=
       separate: False
   - id: solve.propagatesolutions
-    type: boolean
+    type: string
     inputBinding:
       prefix: solve.propagatesolutions=
       separate: False

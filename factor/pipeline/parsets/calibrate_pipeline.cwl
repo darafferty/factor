@@ -43,7 +43,7 @@ inputs:
   - id: maxiter
     type: int
   - id: propagatesolutions
-    type: boolean
+    type: string
   - id: stepsize
     type: float
   - id: tolerance
@@ -106,7 +106,7 @@ steps:
         source: uvlambdamin
       - id: solve.smoothnessconstraint
         source: smoothnessconstraint
-    scatter:
-      - msin
+    scatter: [msin, msin.starttime, msin.ntimes, solve.h5parm, solve.solint, solve.nchan]
+    scatterMethod: dotproduct
     out:
       - id: fast_phases_h5parm
