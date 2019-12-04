@@ -60,7 +60,7 @@ outputs:
   - id: sdb
     outputSource:
       - solve_fast_phases/fast_phases_h5parm
-    type: string
+    type: string[]
 
 steps:
   - id: make_sourcedb
