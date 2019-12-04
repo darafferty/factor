@@ -43,7 +43,7 @@ inputs:
   - id: maxiter
     type: int
   - id: propagatesolutions
-    type: bool
+    type: boolean
   - id: stepsize
     type: float
   - id: tolerance
