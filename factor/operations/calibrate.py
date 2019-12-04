@@ -48,6 +48,8 @@ class Calibrate(Operation):
         output_fast_h5parm = [str(os.path.join(self.pipeline_working_dir,
                               'fast_phase_{}.h5parm'.format(i)))
                               for i in range(self.field.ntimechunks)]
+        combined_fast_h5parm = os.path.join(self.pipeline_working_dir,
+                                            'fast_phases.h5parm')
         output_fast_core_h5parm = [str(os.path.join(self.pipeline_working_dir,
                                    'fast_phase_core_{}.h5parm'.format(i)))
                                    for i in range(self.field.ntimechunks)]
@@ -57,6 +59,8 @@ class Calibrate(Operation):
         output_slow_h5parm = [str(os.path.join(self.pipeline_working_dir,
                               'slow_gain_{}.h5parm'.format(i)))
                               for i in range(self.field.nfreqchunks)]
+        combined_slow_h5parm = os.path.join(self.pipeline_working_dir,
+                                            'slow_gains.h5parm')
         baselines_core = self.get_baselines_core()
         antennaconstraint_core = '[[{}]]'.format(','.join(self.get_superterp_stations()))
         antennaconstraint_remote = '[[{}]]'.format(','.join(self.get_core_stations()))
@@ -83,7 +87,9 @@ class Calibrate(Operation):
                             'solint_fast_freqstep': solint_fast_freqstep,
                             'solint_slow_freqstep': solint_slow_freqstep,
                             'output_fast_h5parm': output_fast_h5parm,
+                            'combined_fast_h5parm': combined_fast_h5parm,
                             'output_slow_h5parm': output_slow_h5parm,
+                            'combined_slow_h5parm': combined_slow_h5parm,
                             'calibration_skymodel_file': calibration_skymodel_file,
                             'calibration_sourcedb': calibration_sourcedb,
                             'smoothnessconstraint': smoothnessconstraint,

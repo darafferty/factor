@@ -32,7 +32,11 @@ inputs:
     type: int[]
   - id: output_fast_h5parm
     type: string[]
+  - id: combined_fast_h5parm
+    type: string[]
   - id: output_slow_h5parm
+    type: string[]
+  - id: combined_slow_h5parm
     type: string[]
   - id: calibration_skymodel_file
     type: string
@@ -110,3 +114,14 @@ steps:
     scatterMethod: dotproduct
     out:
       - id: fast_phases_h5parm
+
+  - id: combine_fast_phases
+    label: combine_fast_phases
+    run: {{ factor_pipeline_dir }}/steps/collect_h5parms.cwl
+    in:
+      - id: inh5parms
+        source: solve_fast_phases/fast_phases_h5parm
+      - id: outh5parm
+        source: combined_fast_h5parm
+    out:
+      - id: outh5parm
