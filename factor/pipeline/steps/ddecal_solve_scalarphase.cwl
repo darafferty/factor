@@ -53,16 +53,6 @@ inputs:
     inputBinding:
       prefix: solve.sourcedb=
       separate: False
-  - id: solve.approximatetec
-    type: bool
-    inputBinding:
-      prefix: solve.approximatetec=
-      separate: False
-  - id: solve.maxapproxiter
-    type: int
-    inputBinding:
-      prefix: solve.maxapproxiter=
-      separate: False
   - id: solve.maxiter
     type: int
     inputBinding:

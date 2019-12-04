@@ -94,10 +94,6 @@ steps:
         source: solint_fast_freqstep
       - id: solve.sourcedb
         source: make_sourcedb/sourcedb
-      - id: solve.approximatetec
-        source: approximatetec
-      - id: solve.maxapproxiter
-        source: maxapproxiter
       - id: solve.maxiter
         source: maxiter
       - id: solve.propagatesolutions
