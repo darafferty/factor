@@ -36,7 +36,6 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
         Type of batch system to use
     """
     from toil.cwl import cwltoil
-    from factor.lib.context import RedirectStdStreams
 
     # Build the args list
     args = []
@@ -59,7 +58,7 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
     args.append(parset)
     args.append(inputs)
 
-    # Run the pipeline, redirecting screen output to log files.
+    # Run the pipeline
     if direction_name == 'field':
         log.info('<-- Operation {0} started'.format(op_name))
     else:
@@ -140,21 +139,17 @@ class Scheduler(object):
         while len(self.operation_list) > 0:
             with Timer(log, 'operation'):
                 pool = multiprocessing.Pool(processes=self.nops_simul)
-                self.queued_ops = self.operation_list[self.nops_simul:]
-                process_list = []
                 for op in self.operation_list:
                     op.setup()
 #                     call_toil(op.name,
 #                               op.direction.name, op.pipeline_parset_file,
 #                               op.pipeline_inputs_file, op.pipeline_working_dir,
 #                               self.scratch_dir, op.logbasename, self.batch_system)
-                    process_list.append(
-                        pool.apply_async(call_toil, (op.name,
-                                         op.direction.name, op.pipeline_parset_file,
-                                         op.pipeline_inputs_file, op.pipeline_working_dir,
-                                         self.scratch_dir, op.logbasename, self.batch_system),
-                                         callback=self.result_callback)
-                                        )
+                    pool.apply_async(call_toil, (op.name,
+                                     op.direction.name, op.pipeline_parset_file,
+                                     op.pipeline_inputs_file, op.pipeline_working_dir,
+                                     self.scratch_dir, op.logbasename, self.batch_system),
+                                     callback=self.result_callback)
                 pool.close()
                 pool.join()
 

@@ -33,11 +33,11 @@ inputs:
   - id: output_fast_h5parm
     type: string[]
   - id: combined_fast_h5parm
-    type: string[]
+    type: string
   - id: output_slow_h5parm
     type: string[]
   - id: combined_slow_h5parm
-    type: string[]
+    type: string
   - id: calibration_skymodel_file
     type: string
   - id: calibration_sourcedb
