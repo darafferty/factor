@@ -28,7 +28,7 @@ class Calibrate(Operation):
 
     def set_input_parameters(self):
         """
-        Define parameters needed for the pipeline inputs
+        Define the pipeline inputs
         """
         self.field.set_obs_parameters()
         timechunk_filename = self.field.get_obs_parameters('timechunk_filename')
@@ -61,6 +61,14 @@ class Calibrate(Operation):
         antennaconstraint_core = '[[{}]]'.format(','.join(self.get_superterp_stations()))
         antennaconstraint_remote = '[[{}]]'.format(','.join(self.get_core_stations()))
         calibration_skymodel_file = self.field.calibration_skymodel_file
+        calibration_sourcedb = str(os.path.join(self.pipeline_working_dir,
+                                                'calibration_skymodel.sourcedb'))
+        smoothnessconstraint = self.field.smoothnessconstraint
+        maxiter = self.field.maxiter
+        propagatesolutions = self.field.propagatesolutions
+        stepsize = self.field.stepsize
+        tolerance = self.field.tolerance
+        uvlambdamin = self.field.uvlambdamin
 
         self.input_parms = {'timechunk_filename': timechunk_filename,
                             'freqchunk_filename': freqchunk_filename,
@@ -76,7 +84,14 @@ class Calibrate(Operation):
                             'solint_slow_freqstep': solint_slow_freqstep,
                             'output_fast_h5parm': output_fast_h5parm,
                             'output_slow_h5parm': output_slow_h5parm,
-                            'calibration_skymodel_file': calibration_skymodel_file}
+                            'calibration_skymodel_file': calibration_skymodel_file,
+                            'calibration_sourcedb': calibration_sourcedb,
+                            'smoothnessconstraint': smoothnessconstraint,
+                            'maxiter': maxiter,
+                            'propagatesolutions': propagatesolutions,
+                            'stepsize': stepsize,
+                            'tolerance': tolerance,
+                            'uvlambdamin': uvlambdamin}
 
     def get_baselines_core(self):
         """
@@ -143,15 +158,15 @@ class Calibrate(Operation):
         """
         # Save output mapfiles for later use
         if self.field.do_slowgain_solve:
-            self.field.h5parm_filename = glob.glob(self.pipeline_working_dir,
-                                                   'combined_solutions.h5')
+            self.field.h5parm_filename = glob.glob(os.path.join(self.pipeline_working_dir,
+                                                                'combined_solutions.h5'))
         else:
-            self.field.h5parm_filename = glob.glob(self.pipeline_working_dir,
-                                                   'fast_phases.h5')
-        self.field.fast_aterms_filename = glob.glob(self.pipeline_working_dir,
-                                                    'fast_aterms*fits')
-        self.field.slow_aterms_filename = glob.glob(self.pipeline_working_dir,
-                                                    'slow_aterms*fits')
+            self.field.h5parm_filename = glob.glob(os.path.join(self.pipeline_working_dir,
+                                                                'fast_phases.h5'))
+        self.field.fast_aterms_filename = glob.glob(os.path.join(self.pipeline_working_dir,
+                                                                 'fast_aterms*fits'))
+        self.field.slow_aterms_filename = glob.glob(os.path.join(self.pipeline_working_dir,
+                                                                 'slow_aterms*fits'))
 
         # Save the solutions
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))

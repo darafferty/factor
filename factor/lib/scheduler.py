@@ -38,30 +38,33 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
     from toil.cwl import cwltoil
     from factor.lib.context import RedirectStdStreams
 
-    # Build the args dict
-    args = {}
-    args['cwltool'] = parset
-    args['cwljob'] = inputs
-    args['batchSystem'] = batch_system
+    # Build the args list
+    args = []
+    args.extend(['--batchSystem', batch_system])
     if batch_system == 'slurm':
-        args['disableCaching'] = True
-        args['defaultCores'] = 6
-        args['defaultMemory'] = '1M'
-    args['jobStore'] = os.path.join(basedir, 'jobstore')
-    args['basedir'] = os.path.join(basedir)
-    args['outdir'] = os.path.join(basedir)
-    args['preserve-environment'] = True
-    args['tmpdir-prefix'] = dir_local
-    args['tmp-outdir-prefix'] = os.path.join(basedir)
+        args.extend(['--disableCaching'])
+        args.extend(['--defaultCores', '6'])
+        args.extend(['--defaultMemory', '1M'])
+    args.extend(['--jobStore', os.path.join(basedir, 'jobstore')])
+    args.extend(['--outdir', basedir])
+    args.extend(['--workDir', basedir])
+    args.extend(['--logFile', logbasename+'.log'])
+    args.extend(['--preserve-entire-environment'])
+    if dir_local is not None:
+        args.extend(['--tmpdir-prefix', dir_local])
+    args.extend(['--logLevel', 'DEBUG'])
+    args.extend(['--clean', 'never'])
+    if os.path.exists(os.path.join(basedir, 'jobstore')):
+        args.extend(['--restart'])
+    args.append(parset)
+    args.append(inputs)
 
     # Run the pipeline, redirecting screen output to log files.
     if direction_name == 'field':
         log.info('<-- Operation {0} started'.format(op_name))
     else:
         log.info('<-- Operation {0} started (direction: {1})'.format(op_name, direction_name))
-    with open("{0}.log".format(logbasename), "w") as out:
-        with RedirectStdStreams(stdout=out, stderr=out):
-            status = cwltoil.main(args)
+    status = cwltoil.main(args=args)
 
     return (op_name, direction_name, status)
 
@@ -141,6 +144,10 @@ class Scheduler(object):
                 process_list = []
                 for op in self.operation_list:
                     op.setup()
+#                     call_toil(op.name,
+#                               op.direction.name, op.pipeline_parset_file,
+#                               op.pipeline_inputs_file, op.pipeline_working_dir,
+#                               self.scratch_dir, op.logbasename, self.batch_system)
                     process_list.append(
                         pool.apply_async(call_toil, (op.name,
                                          op.direction.name, op.pipeline_parset_file,
