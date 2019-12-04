@@ -23,62 +23,62 @@ inputs:
     inputBinding:
       prefix: msin=
       separate: False
-  - id: msin.starttime
+  - id: starttime
     type: string
     inputBinding:
       prefix: msin.starttime=
       separate: False
-  - id: msin.ntimes
+  - id: ntimes
     type: int
     inputBinding:
       prefix: msin.ntimes=
       separate: False
-  - id: solve_h5parm
+  - id: h5parm
     type: string
     inputBinding:
       prefix: solve.h5parm=
       separate: False
-  - id: solve.solint
+  - id: solint
     type: int
     inputBinding:
       prefix: solve.solint=
       separate: False
-  - id: solve.nchan
+  - id: nchan
     type: int
     inputBinding:
       prefix: solve.nchan=
       separate: False
-  - id: solve.sourcedb
+  - id: sourcedb
     type: string
     inputBinding:
       prefix: solve.sourcedb=
       separate: False
-  - id: solve.maxiter
+  - id: maxiter
     type: int
     inputBinding:
       prefix: solve.maxiter=
       separate: False
-  - id: solve.propagatesolutions
+  - id: propagatesolutions
     type: string
     inputBinding:
       prefix: solve.propagatesolutions=
       separate: False
-  - id: solve.stepsize
+  - id: stepsize
     type: float
     inputBinding:
       prefix: solve.stepsize=
       separate: False
-  - id: solve.tolerance
+  - id: tolerance
     type: float
     inputBinding:
       prefix: solve.tolerance=
       separate: False
-  - id: solve.uvlambdamin
+  - id: uvlambdamin
     type: float
     inputBinding:
       prefix: solve.uvlambdamin=
       separate: False
-  - id: solve.smoothnessconstraint
+  - id: smoothnessconstraint
     type: float
     inputBinding:
       prefix: solve.smoothnessconstraint=
@@ -88,4 +88,4 @@ outputs:
   - id: fast_phases_h5parm
     type: string
     outputBinding:
-      outputEval: $(inputs.solve_h5parm)
+      outputEval: $(inputs.h5parm)

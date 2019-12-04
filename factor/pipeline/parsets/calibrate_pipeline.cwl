@@ -86,31 +86,31 @@ steps:
     in:
       - id: msin
         source: timechunk_filename
-      - id: msin.starttime
+      - id: starttime
         source: starttime
-      - id: msin.ntimes
+      - id: ntimes
         source: ntimes
-      - id: solve_h5parm
+      - id: h5parm
         source: output_fast_h5parm
-      - id: solve.solint
+      - id: solint
         source: solint_fast_timestep
-      - id: solve.nchan
+      - id: nchan
         source: solint_fast_freqstep
-      - id: solve.sourcedb
+      - id: sourcedb
         source: make_sourcedb/sourcedb
-      - id: solve.maxiter
+      - id: maxiter
         source: maxiter
-      - id: solve.propagatesolutions
+      - id: propagatesolutions
         source: propagatesolutions
-      - id: solve.stepsize
+      - id: stepsize
         source: stepsize
-      - id: solve.tolerance
+      - id: tolerance
         source: tolerance
-      - id: solve.uvlambdamin
+      - id: uvlambdamin
         source: uvlambdamin
-      - id: solve.smoothnessconstraint
+      - id: smoothnessconstraint
         source: smoothnessconstraint
-    scatter: [msin, msin.starttime, msin.ntimes, solve.h5parm, solve.solint, solve.nchan]
+    scatter: [msin, starttime, ntimes, h5parm, solint, nchan]
     scatterMethod: dotproduct
     out:
       - id: fast_phases_h5parm

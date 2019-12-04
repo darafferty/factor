@@ -1,6 +1,6 @@
 cwlVersion: v1.0
 class: CommandLineTool
-baseCommand: [collect_h5parms, -c]
+baseCommand: [H5parm_collector.py, -c]
 label: "Collects multiple h5parms into one"
 
 requirements:
