@@ -109,7 +109,13 @@ class Operation(object):
 
         # Save the pipeline inputs to a file
         self.set_input_parameters()
-        tmp = '\n'.join(['{0}: {1}'.format(k, v) for k, v in self.input_parms.items()])
+        entries = []
+        for k, v in self.input_parms.items():
+            if type(v) is bool:
+                entries.append("'{}'".format(v))
+            else:
+                entries.append(v)
+        tmp = '\n'.join(entries)
         with open(self.pipeline_inputs_file, 'w') as f:
             f.write(tmp)
 

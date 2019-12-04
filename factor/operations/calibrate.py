@@ -65,7 +65,7 @@ class Calibrate(Operation):
                                                 'calibration_skymodel.sourcedb'))
         smoothnessconstraint = self.field.smoothnessconstraint
         maxiter = self.field.maxiter
-        propagatesolutions = str(self.field.propagatesolutions)
+        propagatesolutions = self.field.propagatesolutions
         stepsize = self.field.stepsize
         tolerance = self.field.tolerance
         uvlambdamin = self.field.solve_min_uv_lambda
