@@ -90,7 +90,7 @@ steps:
         source: starttime
       - id: msin.ntimes
         source: ntimes
-      - id: solve.h5parm
+      - id: solve_h5parm
         source: output_fast_h5parm
       - id: solve.solint
         source: solint_fast_timestep

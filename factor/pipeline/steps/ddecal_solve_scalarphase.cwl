@@ -33,7 +33,7 @@ inputs:
     inputBinding:
       prefix: msin.ntimes=
       separate: False
-  - id: solve.h5parm
+  - id: solve_h5parm
     type: string
     inputBinding:
       prefix: solve.h5parm=
@@ -88,4 +88,4 @@ outputs:
   - id: fast_phases_h5parm
     type: string
     outputBinding:
-      outputEval: $(inputs.solve.h5parm)
+      outputEval: $(inputs.solve_h5parm)
