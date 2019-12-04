@@ -68,7 +68,7 @@ class Calibrate(Operation):
         propagatesolutions = self.field.propagatesolutions
         stepsize = self.field.stepsize
         tolerance = self.field.tolerance
-        uvlambdamin = self.field.uvlambdamin
+        uvlambdamin = self.field.solve_min_uv_lambda
 
         self.input_parms = {'timechunk_filename': timechunk_filename,
                             'freqchunk_filename': freqchunk_filename,
