@@ -12,7 +12,7 @@ log = logging.getLogger('factor:scheduler')
 
 
 def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logbasename,
-              batch_system):
+              batch_system, max_nodes):
     """
     Calls Toil to run the pipeline
 
@@ -34,6 +34,8 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
         Log file base name
     batch_system : str
         Type of batch system to use
+    max_nodes : int
+        Maximum number of nodes to use at once
     """
     from toil.cwl import cwltoil
     from factor.lib.context import RedirectStdStreams
@@ -45,6 +47,7 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
         args.extend(['--disableCaching'])
         args.extend(['--defaultCores', '6'])
         args.extend(['--defaultMemory', '1M'])
+        args.extend(['--maxNodes', '1M'])
     args.extend(['--jobStore', os.path.join(basedir, 'jobstore')])
     args.extend(['--outdir', basedir])
     args.extend(['--workDir', basedir])
@@ -152,7 +155,8 @@ class Scheduler(object):
                         pool.apply_async(call_toil, (op.name,
                                          op.direction.name, op.pipeline_parset_file,
                                          op.pipeline_inputs_file, op.pipeline_working_dir,
-                                         self.scratch_dir, op.logbasename, self.batch_system),
+                                         self.scratch_dir, op.logbasename, self.batch_system,
+                                         self.nops_simul),
                                          callback=self.result_callback)
                                         )
                 pool.close()
