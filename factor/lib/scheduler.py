@@ -12,7 +12,7 @@ log = logging.getLogger('factor:scheduler')
 
 
 def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logbasename,
-              batch_system):
+              batch_system, max_nodes_per_op):
     """
     Calls Toil to run the pipeline
 
@@ -34,6 +34,8 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
         Log file base name
     batch_system : str
         Type of batch system to use
+    max_nodes : int
+        Maximum number of nodes to use at once
     """
     from toil.cwl import cwltoil
 
@@ -44,6 +46,7 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
         args.extend(['--disableCaching'])
         args.extend(['--defaultCores', '6'])
         args.extend(['--defaultMemory', '1M'])
+        args.extend(['--maxNodes', max_nodes_per_op])
     args.extend(['--jobStore', os.path.join(basedir, 'jobstore')])
     args.extend(['--outdir', basedir])
     args.extend(['--workDir', basedir])
@@ -83,6 +86,7 @@ class Scheduler(object):
 
         self.parset = parset['cluster_specific'].copy()
         factor.cluster.check_ulimit(self.parset)
+        self.max_nodes = self.parset['max_nodes']
         self.nops_simul = self.parset['max_nodes']
         self.scratch_dir = self.parset['dir_local']
         self.batch_system = self.parset['batch_system']
@@ -139,6 +143,8 @@ class Scheduler(object):
         while len(self.operation_list) > 0:
             with Timer(log, 'operation'):
                 pool = multiprocessing.Pool(processes=self.nops_simul)
+                max_nodes_per_op = int(round(self.max_nodes /
+                                             min(len(self.operation_list), self.nops_simul)))
                 for op in self.operation_list:
                     op.setup()
 #                     call_toil(op.name,
@@ -148,7 +154,8 @@ class Scheduler(object):
                     pool.apply_async(call_toil, (op.name,
                                      op.direction.name, op.pipeline_parset_file,
                                      op.pipeline_inputs_file, op.pipeline_working_dir,
-                                     self.scratch_dir, op.logbasename, self.batch_system),
+                                     self.scratch_dir, op.logbasename, self.batch_system,
+                                     max_nodes_per_op),
                                      callback=self.result_callback)
                 pool.close()
                 pool.join()
