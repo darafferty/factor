@@ -6,6 +6,11 @@ label: "Combines multiple h5parms into one"
 requirements:
   InlineJavascriptRequirement: {}
 
+
+arguments:
+  - '--rename_from=phase000'
+  - '--rename_to=phase001'
+
 inputs:
   - id: inh5parm1
     type: string

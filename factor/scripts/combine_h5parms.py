@@ -7,7 +7,6 @@ from argparse import RawTextHelpFormatter
 from factor.lib import miscellaneous as misc
 from losoto.h5parm import h5parm
 import scipy.interpolate as si
-import sys
 import os
 
 
@@ -43,7 +42,7 @@ def main(h5parm1, h5parm2, outh5parm, solset1='sol000', solset2='sol000',
         os.remove(outh5parm)
     ho = h5parm(outh5parm, readonly=False)
 
-    sso = ho.makeSolset(solsetName = 'sol000', addTables=False)
+    sso = ho.makeSolset(solsetName='sol000', addTables=False)
 
     if add_values:
         # Figure out which one has finest time grid and interpolate other onto that grid,
@@ -84,6 +83,9 @@ if __name__ == '__main__':
     parser.add_argument('h51', help='name of input h5 1')
     parser.add_argument('h52', help='name of input h5 2')
     parser.add_argument('outh5', help='name of the output h5')
+    parser.add_argument('--rename_from', help='Soltab name', type=str, default=None)
+    parser.add_argument('--rename_to', help='Soltab name', type=str, default=None)
     args = parser.parse_args()
 
-    main(args.h51, args.h52, args.outh5)
+    main(args.h51, args.h52, args.outh5, rename_from=args.rename_from,
+         rename_to=args.rename_to)

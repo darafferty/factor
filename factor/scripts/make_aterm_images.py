@@ -2,6 +2,8 @@
 """
 Script to make a-term images from solutions
 """
+import argparse
+from argparse import RawTextHelpFormatter
 from losoto.h5parm import h5parm
 import lsmtool
 import os
@@ -220,10 +222,6 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
     ra_dec[0][RAind] = bounds_deg[2]
     ra_dec[0][Decind] = bounds_deg[3]
     field_maxxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
-    field_poly = Polygon([[field_minxy[0], field_maxxy[0]],
-                         [field_minxy[0], field_maxxy[1]],
-                         [field_maxxy[0], field_maxxy[1]],
-                         [field_maxxy[0], field_minxy[1]]])
 
     # Generate array of outer points used to constrain the facets
     nouter = 64
@@ -343,7 +341,7 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
                                 if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
                                     A = vals[t+g_start, s, i, 0] - data[t, f, s, int(y), int(x)]
                                     data[t, f, s, :, :] += guassian_image(A, x, y, data.shape[4],
-                                                           data.shape[3], gsize_pix)
+                                                                          data.shape[3], gsize_pix)
             g_start = g_stop
 
             # Write FITS file
@@ -473,3 +471,31 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
         outfile = open(outroot+'.txt', 'w')
         outfile.writelines([o+'\n' for o in outfiles])
         outfile.close()
+
+
+if __name__ == '__main__':
+    descriptiontext = "Make a-term images from solutions.\n"
+
+    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
+    parser.add_argument('h5parmfile', help='Filename of input h5parm')
+    parser.add_argument('--soltabname', help='Soltab name', type=str, default='phase000')
+    parser.add_argument('--outroot', help='Root of output images', type=str, default='')
+    parser.add_argument('--bounds_deg', help='Bounds list in deg', type=str, default=None)
+    parser.add_argument('--bounds_mid_deg', help='Bounds mid list in deg', type=str, default=None)
+    parser.add_argument('--skymodel', help='Filename of sky model', type=str, default=None)
+    parser.add_argument('--solsetname', help='Solset name', type=str, default='sol000')
+    parser.add_argument('--ressoltabname', help='Residual solset name', type=str, default='')
+    parser.add_argument('--padding_fraction', help='Padding fraction', type=float, default=1.4)
+    parser.add_argument('--cellsize_deg', help='Cell size in deg', type=float, default=0.1)
+    parser.add_argument('--smooth_deg', help='Smooth scale in degree', type=float, default=0.0)
+    parser.add_argument('--gsize_deg', help='Gaussian size in degree', type=float, default=0.0)
+    parser.add_argument('--time_avg_factor', help='Averaging factor', type=int, default=1)
+    parser.add_argument('--fasth5parm', help='Filename of input fast h5parm', type=str, default=None)
+    args = parser.parse_args()
+    main(args.h5parmfile, soltabname=args.soltabname, outroot=args.outroot,
+         bounds_deg=args.bounds_deg, bounds_mid_deg=args.bounds_mid_deg,
+         skymodel=args.skymodel, solsetname=args.solsetname,
+         ressoltabname=args.ressoltabname, padding_fraction=args.padding_fraction,
+         cellsize_deg=args.cellsize_deg, smooth_deg=args.smooth_deg,
+         gsize_deg=args.gsize_deg, time_avg_factor=args.time_avg_factor,
+         fasth5parm=args.fasth5parm)
