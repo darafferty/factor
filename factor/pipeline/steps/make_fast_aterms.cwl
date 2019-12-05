@@ -38,14 +38,4 @@ inputs:
       prefix: --bounds_mid_deg=
       separate: false
 
-outputs:
-  - id: aterm_images
-    doc: Output Measurement Set
-    type: string
-    outputBinding:
-      glob: $(inputs.msout_name)
-  - id: aterm_paths_file
-    doc: Output Measurement Set
-    type: string
-    outputBinding:
-      outputEval: $(inputs.outroot)
+outputs: []

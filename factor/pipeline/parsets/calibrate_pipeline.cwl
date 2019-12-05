@@ -195,9 +195,7 @@ steps:
         source: sector_bounds_deg
       - id: sector_bounds_mid_deg
         source: sector_bounds_mid_deg
-    out:
-      - id: aterm_images
-      - id: aterm_paths_file
+    out: []
 
   - id: combine_fast_and_slow_h5parms
     label: combine_fast_and_slow_h5parms
@@ -229,8 +227,6 @@ steps:
         source: sector_bounds_deg
       - id: sector_bounds_mid_deg
         source: sector_bounds_mid_deg
-    out:
-      - id: aterm_images
-      - id: aterm_paths_file
+    out: []
 
 {% endif %}
