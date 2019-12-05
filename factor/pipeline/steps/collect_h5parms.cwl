@@ -11,11 +11,11 @@ inputs:
     type: string[]
     inputBinding:
       position: 0
-      itemSeparator: " "
+      itemSeparator: ","
   - id: outh5parm
     type: string
     inputBinding:
-      prefix: outh5parm=
+      prefix: --outh5parm=
       separate: false
 
 outputs:
