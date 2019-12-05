@@ -172,7 +172,7 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
             fast_axis_names = soltab_fast.getAxesNames()
             fast_time_ind = fast_axis_names.index('time')
             fast_freq_ind = fast_axis_names.index('freq')
-            new_shape = vals.shape
+            new_shape = list(vals.shape)
             new_shape[time_ind] = soltab_fast.val.shape[fast_time_ind]
             new_shape[freq_ind] = soltab_fast.val.shape[fast_freq_ind]
             vals = np.resize(vals, new_shape)
