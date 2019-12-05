@@ -48,7 +48,7 @@ outputs:
     doc: Output aterm images
     type: string
     outputBinding:
-      glob: $(inputs.outroot)*fits
+      glob: $(inputs.outroot)/*.fits
   - id: aterm_paths_file
     doc: Output Measurement Set
     type: string
