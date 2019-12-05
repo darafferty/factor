@@ -45,12 +45,12 @@ inputs:
 
 outputs:
   - id: aterm_images
-    doc: Output Measurement Set
+    doc: Output aterm images
     type: string
     outputBinding:
-      glob: $(inputs.msout_name)
+      glob: $(inputs.outroot)*fits
   - id: aterm_paths_file
     doc: Output Measurement Set
     type: string
     outputBinding:
-      outputEval: $(inputs.outroot)
+      outputEval: $(inputs.outroot).txt
