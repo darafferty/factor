@@ -164,17 +164,28 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
         freqs_fast = soltab_fast.freq
 
         # Interpolate the slow gains to the fast times and frequencies
-        axis_names = soltab.getAxesNames()  # assume both have same axes
+        axis_names = soltab.getAxesNames()
         time_ind = axis_names.index('time')
         freq_ind = axis_names.index('freq')
-        f = si.interp1d(times, vals, axis=time_ind, kind='linear', fill_value='extrapolate')
-        vals = f(times_fast)
-        f = si.interp1d(freqs, vals, axis=freq_ind, kind='linear', fill_value='extrapolate')
-        vals = f(freqs_fast)
-        f = si.interp1d(times, vals_ph, axis=time_ind, kind='linear', fill_value='extrapolate')
-        vals_ph = f(times_fast)
-        f = si.interp1d(freqs, vals_ph, axis=freq_ind, kind='linear', fill_value='extrapolate')
-        vals_ph = f(freqs_fast)
+        if len(times) == 1:
+            # If just a single time, we just repeat the values as needed
+            fast_axis_names = soltab_fast.getAxesNames()
+            fast_time_ind = fast_axis_names.index('time')
+            fast_freq_ind = fast_axis_names.index('freq')
+            new_shape = vals.shape
+            new_shape[time_ind] = soltab_fast.val.shape[fast_time_ind]
+            new_shape[freq_ind] = soltab_fast.val.shape[fast_freq_ind]
+            vals = np.resize(vals, new_shape)
+            vals_ph = np.resize(vals, new_shape)
+        else:
+            f = si.interp1d(times, vals, axis=time_ind, kind='linear', fill_value='extrapolate')
+            vals = f(times_fast)
+            f = si.interp1d(freqs, vals, axis=freq_ind, kind='linear', fill_value='extrapolate')
+            vals = f(freqs_fast)
+            f = si.interp1d(times, vals_ph, axis=time_ind, kind='linear', fill_value='extrapolate')
+            vals_ph = f(times_fast)
+            f = si.interp1d(freqs, vals_ph, axis=freq_ind, kind='linear', fill_value='extrapolate')
+            vals_ph = f(freqs_fast)
         for p in range(2):
             vals_ph[:, :, :, :, p] += soltab_fast.val
         freqs = freqs_fast
