@@ -46,7 +46,7 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
         args.extend(['--disableCaching'])
         args.extend(['--defaultCores', '6'])
         args.extend(['--defaultMemory', '1M'])
-        args.extend(['--maxNodes', max_nodes_per_op])
+        args.extend(['--maxNodes', str(max_nodes_per_op)])
     args.extend(['--jobStore', os.path.join(basedir, 'jobstore')])
     args.extend(['--outdir', basedir])
     args.extend(['--workDir', basedir])
