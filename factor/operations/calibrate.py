@@ -73,8 +73,8 @@ class Calibrate(Operation):
         stepsize = self.field.stepsize
         tolerance = self.field.tolerance
         uvlambdamin = self.field.solve_min_uv_lambda
-        sector_bounds_deg = self.field.sector_bounds_deg
-        sector_bounds_mid_deg = self.field.sector_bounds_mid_deg
+        sector_bounds_deg = "'{}'".format(self.field.sector_bounds_deg)
+        sector_bounds_mid_deg = "'{}'".format(self.field.sector_bounds_mid_deg)
         self.output_aterms_root = str(os.path.join(self.pipeline_working_dir,
                                                    'diagonal_aterms'))
         self.combined_h5parms = str(os.path.join(self.pipeline_working_dir,
@@ -180,9 +180,9 @@ class Calibrate(Operation):
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))
         misc.create_directory(dst_dir)
         self.field.h5parm_filename = os.path.join(dst_dir, 'field-solutions.h5')
-        if os.path.exists(dst):
-            os.remove(dst)
+        if os.path.exists(self.field.h5parm_filename):
+            os.remove(self.field.h5parm_filename)
         if self.field.do_slowgain_solve:
-            os.system('cp {0} {1}'.format(self.combined_fast_h5parm, dst))
+            os.system('cp {0} {1}'.format(self.combined_fast_h5parm, self.field.h5parm_filename))
         else:
-            os.system('cp {0} {1}'.format(self.combined_fast_h5parm, dst))
+            os.system('cp {0} {1}'.format(self.combined_fast_h5parm, self.field.h5parm_filename))

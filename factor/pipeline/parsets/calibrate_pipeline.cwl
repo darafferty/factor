@@ -202,9 +202,9 @@ steps:
     label: combine_fast_and_slow_h5parms
     run: {{ factor_pipeline_dir }}/steps/combine_h5parms.cwl
     in:
-      - id: slowh5parm
+      - id: inh5parm1
         source: combine_slow_gains/outh5parm
-      - id: fasth5parm
+      - id: inh5parm2
         source: combine_fast_phases/outh5parm
       - id: outh5parm
         source: combined_h5parms
