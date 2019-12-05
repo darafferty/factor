@@ -21,7 +21,7 @@ inputs:
       position: 2
 
 outputs:
-  - id: outh5parm
+  - id: combinedh5parm
     type: string
     outputBinding:
       outputEval: $(inputs.outh5parm)

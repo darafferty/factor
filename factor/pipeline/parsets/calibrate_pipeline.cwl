@@ -195,8 +195,7 @@ steps:
         source: sector_bounds_deg
       - id: sector_bounds_mid_deg
         source: sector_bounds_mid_deg
-    out:
-      - id: aterms
+    out: []
 
   - id: combine_fast_and_slow_h5parms
     label: combine_fast_and_slow_h5parms
@@ -209,7 +208,7 @@ steps:
       - id: outh5parm
         source: combined_h5parms
     out:
-      - id: outh5parm
+      - id: combinedh5parm
 
 {% else %}
 # Don't solve for slow gains
@@ -228,7 +227,6 @@ steps:
         source: sector_bounds_deg
       - id: sector_bounds_mid_deg
         source: sector_bounds_mid_deg
-    out:
-      - id: aterms
+    out: []
 
 {% endif %}
