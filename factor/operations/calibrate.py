@@ -48,8 +48,8 @@ class Calibrate(Operation):
         output_fast_h5parm = [str(os.path.join(self.pipeline_working_dir,
                               'fast_phase_{}.h5parm'.format(i)))
                               for i in range(self.field.ntimechunks)]
-        combined_fast_h5parm = os.path.join(self.pipeline_working_dir,
-                                            'fast_phases.h5parm')
+        self.combined_fast_h5parm = os.path.join(self.pipeline_working_dir,
+                                                 'fast_phases.h5parm')
         output_fast_core_h5parm = [str(os.path.join(self.pipeline_working_dir,
                                    'fast_phase_core_{}.h5parm'.format(i)))
                                    for i in range(self.field.ntimechunks)]
@@ -59,8 +59,8 @@ class Calibrate(Operation):
         output_slow_h5parm = [str(os.path.join(self.pipeline_working_dir,
                               'slow_gain_{}.h5parm'.format(i)))
                               for i in range(self.field.nfreqchunks)]
-        combined_slow_h5parm = os.path.join(self.pipeline_working_dir,
-                                            'slow_gains.h5parm')
+        self.combined_slow_h5parm = os.path.join(self.pipeline_working_dir,
+                                                 'slow_gains.h5parm')
         baselines_core = self.get_baselines_core()
         antennaconstraint_core = '[[{}]]'.format(','.join(self.get_superterp_stations()))
         antennaconstraint_remote = '[[{}]]'.format(','.join(self.get_core_stations()))
@@ -73,6 +73,12 @@ class Calibrate(Operation):
         stepsize = self.field.stepsize
         tolerance = self.field.tolerance
         uvlambdamin = self.field.solve_min_uv_lambda
+        sector_bounds_deg = self.field.sector_bounds_deg
+        sector_bounds_mid_deg = self.field.sector_bounds_mid_deg
+        self.output_aterms_root = str(os.path.join(self.pipeline_working_dir,
+                                                   'diagonal_aterms'))
+        self.combined_h5parms = str(os.path.join(self.pipeline_working_dir,
+                                                 'combined_solutions.h5'))
 
         self.input_parms = {'timechunk_filename': timechunk_filename,
                             'freqchunk_filename': freqchunk_filename,
@@ -87,9 +93,9 @@ class Calibrate(Operation):
                             'solint_fast_freqstep': solint_fast_freqstep,
                             'solint_slow_freqstep': solint_slow_freqstep,
                             'output_fast_h5parm': output_fast_h5parm,
-                            'combined_fast_h5parm': combined_fast_h5parm,
+                            'combined_fast_h5parm': self.combined_fast_h5parm,
                             'output_slow_h5parm': output_slow_h5parm,
-                            'combined_slow_h5parm': combined_slow_h5parm,
+                            'combined_slow_h5parm': self.combined_slow_h5parm,
                             'calibration_skymodel_file': calibration_skymodel_file,
                             'calibration_sourcedb': calibration_sourcedb,
                             'smoothnessconstraint': smoothnessconstraint,
@@ -97,7 +103,11 @@ class Calibrate(Operation):
                             'propagatesolutions': propagatesolutions,
                             'stepsize': stepsize,
                             'tolerance': tolerance,
-                            'uvlambdamin': uvlambdamin}
+                            'uvlambdamin': uvlambdamin,
+                            'sector_bounds_deg': sector_bounds_deg,
+                            'sector_bounds_mid_deg': sector_bounds_mid_deg,
+                            'output_aterms_root': self.output_aterms_root,
+                            'combined_h5parms': self.combined_h5parms}
 
     def get_baselines_core(self):
         """
@@ -162,33 +172,17 @@ class Calibrate(Operation):
         """
         Finalize this operation
         """
-        # Save output mapfiles for later use
-        if self.field.do_slowgain_solve:
-            self.field.h5parm_filename = glob.glob(os.path.join(self.pipeline_working_dir,
-                                                                'combined_solutions.h5'))
-        else:
-            self.field.h5parm_filename = glob.glob(os.path.join(self.pipeline_working_dir,
-                                                                'fast_phases.h5'))
-        self.field.fast_aterms_filename = glob.glob(os.path.join(self.pipeline_working_dir,
-                                                                 'fast_aterms*fits'))
-        self.field.slow_aterms_filename = glob.glob(os.path.join(self.pipeline_working_dir,
-                                                                 'slow_aterms*fits'))
+        # Get the filenames of the aterm images
+        with open(self.output_aterms_root+'.txt', 'r') as f:
+            self.field.aterm_image_filenames = f.readlines()
 
         # Save the solutions
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))
         misc.create_directory(dst_dir)
-        dst = os.path.join(dst_dir, 'field-solutions.h5')
+        self.field.h5parm_filename = os.path.join(dst_dir, 'field-solutions.h5')
         if os.path.exists(dst):
             os.remove(dst)
-        os.system('cp {0} {1}'.format(self.field.h5parm_filename, dst))
-
-#         dst = os.path.join(dst_dir, 'fast_aterms.fits')
-#         if os.path.exists(dst):
-#             os.remove(dst)
-#         sol_map = DataMap.load(self.field.fast_aterms_mapfile)
-#         os.system('cp {0} {1}'.format(sol_map[0].file, dst))
-#         dst = os.path.join(dst_dir, 'slow_aterms.fits')
-#         if os.path.exists(dst):
-#             os.remove(dst)
-#         sol_map = DataMap.load(self.field.slow_aterms_mapfile)
-#         os.system('cp {0} {1}'.format(sol_map[0].file, dst))
+        if self.field.do_slowgain_solve:
+            os.system('cp {0} {1}'.format(self.combined_fast_h5parm, dst))
+        else:
+            os.system('cp {0} {1}'.format(self.combined_fast_h5parm, dst))
