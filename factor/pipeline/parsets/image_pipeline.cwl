@@ -18,6 +18,8 @@ inputs:
     type: int[]
   - id: image_timestep
     type: int[]
+  - id: mask_filename
+    type: string
   - id: phasecenter
     type: string
   - id: ra
@@ -25,19 +27,21 @@ inputs:
   - id: dec
     type: float
   - id: image_name
-    type: str
+    type: string
   - id: cellsize_deg
     type: float
   - id: wsclean_imsize
-    type: str
+    type: string
   - id: vertices_file
     type: string
   - id: region_file
-    type: str
+    type: string
+  - id: aterms_config_file
+    type: string
   - id: aterm_image_filenames
-    type: str
+    type: string
   - id: use_beam
-    type: str
+    type: string
   - id: channels_out
     type: int
   - id: wsclean_niter
@@ -51,15 +55,15 @@ inputs:
   - id: max_uv_lambda
     type: float
   - id: multiscale_scales_pixel
-    type: str
+    type: string
   - id: local_dir
-    type: str
+    type: string
   - id: taper_arcsec
     type: float
   - id: auto_mask
     type: float
   - id: idg_mode
-    type: str
+    type: string
   - id: threshisl
     type: float
   - id: threshpix
@@ -98,7 +102,7 @@ steps:
       - id: imagefile
         source: prepare_imaging_data/msimg
       - id: maskfile
-        source: sector_model_filename
+        source: mask_filename
       - id: wsclean_imsize
         source: wsclean_imsize
       - id: vertices_file
@@ -181,7 +185,7 @@ steps:
       - id: input_skymodel_pb
         source: image/skymodel_pb
       - id: output_root
-        source: output_skymodel_root
+        source: image_name
       - id: threshisl
         source: threshisl
       - id: threshpix

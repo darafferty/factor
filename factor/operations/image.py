@@ -33,8 +33,10 @@ class Image(Operation):
             obs_filename = self.direction.get_obs_parameters('ms_subtracted_filename')
         else:
             obs_filename = self.direction.get_obs_parameters('ms_filename')
-        self.image_name = os.path.join(self.pipeline_working_dir, self.direction.name)
+        self.image_root = os.path.join(self.pipeline_working_dir, self.direction.name)
         prepare_filename = [of+'.prep' for of in obs_filename]
+        mask_filename = self.image_name + '_mask.fits'
+        aterms_config_file = self.image_name + '_aterm.cfg'
         image_freqstep = self.direction.get_obs_parameters('image_freqstep')
         image_timestep = self.direction.get_obs_parameters('image_timestep')
         starttime = []
@@ -51,6 +53,8 @@ class Image(Operation):
 
         self.input_parms = {'obs_filename': obs_filename,
                             'prepare_filename': prepare_filename,
+                            'mask_filename': mask_filename,
+                            'aterms_config_file': aterms_config_file,
                             'starttime': starttime,
                             'ntimes': ntimes,
                             'aterm_image_filenames': aterm_image_filenames,
@@ -59,7 +63,7 @@ class Image(Operation):
                             'image_timestep': image_timestep,
                             'channels_out': self.direction.wsclean_nchannels,
                             'phasecenter': phasecenter,
-                            'image_name': self.image_name,
+                            'image_name': self.image_root,
                             'ra': self.direction.ra,
                             'dec': self.direction.dec,
                             'wsclean_imsize': self.direction.wsclean_imsize,
@@ -86,13 +90,13 @@ class Image(Operation):
         # Save output FITS image and model
         # NOTE: currently, -save-source-list only works with pol=I -- when it works with other
         # pols, save all pols
-        self.direction.I_image_file = self.image_name + '-MFS-image-pb.fits'
-        self.direction.I_model_file = self.image_name + '-MFS-model-pb.fits'
+        self.direction.I_image_file = self.image_root + '-MFS-image-pb.fits'
+        self.direction.I_model_file = self.image_root + '-MFS-model-pb.fits'
 
         # The sky models, both true sky and apparent sky (the filenames are defined
         # in the factor/scripts/filter_skymodel.py file)
-        self.direction.image_skymodel_file_true_sky = self.image_name + '.true_sky'
-        self.direction.image_skymodel_file_apparent_sky = self.image_name + '.apparent_sky'
+        self.direction.image_skymodel_file_true_sky = self.image_root + '.true_sky'
+        self.direction.image_skymodel_file_apparent_sky = self.image_root + '.apparent_sky'
 
         # Symlink to datasets and remove old ones
 #         dst_dir = os.path.join(self.parset['dir_working'], 'datasets', self.direction.name)
