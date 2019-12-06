@@ -20,7 +20,7 @@ arguments:
   - predict.usebeammodel=True
   - predict.beammode=array_factor
   - predict.onebeamperpatch=True
-  - msout.storagemanager="Dysco"
+  - msout.storagemanager=Dysco
   - msout.storagemanager.databitrate=0
 
 inputs:

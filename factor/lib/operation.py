@@ -56,6 +56,9 @@ class Operation(object):
                                                  self.direction.name)
         misc.create_directory(self.pipeline_working_dir)
 
+        # Temp directory (local to the nodes)
+        self.temp_dir = self.parset['cluster_specific']['dir_local']
+
         # Directory that holds the pipeline logs in a convenient place
         self.log_dir = os.path.join(self.factor_working_dir, 'logs', self.name)
         misc.create_directory(self.log_dir)

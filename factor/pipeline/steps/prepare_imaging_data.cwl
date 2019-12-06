@@ -1,7 +1,7 @@
 cwlVersion: v1.0
 class: CommandLineTool
 baseCommand: [DPPP]
-label: "Calibrates a dataset using DDECal"
+label: "Prepares a dataset for imaging"
 
 requirements:
   InlineJavascriptRequirement: {}
@@ -11,19 +11,10 @@ arguments:
   - msin.datacolumn=DATA
   - msout.overwrite=True
   - msout.writefullresflag=False
-  - steps=[predict]
-  - predict.type=h5parmpredict
-  - predict.operation=replace
-  - predict.applycal.correction=phase000
-  - predict.applycal.steps=[slowamp,slowphase,fastphase]
-  - predict.applycal.slowamp.correction=amplitude000
-  - predict.applycal.slowphase.correction=phase000
-  - predict.applycal.fastphase.correction=phase001
-  - predict.usebeammodel=True
-  - predict.beammode=array_factor
-  - predict.onebeamperpatch=True
+  - steps=[shift,avg]
+  - shift.type=phaseshifter
+  - avg.type=squash
   - msout.storagemanager=Dysco
-  - msout.storagemanager.databitrate=0
 
 inputs:
   - id: msin
@@ -46,24 +37,24 @@ inputs:
     inputBinding:
       prefix: msin.ntimes=
       separate: False
-  - id: h5parm
+  - id: phasecenter
     type: string
     inputBinding:
-      prefix: predict.applycal.parmdb=
+      prefix: shift.phasecenter=
       separate: False
-  - id: sourcedb
-    type: string
+  - id: freqstep
+    type: int
     inputBinding:
-      prefix: predict.sourcedb=
+      prefix: avg.freqstep=
       separate: False
-  - id: directions
-    type: string
+  - id: timestep
+    type: int
     inputBinding:
-      prefix: predict.directions=
+      prefix: avg.timestep=
       separate: False
 
 outputs:
-  - id: msmod
+  - id: msimg
     type: string
     outputBinding:
       outputEval: $(inputs.msout)

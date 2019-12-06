@@ -4,8 +4,7 @@ Module that holds the Image class
 import os
 import logging
 from factor.lib.operation import Operation
-from lofarpipe.support.data_map import DataMap
-from lofarpipe.support.utilities import create_directory
+from factor.lib import miscellaneous as misc
 
 log = logging.getLogger('factor:image')
 
@@ -15,37 +14,67 @@ class Image(Operation):
     Operation to image a field sector
     """
     def __init__(self, field, sector, index):
-        name = 'Image_{0}'.format(index)
-        super(Image, self).__init__(field, direction=sector, name=name)
-        self.index = index
+        super(Image, self).__init__(field, direction=sector, name='image', index=index)
 
-        # Set the pipeline parset to use
-        self.pipeline_parset_template = 'image_pipeline.parset'
+    def set_parset_parameters(self):
+        """
+        Define parameters needed for the pipeline parset template
+        """
+        self.parset_parms = {'factor_pipeline_dir': self.factor_pipeline_dir,
+                             'do_slowgain_solve': self.field.do_slowgain_solve,
+                             'use_beam': self.field.use_beam}
 
-        # Define extra parameters needed for this operation
-        if len(field.sectors) > 1:
+    def set_input_parameters(self):
+        """
+        Define the pipeline inputs
+        """
+        if len(self.field.sectors) > 1:
             # Use the model-subtracted data for this sector
-            obs_filename = sector.get_obs_parameters('ms_subtracted_filename')
+            obs_filename = self.direction.get_obs_parameters('ms_subtracted_filename')
         else:
-            obs_filename = sector.get_obs_parameters('ms_filename')
-        image_freqstep = sector.get_obs_parameters('image_freqstep')
-        image_timestep = sector.get_obs_parameters('image_timestep')
+            obs_filename = self.direction.get_obs_parameters('ms_filename')
+        prepare_filename = [of+'.prep' for of in obs_filename]
+        image_freqstep = self.direction.get_obs_parameters('image_freqstep')
+        image_timestep = self.direction.get_obs_parameters('image_timestep')
         starttime = []
         ntimes = []
-        for obs in field.observations:
+        for obs in self.field.observations:
             starttime.append(obs.convert_mjd(obs.starttime))
             ntimes.append(obs.numsamples)
+        phasecenter = '{0} {1}'.format(self.direction.ra, self.direction.dec)
+        if self.temp_dir is None:
+            local_dir = self.pipeline_working_dir
+        else:
+            local_dir = self.temp_dir
 
-        self.parms_dict.update({'obs_filename': obs_filename,
-                                'starttime': starttime,
-                                'ntimes': ntimes,
-                                'h5parm_mapfile': field.h5parm_mapfile,
-                                'fast_aterms_mapfile': field.fast_aterms_mapfile,
-                                'slow_aterms_mapfile': field.slow_aterms_mapfile,
-                                'do_slowgain_solve': field.do_slowgain_solve,
-                                'image_freqstep': image_freqstep,
-                                'image_timestep': image_timestep,
-                                'channels_out': sector.wsclean_nchannels})
+        self.input_parms = {'obs_filename': obs_filename,
+                            'prepare_filename': prepare_filename,
+                            'starttime': starttime,
+                            'ntimes': ntimes,
+                            'aterms_mapfile': field.aterms_mapfile,
+                            'do_slowgain_solve': field.do_slowgain_solve,
+                            'image_freqstep': image_freqstep,
+                            'image_timestep': image_timestep,
+                            'channels_out': sector.wsclean_nchannels,
+                            'phasecenter': phasecenter,
+                            'ra': self.direction.ra,
+                            'dec': self.direction.dec,
+                            'wsclean_imsize': self.direction.wsclean_imsize,
+                            'vertices_file': self.direction.vertices_file,
+                            'region_file': self.direction.region_file,
+                            'use_beam': self.direction.use_beam,
+                            'wsclean_niter': self.direction.wsclean_niter,
+                            'robust': self.direction.robust,
+                            'wsclean_image_padding': self.direction.wsclean_image_padding,
+                            'min_uv_lambda': self.direction.min_uv_lambda,
+                            'max_uv_lambda': self.direction.max_uv_lambda,
+                            'multiscale_scales_pixel': self.direction.multiscale_scales_pixel,
+                            'local_dir': local_dir,
+                            'taper_arcsec': self.direction.taper_arcsec,
+                            'auto_mask': self.direction.auto_mask,
+                            'idg_mode': self.direction.idg_mode,
+                            'threshisl': self.direction.threshisl,
+                            'threshpix': self.direction.threshpix}
 
     def finalize(self):
         """
@@ -83,7 +112,7 @@ class Image(Operation):
 
         # Symlink to datasets and remove old ones
         dst_dir = os.path.join(self.parset['dir_working'], 'datasets', self.direction.name)
-        create_directory(dst_dir)
+        misc.create_directory(dst_dir)
         ms_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
                                            'prepare_imaging_data.mapfile'))
         for ms in ms_map:
