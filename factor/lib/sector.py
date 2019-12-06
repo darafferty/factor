@@ -230,7 +230,7 @@ class Sector(object):
         skymodel.write(self.predict_skymodel_file, clobber=True)
 
         # Save list of patches (directions) in the format written by DDECal in the h5parm
-        self.patches = '[{}]'.format(','.join(['[{}]'.format(p) for p in skymodel.getPatchNames()]))
+        self.patches = '[{}]'.format(','.join(['{}'.format(p) for p in skymodel.getPatchNames()]))
 
         # Find nearest patch to flux-weighted center of the sector sky model
         if not self.is_outlier:
