@@ -249,6 +249,8 @@ def string2list(invar):
     if type(invar) is str:
         if invar.startswith('[') and invar.endswith(']'):
             str_list = [f.strip(' \'\"') for f in invar.strip('[]').split(',')]
+        elif "," in invar:
+            str_list = [f.strip(' \'\"') for f in invar.split(',')]
         else:
             str_list = [invar.strip(' \'\"')]
     elif type(invar) is list:

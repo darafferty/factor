@@ -96,7 +96,7 @@ def convert_mvt2mjd(mvt_str):
     return Time(t).mjd * 3600 * 24
 
 
-def main(msin, msmod, msin_column='DATA', model_column='DATA',
+def main(msin, msmod_list, msin_column='DATA', model_column='DATA',
          out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False,
          reweight=True, starttime=None, solint_sec=None, solint_hz=None,
          weights_colname="CAL_WEIGHT", gainfile="", uvcut_min=80.0, uvcut_max=1e6,
@@ -108,7 +108,7 @@ def main(msin, msmod, msin_column='DATA', model_column='DATA',
     ----------
     msin : str
         Name of MS file from which subtraction will be done
-    msmod: list
+    msmod_list: list
         List of model data MS filenames
     msin_column : str, optional
         Name of input column
@@ -139,7 +139,7 @@ def main(msin, msmod, msin_column='DATA', model_column='DATA',
     uvcut_max = float(uvcut_max)
     uvcut = [uvcut_min, uvcut_max]
     phaseonly = misc.string2bool(phaseonly)
-    model_list = misc.string2list(msmod)
+    model_list = misc.string2list(msmod_list)
 
     # Get the model data filenames. We only use files that contain the root of
     # msin, so that models for other observations are not picked up (starttime
