@@ -33,6 +33,7 @@ class Image(Operation):
             obs_filename = self.direction.get_obs_parameters('ms_subtracted_filename')
         else:
             obs_filename = self.direction.get_obs_parameters('ms_filename')
+        self.image_name = os.path.join(self.pipeline_working_dir, self.direction.name)
         prepare_filename = [of+'.prep' for of in obs_filename]
         image_freqstep = self.direction.get_obs_parameters('image_freqstep')
         image_timestep = self.direction.get_obs_parameters('image_timestep')
@@ -56,8 +57,9 @@ class Image(Operation):
                             'do_slowgain_solve': self.field.do_slowgain_solve,
                             'image_freqstep': image_freqstep,
                             'image_timestep': image_timestep,
-                            'channels_out': sector.wsclean_nchannels,
+                            'channels_out': self.direction.wsclean_nchannels,
                             'phasecenter': phasecenter,
+                            'image_name': self.image_name,
                             'ra': self.direction.ra,
                             'dec': self.direction.dec,
                             'wsclean_imsize': self.direction.wsclean_imsize,
@@ -81,47 +83,28 @@ class Image(Operation):
         """
         Finalize this operation
         """
-        # Save output mapfiles for later use:
-        # The FITS image and model
-        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-                                           'image-MFS-image-pb.fits.mapfile'))
-        self.direction.I_image_file = in_map[0].file
-        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-                                           'image-MFS-model-pb.fits.mapfile'))
-        self.direction.I_model_file = in_map[0].file
+        # Save output FITS image and model
         # NOTE: currently, -save-source-list only works with pol=I -- when it works with other
-        # pols, enable IQUV imaging with the following lines
-#         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-#                                            'image-MFS-I-image-pb.fits.mapfile'))
-#         self.direction.I_image_file = in_map[0].file
-#         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-#                                            'image-MFS-Q-image-pb.fits.mapfile'))
-#         self.direction.Q_image_file = in_map[0].file
-#         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-#                                            'image-MFS-U-image-pb.fits.mapfile'))
-#         self.direction.U_image_file = in_map[0].file
-#         in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-#                                            'image-MFS-V-image-pb.fits.mapfile'))
-#         self.direction.V_image_file = in_map[0].file
+        # pols, save all pols
+        self.direction.I_image_file = self.image_name + '-MFS-image-pb.fits'
+        self.direction.I_model_file = self.image_name + '-MFS-model-pb.fits'
 
         # The sky models, both true sky and apparent sky (the filenames are defined
         # in the factor/scripts/filter_skymodel.py file)
-        in_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-                                           'filter.mapfile'))
-        self.direction.image_skymodel_file_true_sky = in_map[0].file + '.true_sky'
-        self.direction.image_skymodel_file_apparent_sky = in_map[0].file + '.apparent_sky'
+        self.direction.image_skymodel_file_true_sky = self.image_name + '.true_sky'
+        self.direction.image_skymodel_file_apparent_sky = self.image_name + '.apparent_sky'
 
         # Symlink to datasets and remove old ones
-        dst_dir = os.path.join(self.parset['dir_working'], 'datasets', self.direction.name)
-        misc.create_directory(dst_dir)
-        ms_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
-                                           'prepare_imaging_data.mapfile'))
-        for ms in ms_map:
-            dst = os.path.join(dst_dir, os.path.basename(ms.file))
-            os.system('ln -fs {0} {1}'.format(ms.file, dst))
-        if self.index > 1:
-            prev_iter_mapfile_dir = self.pipeline_mapfile_dir.replace('image_{}'.format(self.index),
-                                                                      'image_{}'.format(self.index-1))
-            self.cleanup_mapfiles = [os.path.join(prev_iter_mapfile_dir,
-                                     'prepare_imaging_data.mapfile')]
-        self.cleanup()
+#         dst_dir = os.path.join(self.parset['dir_working'], 'datasets', self.direction.name)
+#         misc.create_directory(dst_dir)
+#         ms_map = DataMap.load(os.path.join(self.pipeline_mapfile_dir,
+#                                            'prepare_imaging_data.mapfile'))
+#         for ms in ms_map:
+#             dst = os.path.join(dst_dir, os.path.basename(ms.file))
+#             os.system('ln -fs {0} {1}'.format(ms.file, dst))
+#         if self.index > 1:
+#             prev_iter_mapfile_dir = self.pipeline_mapfile_dir.replace('image_{}'.format(self.index),
+#                                                                       'image_{}'.format(self.index-1))
+#             self.cleanup_mapfiles = [os.path.join(prev_iter_mapfile_dir,
+#                                      'prepare_imaging_data.mapfile')]
+#         self.cleanup()

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Script to filter a sky model with an image
 """
@@ -182,17 +182,20 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
     parser.add_argument('input_image', help='Filename of input image')
-    parser.add_argument('input_skymodel', help='Filename of input sky model')
+    parser.add_argument('input_skymodel_nonpb', help='Filename of input sky model')
+    parser.add_argument('input_skymodel_pb', help='Filename of input sky model')
     parser.add_argument('output_skymodel', help='Filename of output sky model')
-    parser.add_argument('-i', '--threshisl', help='', type=float, default=3.0)
-    parser.add_argument('-p', '--threshpix', help='', type=float, default=5.0)
-    parser.add_argument('-r', '--rmsbox', help='rms box width and step (e.g., "(60, 20)")',
+    parser.add_argument('--threshisl', help='', type=float, default=3.0)
+    parser.add_argument('--threshpix', help='', type=float, default=5.0)
+    parser.add_argument('--rmsbox', help='rms box width and step (e.g., "(60, 20)")',
                         type=str, default='(60, 20)')
     parser.add_argument('--rmsbox_bright', help='rms box for bright sources, width and step (e.g., "(60, 20)")',
                         type=str, default='(60, 20)')
-    parser.add_argument('-o', '--adaptive_rmsbox', help='use an adaptive rms box', type=bool, default=False)
+    parser.add_argument('--adaptive_rmsbox', help='use an adaptive rms box', type=bool, default=False)
+    parser.add_argument('--beamMS', help='', type=str, default=None)
 
     args = parser.parse_args()
-    main(args.input_image, args.input_skymodel, args.output_skymodel,
+    main(args.input_image, args.input_skymodel_nonpb, args.input_skymodel_pb, args.output_skymodel,
          threshisl=args.threshisl, threshpix=args.threshpix, rmsbox=args.rmsbox,
-         rmsbox_bright=args.rmsbox_bright, adaptive_rmsbox=args.adaptive_rmsbox)
+         rmsbox_bright=args.rmsbox_bright, adaptive_rmsbox=args.adaptive_rmsbox,
+         beamMS=args.beamMS)

@@ -33,6 +33,11 @@ inputs:
     inputBinding:
       position: 2
       itemSeparator: " "
+  - id: name
+    type: string
+    inputBinding:
+      prefix: -name
+      separate: False
   - id: mask
     type: string
     inputBinding:
@@ -109,4 +114,16 @@ inputs:
       prefix: -idg-mode
       separate: False
 
-outputs: []
+outputs:
+  - id: image_nonpb_name
+    type: string
+    outputBinding:
+      outputEval: $(inputs.name)-MFS-image.fits
+  - id: skymodel_nonpb
+    type: string
+    outputBinding:
+      outputEval: $(inputs.name)-sources.txt
+  - id: skymodel_pb
+    type: string
+    outputBinding:
+      outputEval: $(inputs.name)-sources-pb.txt

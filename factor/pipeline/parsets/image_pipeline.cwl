@@ -24,6 +24,8 @@ inputs:
     type: float
   - id: dec
     type: float
+  - id: image_name
+    type: str
   - id: cellsize_deg
     type: float
   - id: wsclean_imsize
@@ -130,7 +132,9 @@ steps:
     run: {{ factor_pipeline_dir }}/steps/wsclean_image.cwl
     in:
       - id: msin
-        source: obs_filename
+        source: prepare_imaging_data/msimg
+      - id: name
+        source: image_name
       - id: mask
         source: premask/maskimg
       - id: config
@@ -161,4 +165,27 @@ steps:
         source: auto_mask
       - id: idg_mode
         source: idg_mode
+    out:
+      - id: image_nonpb_name
+      - id: skymodel_nonpb
+      - id: skymodel_pb
+
+  - id: filter
+    label: filter
+    run: {{ factor_pipeline_dir }}/steps/filter_skymodel.cwl
+    in:
+      - id: input_image
+        source: image/image_nonpb_name
+      - id: input_skymodel_nonpb
+        source: image/skymodel_nonpb
+      - id: input_skymodel_pb
+        source: image/skymodel_pb
+      - id: output_root
+        source: output_skymodel_root
+      - id: threshisl
+        source: threshisl
+      - id: threshpix
+        source: threshpix
+      - id: beamMS
+        source: prepare_imaging_data/msimg
     out: []
