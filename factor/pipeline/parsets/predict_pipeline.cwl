@@ -77,7 +77,7 @@ steps:
         source: make_sourcedb/sourcedb
       - id: directions
         source: sector_patches
-    scatter: [msin, starttime, ntimes, sourcedb, directions]
+    scatter: [msin, msout, starttime, ntimes, sourcedb, directions]
     scatterMethod: dotproduct
     out:
       - id: msmod
