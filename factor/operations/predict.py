@@ -50,7 +50,7 @@ class Predict(Operation):
             sector_patches.extend(sector.get_obs_parameters('patch_names'))
             sector_starttime.extend(sector.get_obs_parameters('predict_starttime'))
             sector_ntimes.extend(sector.get_obs_parameters('predict_ntimes'))
-        sector_patches = "'[{}]'".format(';'.join(sector_patches))  # convert to ;-separated list
+        sector_patches = ["'{}'".format(sp) for sp in sector_patches]
         obs_filename = []
         obs_starttime = []
         obs_infix = []
