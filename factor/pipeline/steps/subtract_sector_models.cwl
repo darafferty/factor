@@ -44,12 +44,12 @@ inputs:
   - id: min_uv_lambda
     type: float
     inputBinding:
-      prefix: --min_uv_lambda=
+      prefix: --uvcut_min=
       separate: False
   - id: max_uv_lambda
     type: float
     inputBinding:
-      prefix: --max_uv_lambda=
+      prefix: --uvcut_max=
       separate: False
   - id: nr_outliers
     type: int
