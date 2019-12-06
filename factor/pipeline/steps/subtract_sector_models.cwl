@@ -17,7 +17,7 @@ inputs:
     inputBinding:
       position: 0
   - id: msmod
-    type: string
+    type: string[]
     inputBinding:
       position: 1
       itemSeparator: ","

@@ -19,9 +19,9 @@ inputs:
   - id: h5parm
     type: string
   - id: sector_skymodel_filename
-    type: string
+    type: string[]
   - id: sector_sourcedb
-    type: string
+    type: string[]
   - id: obs_filename
     type: string[]
   - id: obs_starttime
@@ -102,7 +102,7 @@ steps:
         source: make_sourcedb/sourcedb
       - id: directions
         source: sector_patches
-    scatter: [msin, starttime, ntimes, sourcedb, directions]
+    scatter: [msin, msout, starttime, ntimes, sourcedb, directions]
     scatterMethod: dotproduct
     out:
       - id: msmod
