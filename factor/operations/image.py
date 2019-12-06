@@ -52,7 +52,7 @@ class Image(Operation):
                             'prepare_filename': prepare_filename,
                             'starttime': starttime,
                             'ntimes': ntimes,
-                            'aterm_image_filenames': ,aterm_image_filenames,
+                            'aterm_image_filenames': aterm_image_filenames,
                             'do_slowgain_solve': self.field.do_slowgain_solve,
                             'image_freqstep': image_freqstep,
                             'image_timestep': image_timestep,
