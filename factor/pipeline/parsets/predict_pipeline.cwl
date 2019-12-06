@@ -18,7 +18,7 @@ inputs:
     type: string[]
   - id: h5parm
     type: string
-  - id: sector_skymodel_filename
+  - id: sector_skymodel
     type: string[]
   - id: sector_sourcedb
     type: string[]
@@ -49,7 +49,7 @@ steps:
     run: {{ factor_pipeline_dir }}/steps/make_sourcedb.cwl
     in:
       - id: in
-        source: sector_skymodel_filename
+        source: sector_skymodel
       - id: out
         source: sector_sourcedb
     scatter: [in, out]
