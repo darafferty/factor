@@ -22,34 +22,42 @@ inputs:
       position: 1
       itemSeparator: ","
   - id: obs_starttime
+    type: string
     inputBinding:
       prefix: --starttime=
       separate: False
   - id: solint_sec
+    type: float
     inputBinding:
       prefix: --solint_sec=
       separate: False
   - id: solint_hz
+    type: float
     inputBinding:
       prefix: --solint_hz=
       separate: False
   - id: infix
+    type: string
     inputBinding:
       prefix: --infix=
       separate: False
   - id: min_uv_lambda
+    type: float
     inputBinding:
       prefix: --min_uv_lambda=
       separate: False
   - id: max_uv_lambda
+    type: float
     inputBinding:
       prefix: --max_uv_lambda=
       separate: False
   - id: nr_outliers
+    type: int
     inputBinding:
       prefix: --nr_outliers=
       separate: False
   - id: peel_outliers
+    type: string
     inputBinding:
       prefix: --peel_outliers=
       separate: False
