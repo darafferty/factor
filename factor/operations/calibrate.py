@@ -3,7 +3,6 @@ Module that holds the Calibrate class
 """
 import os
 import logging
-import glob
 from factor.lib.operation import Operation
 from factor.lib import miscellaneous as misc
 

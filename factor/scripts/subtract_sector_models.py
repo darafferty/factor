@@ -1,13 +1,14 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Script to subtract sector model data
 """
+import argparse
+from argparse import RawTextHelpFormatter
 import casacore.tables as pt
 import numpy as np
 import sys
 import os
 import subprocess
-from lofarpipe.support.data_map import DataMap
 from astropy.time import Time
 import dateutil.parser
 from factor.lib import miscellaneous as misc
@@ -95,7 +96,7 @@ def convert_mvt2mjd(mvt_str):
     return Time(t).mjd * 3600 * 24
 
 
-def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
+def main(msin, msmod, msin_column='DATA', model_column='DATA',
          out_column='DATA', nr_outliers=0, use_compression=False, peel_outliers=False,
          reweight=True, starttime=None, solint_sec=None, solint_hz=None,
          weights_colname="CAL_WEIGHT", gainfile="", uvcut_min=80.0, uvcut_max=1e6,
@@ -107,10 +108,8 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     ----------
     msin : str
         Name of MS file from which subtraction will be done
-    mapfile_dir : str
-        Path of current pipeline mapfile directory
-    filename: str
-        Name of mapfile containing model data filenames
+    msmod: list
+        List of model data MS filenames
     msin_column : str, optional
         Name of input column
     model_column : str, optional
@@ -140,17 +139,11 @@ def main(msin, mapfile_dir, filename, msin_column='DATA', model_column='DATA',
     uvcut_max = float(uvcut_max)
     uvcut = [uvcut_min, uvcut_max]
     phaseonly = misc.string2bool(phaseonly)
+    model_list = misc.string2list(msmod)
 
     # Get the model data filenames. We only use files that contain the root of
     # msin, so that models for other observations are not picked up (starttime
     # is also used when a single MS file is used for multiple observations)
-    if msin.endswith('_field'):
-        msin_root = msin.rstrip('_field')
-    else:
-        msin_root = '{0}{1}'.format(msin, infix)
-    mapfile = os.path.join(mapfile_dir, filename)
-    model_map = DataMap.load(mapfile)
-    model_list = [item.file for item in model_map if msin_root in item.file]
     if starttime is not None:
         # Filter the list of models to include only ones for the given times
         nrows_list = []
@@ -579,3 +572,39 @@ def readGainFile(gainfile, ms, nt, nchan, nbl, tarray, nAnt, msname, phaseonly, 
         ant2gainarray1 = ant2gainarray**2
 
     return ant1gainarray1, ant2gainarray1
+
+
+if __name__ == '__main__':
+    descriptiontext = "Make a-term images from solutions.\n"
+
+    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
+    parser.add_argument('msin', help='Filename of input MS data file')
+    parser.add_argument('msmod', help='Filename of input MS model data file', type=str, default='phase000')
+    parser.add_argument('--msin_column', help='Name of msin column', type=str, default='DATA')
+    parser.add_argument('--model_column', help='Name of msmod column', type=str, default='DATA')
+    parser.add_argument('--out_column', help='Name of output column', type=str, default='DATA')
+    parser.add_argument('--nr_outliers', help='Number of outlier sectors', type=int, default=0)
+    parser.add_argument('--use_compression', help='Use compression', type=bool, default=False)
+    parser.add_argument('--peel_outliers', help='Peel outliers', type=bool, default=False)
+    parser.add_argument('--reweight', help='Reweight', type=bool, default=True)
+    parser.add_argument('--starttime', help='Start time in MVT', type=str, default=None)
+    parser.add_argument('--solint_sec', help='Solution interval in s', type=float, default=None)
+    parser.add_argument('--solint_hz', help='Solution interval in Hz', type=float, default=None)
+    parser.add_argument('--weights_colname', help='Name of weight column', type=str, default='CAL_WEIGHT')
+    parser.add_argument('--gainfile', help='Filename of gain file', type=str, default='')
+    parser.add_argument('--uvcut_min', help='Min uv cut in lambda', type=float, default=80.0)
+    parser.add_argument('--uvcut_max', help='Max uv cut in lambda', type=float, default=1e6)
+    parser.add_argument('--phaseonly', help='Reweight with phases only', type=bool, default=True)
+    parser.add_argument('--dirname', help='Name of gain file directory', type=str, default=None)
+    parser.add_argument('--quiet', help='Quiet', type=bool, default=True)
+    parser.add_argument('--infix', help='Infix for output files', type=str, default='')
+    args = parser.parse_args()
+    main(args.msin, args.msmod, msin_column=args.msin_column,
+         model_column=args.model_column, out_column=args.out_column,
+         nr_outliers=args.nr_outliers, use_compression=args.use_compression,
+         peel_outliers=args.peel_outliers, reweight=args.reweight,
+         starttime=args.starttime, solint_sec=args.solint_sec,
+         solint_hz=args.solint_hz, weights_colname=args.weights_colname,
+         gainfile=args.gainfile, uvcut_min=args.uvcut_min,
+         uvcut_max=args.uvcut_max, phaseonly=args.phaseonly,
+         dirname=args.dirname, quiet=args.quiet, infix=args.infix)

@@ -80,7 +80,10 @@ class Operation(object):
         """
         Define parameters needed for the pipeline parset template
 
-        This should be defined in the subclasses as needed
+        The dictionary keys must match the jinja template variables used in the
+        corresponding pipeline parset.
+
+        The entries are defined in the subclasses as needed
         """
         self.parset_parms = {}
 
@@ -88,7 +91,10 @@ class Operation(object):
         """
         Define parameters needed for the pipeline inputs
 
-        This should be defined in the subclasses as needed
+        The dictionary keys must match the workflow inputs defined in the corresponding
+        pipeline parset.
+
+        The entries are defined in the subclasses as needed
         """
         self.input_parms = {}
 

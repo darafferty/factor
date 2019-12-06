@@ -63,11 +63,6 @@ inputs:
   - id: combined_h5parms
     type: string
 
-#outputs:
-#  - id: fast_phases_h5parm
-#    outputSource:
-#      - solve_fast_phases/fast_phases_h5parm
-#    type: string[]
 outputs: []
 
 steps:
