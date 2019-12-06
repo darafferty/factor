@@ -68,15 +68,15 @@ steps:
       - id: msout
         source: sector_model_filename
       - id: starttime
-        source: starttime
+        source: sector_starttime
       - id: ntimes
-        source: ntimes
+        source: sector_ntimes
       - id: h5parm
         source: h5parm
       - id: sourcedb
         source: make_sourcedb/sourcedb
       - id: directions
-        source: sector_directions
+        source: sector_patches
     scatter: [msin, starttime, ntimes, sourcedb, directions]
     scatterMethod: dotproduct
     out:
@@ -93,15 +93,15 @@ steps:
       - id: msout
         source: sector_model_filename
       - id: starttime
-        source: starttime
+        source: sector_starttime
       - id: ntimes
-        source: ntimes
+        source: sector_ntimes
       - id: h5parm
         source: h5parm
       - id: sourcedb
         source: make_sourcedb/sourcedb
       - id: directions
-        source: sector_directions
+        source: sector_patches
     scatter: [msin, starttime, ntimes, sourcedb, directions]
     scatterMethod: dotproduct
     out:
@@ -120,11 +120,11 @@ steps:
       - id: obs_starttime
         source: obs_starttime
       - id: solint_sec
-        source: solint_sec
+        source: obs_solint_sec
       - id: solint_hz
-        source: solint_hz
+        source: obs_solint_hz
       - id: infix
-        source: infix
+        source: obs_infix
       - id: min_uv_lambda
         source: min_uv_lambda
       - id: max_uv_lambda

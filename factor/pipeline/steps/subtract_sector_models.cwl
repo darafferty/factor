@@ -20,6 +20,7 @@ inputs:
     type: string
     inputBinding:
       position: 1
+      itemSeparator: ","
   - id: obs_starttime
     inputBinding:
       prefix: --starttime=
