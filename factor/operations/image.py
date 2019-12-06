@@ -73,6 +73,7 @@ class Image(Operation):
                             'wsclean_niter': self.direction.wsclean_niter,
                             'robust': self.direction.robust,
                             'wsclean_image_padding': self.direction.wsclean_image_padding,
+                            'cellsize_deg': self.direction.cellsize_deg,
                             'min_uv_lambda': self.direction.min_uv_lambda,
                             'max_uv_lambda': self.direction.max_uv_lambda,
                             'multiscale_scales_pixel': self.direction.multiscale_scales_pixel,
