@@ -1,3 +1,5 @@
+cwlVersion: v1.0
+class: CommandLineTool
 baseCommand: [make_aterm_config.py]
 label: "Make an aterms configuration file for use in imaging"
 

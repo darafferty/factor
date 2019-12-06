@@ -1,3 +1,5 @@
+cwlVersion: v1.0
+class: CommandLineTool
 baseCommand: [blank_image.py]
 label: "Make a blank FITS image for use as a clean mask"
 
