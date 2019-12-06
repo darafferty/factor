@@ -35,8 +35,8 @@ class Image(Operation):
             obs_filename = self.direction.get_obs_parameters('ms_filename')
         self.image_root = os.path.join(self.pipeline_working_dir, self.direction.name)
         prepare_filename = [of+'.prep' for of in obs_filename]
-        mask_filename = self.image_name + '_mask.fits'
-        aterms_config_file = self.image_name + '_aterm.cfg'
+        mask_filename = self.image_root + '_mask.fits'
+        aterms_config_file = self.image_root + '_aterm.cfg'
         image_freqstep = self.direction.get_obs_parameters('image_freqstep')
         image_timestep = self.direction.get_obs_parameters('image_timestep')
         starttime = []
