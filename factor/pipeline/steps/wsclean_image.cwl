@@ -99,7 +99,7 @@ inputs:
       prefix: -channels-out
       separate: False
   - id: taper_arcsec
-    type: int
+    type: float
     inputBinding:
       prefix: -taper-gaussian
       separate: False

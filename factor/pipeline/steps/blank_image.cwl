@@ -11,9 +11,10 @@ arguments:
 
 inputs:
   - id: imagefile
-    type: string
+    type: string[]
     inputBinding:
       position: 0
+      itemSeparator: ","
   - id: maskfile
     type: string
     inputBinding:
