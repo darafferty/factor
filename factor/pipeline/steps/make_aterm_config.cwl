@@ -5,15 +5,11 @@ requirements:
   InlineJavascriptRequirement: {}
 
 inputs:
-  - id: msin
-    type: string
-    inputBinding:
-      position: 0
   - id: outfile
     type: string
     inputBinding:
-      position: 1
-  - id: aterms_mapfile
+      position: 0
+  - id: gain_filenames
     type: string
     inputBinding:
       prefix: --gain_mapfile=

@@ -1,43 +1,40 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Script to make an aterm-config file for WSClean
 """
+import argparse
+from argparse import RawTextHelpFormatter
 import sys
-from lofarpipe.support.data_map import DataMap
 from factor.lib import miscellaneous as misc
 
 
-def main(input_file, output_file, tec_mapfile=None, gain_mapfile=None, use_beam=False):
+def main(output_file, tec_filenames=None, gain_filenames=None, use_beam=True):
     """
     Make an aterm-config file for WSClean
 
     Parameters
     ----------
-    input_file : str
-        Filename of input file (not used but needed for pipeline)
     output_file : str
         Filename of output config file
-    tec_mapfile : str, optional
-        Full path to mapfile with TEC images
-    gain_mapfile : str, optional
-        Full path to mapfile with gain images
+    tec_filenames : list, optional
+        List of filenames for TEC images
+    gain_filenames : list, optional
+        List of filenames for gain images
     use_beam : bool, optional
         If True, use the beam with IDG
     """
-    if tec_mapfile is None and gain_mapfile is None:
-        print('make_aterm_config: One of tec_mapfile or gain_mapfile must be specified')
+    if tec_filenames is None and gain_filenames is None:
+        print('make_aterm_config: One of tec_filenames or gain_filenames must be specified')
         sys.exit(1)
     use_beam = misc.string2bool(use_beam)
 
     terms = []
-    if tec_mapfile is not None:
+    if tec_filenames is not None:
         terms.append('tec')
-        tec_map = DataMap.load(tec_mapfile)
-        tec_images = [item.file for item in tec_map]
-    if gain_mapfile is not None:
+        tec_images = misc.string2list(tec_filenames)
+    if gain_filenames is not None:
         terms.append('diagonal')
-        gain_map = DataMap.load(gain_mapfile)
-        gain_images = [item.file for item in gain_map]
+        gain_images = misc.string2list(gain_filenames)
     if use_beam:
         terms.append('beam')
     aterm_str = 'aterms = [{}]\n'.format(', '.join(terms))
@@ -54,3 +51,15 @@ def main(input_file, output_file, tec_mapfile=None, gain_mapfile=None, use_beam=
     config_file = open(output_file, 'w')
     config_file.writelines(lines)
     config_file.close()
+
+if __name__ == '__main__':
+    descriptiontext = "Make an a-term configuration file.\n"
+
+    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
+    parser.add_argument('output_file', help='Filename of output config file')
+    parser.add_argument('--tec_filenames', help='Soltab name', type=str, default=None)
+    parser.add_argument('--gain_filenames', help='Root of output images', type=str, default=None)
+    parser.add_argument('--use_beam', help='Bounds list in deg', type=bool, default=True)
+    args = parser.parse_args()
+    main(args.output_file, tec_filenames=args.tec_filenames,
+         gain_filenames=args.gain_filenames, use_beam=args.use_beam)

@@ -32,7 +32,7 @@ inputs:
     type: string
   - id: region_file
     type: str
-  - id: aterms_mapfile
+  - id: aterm_image_filenames
     type: str
   - id: use_beam
     type: str
@@ -116,12 +116,10 @@ steps:
     label: make_aterm_config
     run: {{ factor_pipeline_dir }}/steps/make_aterm_config.cwl
     in:
-      - id: msin
-        source: prepare_imaging_data/msimg
       - id: outfile
         source: aterms_config_file
-      - id: aterms_mapfile
-        source: aterms_mapfile
+      - id: gain_filenames
+        source: aterm_image_filenames
       - id: use_beam
         source: use_beam
     out:

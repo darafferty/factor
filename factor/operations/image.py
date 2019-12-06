@@ -46,13 +46,14 @@ class Image(Operation):
             local_dir = self.pipeline_working_dir
         else:
             local_dir = self.temp_dir
+        aterm_image_filenames = "'[{}]'".format(','.join(self.field.aterm_image_filenames))
 
         self.input_parms = {'obs_filename': obs_filename,
                             'prepare_filename': prepare_filename,
                             'starttime': starttime,
                             'ntimes': ntimes,
-                            'aterms_mapfile': field.aterms_mapfile,
-                            'do_slowgain_solve': field.do_slowgain_solve,
+                            'aterm_image_filenames': ,aterm_image_filenames,
+                            'do_slowgain_solve': self.field.do_slowgain_solve,
                             'image_freqstep': image_freqstep,
                             'image_timestep': image_timestep,
                             'channels_out': sector.wsclean_nchannels,

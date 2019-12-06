@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Script to blank regions (with zeros or NaNs) in a fits image. Can also be used to make
 a clean mask
@@ -97,10 +97,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
     parser.add_argument('input_image_file', help='Filename of input image')
-    parser.add_argument('vertices_file', help='Filename of vertices file')
     parser.add_argument('output_image_file', help='Filename of output image')
-    parser.add_argument('image_is_wsclean_model', help='True if input is WSClean model root', type=bool, default=False)
-    parser.add_argument('-b', '--blank_value', help='value for blank pixesl', type=str, default='zero')
+    parser.add_argument('--vertices_file', help='Filename of vertices file', type=str, default=None)
+    parser.add_argument('--reference_ra_deg', help='Reference RA', type=float, default=False)
+    parser.add_argument('--reference_dec_deg', help='Reference Dec', type=float, default=False)
+    parser.add_argument('--cellsize_deg', help='Cellsize', type=float, default=None)
+    parser.add_argument('--imsize', help='Image size', type=float, default=None)
+    parser.add_argument('--make_blank_image', help='Make blank image', type=bool, default=True)
+    parser.add_argument('--region_file', help='Filename of region file', type=float, default=None)
     args = parser.parse_args()
-    main(args.input_image_file, args.vertices_file, args.output_image_file,
-         blank_value=args.blank_value, image_is_wsclean_model=args.image_is_wsclean_model)
+    main(args.input_image_file, args.output_image_file, vertices_file=args.vertices_file,
+         reference_ra_deg=args.reference_ra_deg, reference_dec_deg=args.reference_dec_deg,
+         cellsize_deg=args.cellsize_deg, imsize=args.imsize, make_blank_image=args.make_blank_image,
+         region_file=args.region_file)
