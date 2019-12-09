@@ -47,7 +47,7 @@ inputs:
   - id: wsclean_niter
     type: int
   - id: robust
-    type: string
+    type: float
   - id: wsclean_image_padding
     type: float
   - id: min_uv_lambda

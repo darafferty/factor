@@ -37,12 +37,15 @@ arguments:
     prefix: -aterm-kernel-size
   - valueFrom: '8'
     prefix: -nmiter
+  - valueFrom: 'briggs'
+    prefix: -weight
+    position: 1
 
 inputs:
   - id: msin
     type: string[]
     inputBinding:
-      position: 2
+      position: -1
       itemSeparator: " "
   - id: name
     type: string
@@ -65,9 +68,9 @@ inputs:
     inputBinding:
       prefix: -niter
   - id: robust
-    type: string
+    type: float
     inputBinding:
-      prefix: -weight
+      position: 2
   - id: wsclean_image_padding
     type: float
     inputBinding:
