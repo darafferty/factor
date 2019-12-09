@@ -31,7 +31,7 @@ inputs:
   - id: cellsize_deg
     type: float
   - id: wsclean_imsize
-    type: string
+    type: int[]
   - id: vertices_file
     type: string
   - id: region_file
@@ -47,7 +47,7 @@ inputs:
   - id: wsclean_niter
     type: int
   - id: robust
-    type: float
+    type: string[]
   - id: wsclean_image_padding
     type: float
   - id: min_uv_lambda
