@@ -50,7 +50,7 @@ class Image(Operation):
         else:
             local_dir = self.temp_dir
         multiscale_scales_pixel = "'{}'".format(self.direction.multiscale_scales_pixel)
-        robust = ['briggs', self.direction.robust]
+        robust = ['briggs', "'{}'".format(self.direction.robust)]
 
         # The following attribute was set by the preceding calibrate operation
         aterm_image_filenames = "'[{}]'".format(','.join(self.field.aterm_image_filenames))
