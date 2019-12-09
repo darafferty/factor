@@ -77,7 +77,7 @@ class Image(Operation):
                             'cellsize_deg': self.direction.cellsize_deg,
                             'min_uv_lambda': self.direction.min_uv_lambda,
                             'max_uv_lambda': self.direction.max_uv_lambda,
-                            'multiscale_scales_pixel': self.direction.multiscale_scales_pixel,
+                            'multiscale_scales_pixel': multiscale_scales_pixel,
                             'local_dir': local_dir,
                             'taper_arcsec': self.direction.taper_arcsec,
                             'auto_mask': self.direction.auto_mask,
