@@ -70,7 +70,7 @@ class Image(Operation):
                             'image_name': self.image_root,
                             'ra': self.direction.ra,
                             'dec': self.direction.dec,
-                            'wsclean_imsize': self.imsize,
+                            'wsclean_imsize': self.direction.imsize,
                             'vertices_file': self.direction.vertices_file,
                             'region_file': self.direction.region_file,
                             'use_beam': self.direction.use_beam,
