@@ -72,7 +72,6 @@ inputs:
   - id: robust
     type: float
     inputBinding:
-      prefix: -weight
       position: 2
   - id: wsclean_image_padding
     type: float
