@@ -49,8 +49,10 @@ class Image(Operation):
             local_dir = self.pipeline_working_dir
         else:
             local_dir = self.temp_dir
-        aterm_image_filenames = "'[{}]'".format(','.join(self.field.aterm_image_filenames))
         multiscale_scales_pixel = "'{}'".format(self.direction.multiscale_scales_pixel)
+
+        # The following attribute was set by the preceding calibrate operation
+        aterm_image_filenames = "'[{}]'".format(','.join(self.field.aterm_image_filenames))
 
         self.input_parms = {'obs_filename': obs_filename,
                             'prepare_filename': prepare_filename,

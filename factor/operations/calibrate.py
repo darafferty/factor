@@ -171,9 +171,10 @@ class Calibrate(Operation):
         """
         Finalize this operation
         """
-        # Get the filenames of the aterm images
+        # Get the filenames of the aterm images (for use in the image operation)
         with open(self.output_aterms_root+'.txt', 'r') as f:
             self.field.aterm_image_filenames = f.readlines()
+        self.field.aterm_image_filenames = [af.strip() for af in self.field.aterm_image_filenames]
 
         # Save the solutions
         dst_dir = os.path.join(self.parset['dir_working'], 'solutions', 'calibrate_{}'.format(self.index))

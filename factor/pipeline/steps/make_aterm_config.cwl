@@ -10,11 +10,11 @@ inputs:
   - id: outfile
     type: string
     inputBinding:
-      position: 0
+      position: 1
   - id: gain_filenames
     type: string
     inputBinding:
-      prefix: --gain_mapfile=
+      prefix: --gain_filenames=
       separate: false
   - id: use_beam
     type: string

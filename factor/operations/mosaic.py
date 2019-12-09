@@ -32,7 +32,7 @@ class Mosaic(Operation):
         for sector in field.sectors:
             sector_image_filename.append(sector.I_image_file)
             sector_vertices_filename.append(sector.vertices_file)
-        # TODO: make mosaic of model + QUV?
+        # TODO: make mosaic of resid, model, and QUV?
 
         self.parms_dict.update({'skip_processing': skip_processing,
                                 'sector_image_filename': sector_image_filename,

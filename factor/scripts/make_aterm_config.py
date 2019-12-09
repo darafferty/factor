@@ -39,9 +39,9 @@ def main(output_file, tec_filenames=None, gain_filenames=None, use_beam=True):
         terms.append('beam')
     aterm_str = 'aterms = [{}]\n'.format(', '.join(terms))
     lines = [aterm_str]
-    if tec_mapfile is not None:
+    if tec_filenames is not None:
         lines.append('tec.images = [{}]\n'.format(' '.join(tec_images)))
-    if gain_mapfile is not None:
+    if gain_filenames is not None:
         lines.append('diagonal.images = [{}]\n'.format(' '.join(gain_images)))
     if use_beam:
         lines.append('beam.differential = true\n')
@@ -51,6 +51,7 @@ def main(output_file, tec_filenames=None, gain_filenames=None, use_beam=True):
     config_file = open(output_file, 'w')
     config_file.writelines(lines)
     config_file.close()
+
 
 if __name__ == '__main__':
     descriptiontext = "Make an a-term configuration file.\n"
