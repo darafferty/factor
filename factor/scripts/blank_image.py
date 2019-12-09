@@ -47,8 +47,8 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
             reference_ra_deg = float(reference_ra_deg)
             reference_dec_deg = float(reference_dec_deg)
             temp_image = output_image + '.tmp'
-            ximsize = int(imsize.split(' ')[0])
-            yimsize = int(imsize.split(' ')[1])
+            ximsize = int(imsize.split(',')[0])
+            yimsize = int(imsize.split(',')[1])
             misc.make_template_image(temp_image, reference_ra_deg, reference_dec_deg,
                                      ximsize=ximsize, yimsize=yimsize,
                                      cellsize_deg=float(cellsize_deg), fill_val=1)

@@ -75,7 +75,7 @@ class Image(Operation):
                             'region_file': self.direction.region_file,
                             'use_beam': self.direction.use_beam,
                             'wsclean_niter': self.direction.wsclean_niter,
-                            'robust': robust,
+                            'robust': self.direction.robust,
                             'wsclean_image_padding': self.direction.wsclean_image_padding,
                             'cellsize_deg': self.direction.cellsize_deg,
                             'min_uv_lambda': self.direction.min_uv_lambda,

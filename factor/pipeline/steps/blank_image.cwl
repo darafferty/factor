@@ -23,6 +23,7 @@ inputs:
     type: int[]
     inputBinding:
       prefix: --imsize=
+      valueFrom: $(self[0]),$(self[1])
       separate: false
   - id: vertices_file
     type: string
