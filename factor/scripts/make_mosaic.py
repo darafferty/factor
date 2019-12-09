@@ -62,7 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('input_image_list', help='Filenames of input image')
     parser.add_argument('template_image', help='Filename of input template image')
     parser.add_argument('output_image', help='Filename of output template image')
-    parser.add_argument('--skip', help='Skip processing', type=bool, default=False)
+    parser.add_argument('--skip', help='Skip processing', type=str, default='False')
     args = parser.parse_args()
     main(args.input_image_list, args.template_image, args.output_image,
          skip=args.skip)

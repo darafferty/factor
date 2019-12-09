@@ -58,9 +58,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
     parser.add_argument('output_file', help='Filename of output config file')
-    parser.add_argument('--tec_filenames', help='Soltab name', type=str, default=None)
-    parser.add_argument('--gain_filenames', help='Root of output images', type=str, default=None)
-    parser.add_argument('--use_beam', help='Bounds list in deg', type=bool, default=True)
+    parser.add_argument('--tec_filenames', help='Filenames of TEC aterm images', type=str, default=None)
+    parser.add_argument('--gain_filenames', help='Filenames of gain aterm images', type=str, default=None)
+    parser.add_argument('--use_beam', help='Use beam model', type=str, default='True')
     args = parser.parse_args()
     main(args.output_file, tec_filenames=args.tec_filenames,
          gain_filenames=args.gain_filenames, use_beam=args.use_beam)

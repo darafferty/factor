@@ -80,7 +80,7 @@ if __name__ == '__main__':
     parser.add_argument('template_image', help='Filenames of input template image')
     parser.add_argument('vertices_file', help='Filename of input vertices files')
     parser.add_argument('output_image', help='Filename of output regridded image')
-    parser.add_argument('--skip', help='Skip processing', type=bool, default=False)
+    parser.add_argument('--skip', help='Skip processing', type=str, default='False')
     args = parser.parse_args()
     main(args.input_image, args.template_image, args.vertices_file, args.output_image,
          skip=args.skip)

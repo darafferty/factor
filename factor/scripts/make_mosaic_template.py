@@ -94,7 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('input_image_list', help='Filenames of input image')
     parser.add_argument('vertices_file_list', help='Filenames of input vertices files')
     parser.add_argument('output_image', help='Filename of output template image')
-    parser.add_argument('--skip', help='Skip processing', type=bool, default=False)
+    parser.add_argument('--skip', help='Skip processing', type=str, default='False')
     parser.add_argument('--padding', help='Padding factor', type=float, default=1.2)
     args = parser.parse_args()
     main(args.input_image_list, args.vertices_file_list, args.output_image,

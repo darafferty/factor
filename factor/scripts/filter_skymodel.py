@@ -191,7 +191,7 @@ if __name__ == '__main__':
                         type=str, default='(60, 20)')
     parser.add_argument('--rmsbox_bright', help='rms box for bright sources, width and step (e.g., "(60, 20)")',
                         type=str, default='(60, 20)')
-    parser.add_argument('--adaptive_rmsbox', help='use an adaptive rms box', type=bool, default=False)
+    parser.add_argument('--adaptive_rmsbox', help='use an adaptive rms box', type=str, default='False')
     parser.add_argument('--beamMS', help='', type=str, default=None)
 
     args = parser.parse_args()
