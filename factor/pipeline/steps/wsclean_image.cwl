@@ -7,25 +7,25 @@ requirements:
   InlineJavascriptRequirement: {}
 
 arguments:
-  - '-no-update-model-required'
-  - '-multiscale'
-  - '-fit-beam'
-  - '-reorder'
-  - '-save-source-list'
-  - '-local-rms'
-  - '-join-channels'
-  - '-use-idg'
-  - '-pol I'
-  - '-mgain 0.6'
-  - '-deconvolution-channels 5'
-  - '-fit-spectral-pol 4'
-  - '-multiscale-shape gaussian'
-  - '-weighting-rank-filter 3'
-  - '-auto-threshold 1.0'
-  - '-local-rms-window 50'
-  - '-local-rms-method rms-with-min'
-  - '-aterm-kernel-size 32'
-  - '-nmiter 8'
+  - -no-update-model-required
+  - -multiscale
+  - -fit-beam
+  - -reorder
+  - -save-source-list
+  - -local-rms
+  - -join-channels
+  - -use-idg
+  - -pol I
+  - -mgain 0.6
+  - -deconvolution-channels 5
+  - -fit-spectral-pol 4
+  - -multiscale-shape gaussian
+  - -weighting-rank-filter 3
+  - -auto-threshold 1.0
+  - -local-rms-window 50
+  - -local-rms-method rms-with-min
+  - -aterm-kernel-size 32
+  - -nmiter 8
 
 inputs:
   - id: msin
