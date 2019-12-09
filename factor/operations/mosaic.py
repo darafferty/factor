@@ -64,10 +64,3 @@ class Mosaic(Operation):
 
         # TODO: make mosaic of model + QUV?
 #         self.field_model_filename = os.path.join(dst_dir, 'field-MFS-I-model.fits')
-
-        # Delete temp data
-        self.cleanup_mapfiles = [os.path.join(self.pipeline_mapfile_dir,
-                                 'regrid_image.mapfile'),
-                                 os.path.join(self.pipeline_mapfile_dir,
-                                 'make_mosaic_template.mapfile')]
-        self.cleanup()
