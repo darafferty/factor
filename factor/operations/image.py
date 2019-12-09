@@ -44,7 +44,7 @@ class Image(Operation):
         for obs in self.field.observations:
             starttime.append(obs.convert_mjd(obs.starttime))
             ntimes.append(obs.numsamples)
-        phasecenter = '{0} {1}'.format(self.direction.ra, self.direction.dec)
+        phasecenter = '[{0}deg, {1}deg]'.format(self.direction.ra, self.direction.dec)
         if self.temp_dir is None:
             local_dir = self.pipeline_working_dir
         else:
