@@ -10,19 +10,19 @@ inputs:
   - id: input_image
     type: string
     inputBinding:
-      position: 0
+      position: 1
   - id: input_skymodel_nonpb
     type: string
     inputBinding:
-      position: 1
+      position: 2
   - id: input_skymodel_pb
     type: string
     inputBinding:
-      position: 2
+      position: 3
   - id: output_root
     type: string
     inputBinding:
-      position: 3
+      position: 4
   - id: threshisl
     type: float
     inputBinding:
@@ -38,5 +38,6 @@ inputs:
     inputBinding:
       prefix: --beamMS=
       itemSeparator: ","
+      separate: false
 
 outputs: []
