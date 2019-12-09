@@ -20,7 +20,7 @@ inputs:
     inputBinding:
       position: 1
   - id: wsclean_imsize
-    type: string
+    type: int[]
     inputBinding:
       prefix: --imsize=
       separate: false
