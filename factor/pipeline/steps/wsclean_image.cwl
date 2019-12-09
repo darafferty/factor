@@ -62,7 +62,7 @@ inputs:
     inputBinding:
       prefix: -aterm-config
   - id: wsclean_imsize
-    type: string
+    type: int[]
     inputBinding:
       prefix: -size
   - id: wsclean_niter
