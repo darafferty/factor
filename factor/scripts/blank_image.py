@@ -100,7 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--reference_ra_deg', help='Reference RA', type=float, default=False)
     parser.add_argument('--reference_dec_deg', help='Reference Dec', type=float, default=False)
     parser.add_argument('--cellsize_deg', help='Cellsize', type=float, default=None)
-    parser.add_argument('--imsize', help='Image size', type=float, default=None)
+    parser.add_argument('--imsize', help='Image size', type=str, default=None)
     parser.add_argument('--make_blank_image', help='Make blank image', type=bool, default=True)
     parser.add_argument('--region_file', help='Filename of region file', type=str, default='[]')
     args = parser.parse_args()
