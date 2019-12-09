@@ -27,8 +27,8 @@ def check_operation(operation):
     pipelines = []
     directions = glob.glob(os.path.join(operation, '*'))
     for d in directions:
-        statefile = os.path.join(d, 'statefile')
-        if os.path.exists(statefile):
+        jobstore = os.path.join(d, 'jobstore')
+        if os.path.exists(jobstore):
             pipelines.append('{0}/{1}'.format(os.path.basename(operation), os.path.basename(d)))
 
     return pipelines
@@ -160,6 +160,6 @@ def run(parset_file):
         if answer.lower() == "y" or answer.lower() == "yes":
             print('Reseting state...')
             for pipeline in pipelines[int(p_number_raw)-1:]:
-                statefile = os.path.join(parset['dir_working'], 'pipelines', pipeline, 'statefile')
-                os.system('rm -f {}'.format(statefile))
+                jobstore = os.path.join(parset['dir_working'], 'pipelines', pipeline, 'jobstore')
+                os.system('rm -rf {}'.format(jobstore))
             print('Reset complete.')

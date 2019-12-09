@@ -10,17 +10,17 @@ inputs:
   - id: input_image_list
     type: string[]
     inputBinding:
-      position: 0
+      position: 1
       itemSeparator: ","
   - id: vertices_file_list
     type: string[]
     inputBinding:
-      position: 1
+      position: 2
       itemSeparator: ","
   - id: output_image
     type: string
     inputBinding:
-      position: 2
+      position: 3
   - id: skip
     type: string
     inputBinding:

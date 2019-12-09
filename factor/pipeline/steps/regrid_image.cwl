@@ -10,19 +10,19 @@ inputs:
   - id: input_image
     type: string
     inputBinding:
-      position: 0
+      position: 1
   - id: template_image
     type: string
     inputBinding:
-      position: 1
+      position: 2
   - id: vertices_file
     type: string
     inputBinding:
-      position: 2
+      position: 3
   - id: output_image
     type: string
     inputBinding:
-      position: 3
+      position: 4
   - id: skip
     type: string
     inputBinding:

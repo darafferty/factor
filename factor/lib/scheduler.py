@@ -58,6 +58,7 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
     args.extend(['--clean', 'never'])
     if os.path.exists(os.path.join(basedir, 'jobstore')):
         args.extend(['--restart'])
+    args.extend(['--statePollingWait', '10'])
     args.append(parset)
     args.append(inputs)
 
