@@ -174,12 +174,21 @@ steps:
     out:
       - id: outh5parm
 
+  - id: process_slow_gains
+    label: process_slow_gains
+    run: {{ factor_pipeline_dir }}/steps/process_slow_gains.cwl
+    in:
+      - id: slowh5parm
+        source: combine_slow_gains/outh5parm
+    out:
+      - id: outh5parm
+
   - id: make_slow_aterms
     label: make_slow_aterms
     run: {{ factor_pipeline_dir }}/steps/make_slow_aterms.cwl
     in:
       - id: slowh5parm
-        source: combine_slow_gains/outh5parm
+        source: process_slow_gains/outh5parm
       - id: fasth5parm
         source: combine_fast_phases/outh5parm
       - id: skymodel
