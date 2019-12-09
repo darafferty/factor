@@ -146,6 +146,7 @@ class Scheduler(object):
                 pool = multiprocessing.Pool(processes=self.nops_simul)
                 max_nodes_per_op = int(round(self.max_nodes /
                                              min(len(self.operation_list), self.nops_simul)))
+                max_nodes_per_op = 24  # temp override for LGC
                 for op in self.operation_list:
                     op.setup()
 #                     call_toil(op.name,
