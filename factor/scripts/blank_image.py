@@ -14,7 +14,7 @@ from astropy import wcs
 
 def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
          reference_dec_deg=None, cellsize_deg=None, imsize=None, make_blank_image=False,
-         region_file=''):
+         region_file='[]'):
     """
     Blank a region in an image
 
@@ -37,8 +37,8 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
     make_blank_image : bool, optional
         If True, a blank template image is made. In this case, reference_ra_deg
         and reference_dec_deg must be specified
-    region_file : str, optional
-        Filename of region file in CASA format to use as the mask (NYI)
+    region_file : list, optional
+        Filenames of region files in CASA format to use as the mask (NYI)
     """
     make_blank_image = misc.string2bool(make_blank_image)
     if make_blank_image:
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     parser.add_argument('--cellsize_deg', help='Cellsize', type=float, default=None)
     parser.add_argument('--imsize', help='Image size', type=float, default=None)
     parser.add_argument('--make_blank_image', help='Make blank image', type=bool, default=True)
-    parser.add_argument('--region_file', help='Filename of region file', type=float, default='')
+    parser.add_argument('--region_file', help='Filename of region file', type=float, default='[]')
     args = parser.parse_args()
     main(args.input_image_file, args.output_image_file, vertices_file=args.vertices_file,
          reference_ra_deg=args.reference_ra_deg, reference_dec_deg=args.reference_dec_deg,
