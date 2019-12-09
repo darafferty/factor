@@ -50,6 +50,7 @@ class Image(Operation):
         else:
             local_dir = self.temp_dir
         aterm_image_filenames = "'[{}]'".format(','.join(self.field.aterm_image_filenames))
+        multiscale_scales_pixel = "'{}'".format(','.join(self.direction.multiscale_scales_pixel))
 
         self.input_parms = {'obs_filename': obs_filename,
                             'prepare_filename': prepare_filename,

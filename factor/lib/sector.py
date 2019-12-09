@@ -46,7 +46,7 @@ class Sector(object):
         self.width_dec = width_dec
         self.field = field
         self.vertices_file = os.path.join(field.working_dir, 'regions', '{}_vertices.pkl'.format(self.name))
-        self.region_file = '[]'
+        self.region_file = ''
         self.I_image_file = None  # set by the Image operation
         self.image_skymodel_file_apparent_sky = None  # set by the Image operation
         self.image_skymodel_file_true_sky = None  # set by the Image operation

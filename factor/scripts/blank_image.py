@@ -14,7 +14,7 @@ from astropy import wcs
 
 def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
          reference_dec_deg=None, cellsize_deg=None, imsize=None, make_blank_image=False,
-         region_file=None):
+         region_file=''):
     """
     Blank a region in an image
 
@@ -34,13 +34,11 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
         Size of a pixel in degrees
     imsize : int, optional
         Size of image as "xsize ysize"
-    region_file : str, optional
-        Filename of region file in CASA format to use as a mask
     make_blank_image : bool, optional
         If True, a blank template image is made. In this case, reference_ra_deg
         and reference_dec_deg must be specified
     region_file : str, optional
-        Filename of region file in CASA format to use as the mask
+        Filename of region file in CASA format to use as the mask (NYI)
     """
     make_blank_image = misc.string2bool(make_blank_image)
     if make_blank_image:
