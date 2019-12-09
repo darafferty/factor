@@ -1,7 +1,9 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Script to regrid a FITS image
 """
+import argparse
+from argparse import RawTextHelpFormatter
 from factor.lib import miscellaneous as misc
 from factor.lib.image import FITSImage
 from reproject import reproject_interp
@@ -68,3 +70,17 @@ def main(input_image, template_image, vertices_file, output_image, skip=False):
     d.img_data = isum
     d.img_hdr = regrid_hdr
     d.write(output_image)
+
+
+if __name__ == '__main__':
+    descriptiontext = "Regrid an image to match a template image.\n"
+
+    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
+    parser.add_argument('input_image', help='Filenames of input image')
+    parser.add_argument('template_image', help='Filenames of input template image')
+    parser.add_argument('vertices_file', help='Filename of input vertices files')
+    parser.add_argument('output_image', help='Filename of output regridded image')
+    parser.add_argument('--skip', help='Skip processing', type=bool, default=False)
+    args = parser.parse_args()
+    main(args.input_image, args.template_image, args.vertices_file, args.output_image,
+         skip=args.skip)

@@ -1,7 +1,9 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Script to make a template image for mosaicking
 """
+import argparse
+from argparse import RawTextHelpFormatter
 from factor.lib.image import FITSImage
 from factor.lib import miscellaneous as misc
 from astropy.io import fits as pyfits
@@ -83,3 +85,17 @@ def main(input_image_list, vertices_file_list, output_image, skip=False, padding
     isum = np.zeros([ysize, xsize])
     hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)
     hdu.writeto(output_image, overwrite=True)
+
+
+if __name__ == '__main__':
+    descriptiontext = "Make a template image for mosaicking.\n"
+
+    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
+    parser.add_argument('input_image_list', help='Filenames of input image')
+    parser.add_argument('vertices_file_list', help='Filenames of input vertices files')
+    parser.add_argument('output_image', help='Filename of output template image')
+    parser.add_argument('--skip', help='Skip processing', type=bool, default=False)
+    parser.add_argument('--padding', help='Padding factor', type=float, default=1.2)
+    args = parser.parse_args()
+    main(args.input_image_list, args.vertices_file_list, args.output_image,
+         skip=args.skip, padding=args.padding)

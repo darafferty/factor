@@ -1,7 +1,9 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Script to make a mosiac from FITS images
 """
+import argparse
+from argparse import RawTextHelpFormatter
 from factor.lib import miscellaneous as misc
 from astropy.io import fits as pyfits
 import numpy as np
@@ -51,3 +53,16 @@ def main(input_image_list, template_image, output_image, skip=False):
     isum[np.isnan(isum)] = np.nan
     hdu = pyfits.PrimaryHDU(header=regrid_hdr, data=isum)
     hdu.writeto(output_image, overwrite=True)
+
+
+if __name__ == '__main__':
+    descriptiontext = "Make a mosaic image.\n"
+
+    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
+    parser.add_argument('input_image_list', help='Filenames of input image')
+    parser.add_argument('template_image', help='Filename of input template image')
+    parser.add_argument('output_image', help='Filename of output template image')
+    parser.add_argument('--skip', help='Skip processing', type=bool, default=False)
+    args = parser.parse_args()
+    main(args.input_image_list, args.template_image, args.output_image,
+         skip=args.skip)
