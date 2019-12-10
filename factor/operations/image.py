@@ -4,7 +4,6 @@ Module that holds the Image class
 import os
 import logging
 from factor.lib.operation import Operation
-from factor.lib import miscellaneous as misc
 
 log = logging.getLogger('factor:image')
 
@@ -34,7 +33,8 @@ class Image(Operation):
         else:
             obs_filename = self.direction.get_obs_parameters('ms_filename')
         self.image_root = os.path.join(self.pipeline_working_dir, self.direction.name)
-        prepare_filename = [of+'.prep' for of in obs_filename]
+        prepare_filename = [os.path.join(self.pipeline_working_dir, os.path.basename(of)+'.prep')
+                            for of in obs_filename]
         mask_filename = self.image_root + '_mask.fits'
         aterms_config_file = self.image_root + '_aterm.cfg'
         image_freqstep = self.direction.get_obs_parameters('image_freqstep')
@@ -50,7 +50,6 @@ class Image(Operation):
         else:
             local_dir = self.temp_dir
         multiscale_scales_pixel = "'{}'".format(self.direction.multiscale_scales_pixel)
-        robust = ['briggs', "'{}'".format(self.direction.robust)]
 
         # The following attribute was set by the preceding calibrate operation
         aterm_image_filenames = "'[{}]'".format(','.join(self.field.aterm_image_filenames))

@@ -48,13 +48,13 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
         args.extend(['--defaultMemory', '1M'])
         args.extend(['--maxNodes', str(max_nodes_per_op)])
     args.extend(['--jobStore', os.path.join(basedir, 'jobstore')])
-    args.extend(['--outdir', basedir])
+#     args.extend(['--outdir', basedir])
     args.extend(['--workDir', basedir])
     args.extend(['--logFile', logbasename+'.log'])
     args.extend(['--preserve-entire-environment'])
     if dir_local is not None:
         args.extend(['--tmpdir-prefix', dir_local])
-        args.extend(['--tmp-outdir-prefix ', dir_local])
+#         args.extend(['--tmp-outdir-prefix', dir_local])
     args.extend(['--logLevel', 'DEBUG'])
     args.extend(['--clean', 'never'])
     if os.path.exists(os.path.join(basedir, 'jobstore')):
@@ -112,6 +112,7 @@ class Scheduler(object):
             return
 
         # Finalize the operation
+
         if status == 0:
             if direction_name == 'field':
                 log.info('--> Operation {0} completed'.format(op_name))
@@ -149,7 +150,8 @@ class Scheduler(object):
 #                     call_toil(op.name,
 #                               op.direction.name, op.pipeline_parset_file,
 #                               op.pipeline_inputs_file, op.pipeline_working_dir,
-#                               self.scratch_dir, op.logbasename, self.batch_system)
+#                               self.scratch_dir, op.logbasename, self.batch_system,
+#                               max_nodes_per_op)
                     pool.apply_async(call_toil, (op.name,
                                      op.direction.name, op.pipeline_parset_file,
                                      op.pipeline_inputs_file, op.pipeline_working_dir,

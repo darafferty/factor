@@ -342,9 +342,9 @@ def main(msin, msmod_list, msin_column='DATA', model_column='DATA',
     tin.close()
 
     # Delete model data
-    for msmod in model_list:
-        if os.path.exists(msmod):
-            os.system('/bin/rm -rf {0}'.format(msmod))
+#     for msmod in model_list:
+#         if os.path.exists(msmod):
+#             os.system('/bin/rm -rf {0}'.format(msmod))
 
 
 class CovWeights:
