@@ -50,8 +50,6 @@ inputs:
     type: string[]
     inputBinding:
       position: 3
-      itemSeparator: " "
-      shellQuote: false
   - id: name
     type: string
     inputBinding:
