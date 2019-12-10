@@ -35,6 +35,7 @@ class Predict(Operation):
             start_sector = 0
         sector_skymodel = []
         sector_sourcedb = []
+        sector_obs_sourcedb = []
         sector_filename = []
         sector_starttime = []
         sector_ntimes = []
@@ -44,7 +45,9 @@ class Predict(Operation):
             # Set sector-dependent parameters
             sector.set_prediction_parameters()
             sector_skymodel.append(sector.predict_skymodel_file)
-            sector_sourcedb.append(os.path.splitext(sector.predict_skymodel_file)[0]+'.sourcedb')
+            sdb = os.path.splitext(sector.predict_skymodel_file)[0]+'.sourcedb'
+            sector_sourcedb.append(sdb)
+            sector_obs_sourcedb.extend([sdb]*len(self.field.observations))
             sector_filename.extend(sector.get_obs_parameters('ms_filename'))
             sector_model_filename.extend(sector.get_obs_parameters('ms_model_filename'))
             sector_patches.extend(sector.get_obs_parameters('patch_names'))
@@ -74,6 +77,7 @@ class Predict(Operation):
                             'sector_model_filename': sector_model_filename,
                             'sector_skymodel': sector_skymodel,
                             'sector_sourcedb': sector_skymodel,
+                            'sector_obs_sourcedb': sector_obs_sourcedb,
                             'sector_patches': sector_patches,
                             'h5parm': self.field.h5parm_filename,
                             'obs_solint_sec': obs_solint_sec,

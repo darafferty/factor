@@ -22,6 +22,8 @@ inputs:
     type: string[]
   - id: sector_sourcedb
     type: string[]
+  - id: sector_obs_sourcedb
+    type: string[]
   - id: obs_filename
     type: string[]
   - id: obs_starttime
@@ -74,6 +76,8 @@ steps:
       - id: h5parm
         source: h5parm
       - id: sourcedb
+        source: sector_obs_sourcedb
+      - id: sourcedb2
         source: make_sourcedb/sourcedb
       - id: directions
         source: sector_patches
