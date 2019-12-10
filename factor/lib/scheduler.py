@@ -7,6 +7,7 @@ import os
 import sys
 from factor.lib.context import Timer
 import factor.cluster
+from factor.lib import miscellaneous as misc
 
 log = logging.getLogger('factor:scheduler')
 
@@ -53,7 +54,8 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
     args.extend(['--logFile', logbasename+'.log'])
     args.extend(['--preserve-entire-environment'])
     if dir_local is not None:
-        args.extend(['--tmpdir-prefix', dir_local])
+        args.extend(['--tmpdir-prefix', os.path.join(dir_local, direction_name)])
+        misc.create_directory(os.path.join(dir_local, direction_name))
 #         args.extend(['--tmp-outdir-prefix', dir_local])
     args.extend(['--logLevel', 'DEBUG'])
     args.extend(['--clean', 'never'])
