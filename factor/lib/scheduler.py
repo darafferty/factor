@@ -54,6 +54,7 @@ def call_toil(op_name, direction_name, parset, inputs, basedir, dir_local, logba
     args.extend(['--preserve-entire-environment'])
     if dir_local is not None:
         args.extend(['--tmpdir-prefix', dir_local])
+        args.extend(['--tmp-outdir-prefix ', dir_local])
     args.extend(['--logLevel', 'DEBUG'])
     args.extend(['--clean', 'never'])
     if os.path.exists(os.path.join(basedir, 'jobstore')):
@@ -120,12 +121,8 @@ class Scheduler(object):
             this_op.finalize()
         else:
             self.success = False
-            if this_op.can_restart():
-                log.warning('Operation {0} failed due to error (direction: '
-                            '{1}) but will be automatically resumed'.format(op_name, direction_name))
-            else:
-                log.error('Operation {0} failed due to an error (direction: '
-                          '{1})'.format(op_name, direction_name))
+            log.error('Operation {0} failed due to an error (direction: '
+                      '{1})'.format(op_name, direction_name))
 
     def run(self, operation_list):
         """
