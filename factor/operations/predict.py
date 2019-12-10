@@ -76,7 +76,7 @@ class Predict(Operation):
                             'sector_ntimes': sector_ntimes,
                             'sector_model_filename': sector_model_filename,
                             'sector_skymodel': sector_skymodel,
-                            'sector_sourcedb': sector_skymodel,
+                            'sector_sourcedb': sector_sourcedb,
                             'sector_obs_sourcedb': sector_obs_sourcedb,
                             'sector_patches': sector_patches,
                             'h5parm': self.field.h5parm_filename,
