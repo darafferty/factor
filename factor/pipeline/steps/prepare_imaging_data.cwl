@@ -5,6 +5,7 @@ label: "Prepares a dataset for imaging"
 
 requirements:
   InlineJavascriptRequirement: {}
+  ShellCommandRequirement: {}
 
 arguments:
   - numthreads=0
@@ -42,7 +43,7 @@ inputs:
     inputBinding:
       prefix: shift.phasecenter=
       separate: False
-      valueFrom: $(self.replace(/['"]+/g, ''))
+      shellQuote: False
   - id: freqstep
     type: int
     inputBinding:

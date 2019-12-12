@@ -123,7 +123,7 @@ class Image(Operation):
         # NOTE: currently, -save-source-list only works with pol=I -- when it works with other
         # pols, save them all
         for sector in self.field.sectors:
-            image_root = os.path.join(self.pipeline_working_dir, sector.name)
+            image_root = os.path.join(self.pipeline_working_dir, sector.name, sector.name)
             sector.I_image_file = image_root + '-MFS-image-pb.fits'
             sector.I_model_file = image_root + '-MFS-model-pb.fits'
 
