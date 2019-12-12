@@ -2,6 +2,7 @@
 Definition of the master Operation class
 """
 import os
+import sys
 import logging
 from factor import _logging
 from jinja2 import Environment, FileSystemLoader
@@ -166,13 +167,13 @@ class Operation(object):
         args.extend(['--workDir', self.pipeline_working_dir])
         args.extend(['--logFile', self.logbasename+'.log'])
         args.extend(['--preserve-entire-environment'])
-        if dir_local is not None:
+        if scratch_dir is not None:
             args.extend(['--tmpdir-prefix', scratch_dir])
         args.extend(['--logLevel', 'DEBUG'])
         args.extend(['--clean', 'never'])
         args.extend(['--servicePollingInterval', '10'])
-        args.append(parset)
-        args.append(inputs)
+        args.append(self.pipeline_parset_file)
+        args.append(self.pipeline_inputs_file)
 
         # Run the pipeline
         self.log.info('<-- Operation {0} started'.format(self.name))
@@ -193,5 +194,5 @@ class Operation(object):
             self.log.info('--> Operation {0} completed'.format(self.name))
             self.finalize()
         else:
-            self.log.error('Operation {0} failed due to an error'.format(self.name, direction_name))
+            self.log.error('Operation {0} failed due to an error'.format(self.name))
             sys.exit(1)
