@@ -161,7 +161,7 @@ class Operation(object):
             args.extend(['--disableCaching'])
             args.extend(['--defaultCores', '6'])
             args.extend(['--defaultMemory', '1M'])
-            args.extend(['--maxNodes', str(max_nodes)])
+            args.extend(['--maxLocalJobs', str(max_nodes)])
         args.extend(['--jobStore', jobstore])
         if os.path.exists(jobstore):
             args.extend(['--restart'])
