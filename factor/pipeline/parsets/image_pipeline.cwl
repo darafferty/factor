@@ -7,23 +7,41 @@ requirements:
 
 inputs:
   - id: obs_filename
-    type: array
-    items: string[]
+    type:
+      type: array
+      items:
+        type: array
+        items: string
   - id: prepare_filename
-    type: array
-    items: string[]
+    type:
+      type: array
+      items:
+        type: array
+        items: string
   - id: starttime
-    type: array
-    items: string[]
+    type:
+      type: array
+      items:
+        type: array
+        items: string
   - id: ntimes
-    type: array
-    items: int[]
+    type:
+      type: array
+      items:
+        type: array
+        items: int
   - id: image_freqstep
-    type: array
-    items: int[]
+    type:
+      type: array
+      items:
+        type: array
+        items: int
   - id: image_timestep
-    type: array
-    items: int[]
+    type:
+      type: array
+      items:
+        type: array
+        items: int
   - id: mask_filename
     type: array
     items: string
@@ -43,8 +61,11 @@ inputs:
     type: array
     items: float
   - id: wsclean_imsize
-    type: array
-    items: int[]
+    type:
+      type: array
+      items:
+        type: array
+        items: int
   - id: vertices_file
     type: array
     items: string
