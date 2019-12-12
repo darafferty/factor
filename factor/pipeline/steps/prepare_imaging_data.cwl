@@ -42,7 +42,7 @@ inputs:
     inputBinding:
       prefix: shift.phasecenter=
       separate: False
-      valueFrom: $(self)
+      valueFrom: $(self.replace(/['"]+/g, ''))
   - id: freqstep
     type: int
     inputBinding:
