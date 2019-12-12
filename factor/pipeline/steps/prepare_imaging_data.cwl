@@ -42,6 +42,7 @@ inputs:
     inputBinding:
       prefix: shift.phasecenter=
       separate: False
+      valueFrom: $(self)
   - id: freqstep
     type: int
     inputBinding:

@@ -4,6 +4,7 @@ class: Workflow
 requirements:
   ScatterFeatureRequirement: {}
   StepInputExpressionRequirement: {}
+  SubworkflowFeatureRequirement: {}
 
 inputs:
   - id: obs_filename
@@ -43,23 +44,17 @@ inputs:
         type: array
         items: int
   - id: mask_filename
-    type: array
-    items: string
+    type: string[]
   - id: phasecenter
-    type: array
-    items: string
+    type: string[]
   - id: ra
-    type: array
-    items: float
+    type: float[]
   - id: dec
-    type: array
-    items: float
+    type: float[]
   - id: image_name
-    type: array
-    items: string
+    type: string[]
   - id: cellsize_deg
-    type: array
-    items: float
+    type: float[]
   - id: wsclean_imsize
     type:
       type: array
@@ -67,59 +62,41 @@ inputs:
         type: array
         items: int
   - id: vertices_file
-    type: array
-    items: string
+    type: string[]
   - id: region_file
-    type: array
-    items: string
+    type: string[]
   - id: aterms_config_file
-    type: array
-    items: string
+    type: string[]
   - id: aterm_image_filenames
-    type: array
-    items: string
+    type: string[]
   - id: use_beam
-    type: array
-    items: string
+    type: string[]
   - id: channels_out
-    type: array
-    items: int
+    type: int[]
   - id: wsclean_niter
-    type: array
-    items: int
+    type: int[]
   - id: robust
-    type: array
-    items: float
+    type: float[]
   - id: wsclean_image_padding
-    type: array
-    items: float
+    type: float[]
   - id: min_uv_lambda
-    type: array
-    items: float
+    type: float[]
   - id: max_uv_lambda
-    type: array
-    items: float
+    type: float[]
   - id: multiscale_scales_pixel
-    type: array
-    items: string
+    type: string[]
   - id: local_dir
-    type: array
-    items: string
+    type: string[]
   - id: taper_arcsec
-    type: array
-    items: float
+    type: float[]
   - id: auto_mask
-    type: array
-    items: float
+    type: float[]
   - id: idg_mode
-    type: array
-    items: string
+    type: string[]
   - id: threshisl
-    type: array
-    items: float
+    type: float[]
   - id: threshpix
-    type: array
-    items: float
+    type: float[]
 
 outputs: []
 
