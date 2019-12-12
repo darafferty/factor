@@ -7,6 +7,7 @@ import logging
 from factor import _logging
 from jinja2 import Environment, FileSystemLoader
 from factor.lib import miscellaneous as misc
+from toil.leader import FailedJobsException
 from toil.cwl import cwltoil
 from factor.lib.context import Timer
 
@@ -177,10 +178,13 @@ class Operation(object):
 
         # Run the pipeline
         self.log.info('<-- Operation {0} started'.format(self.name))
-        status = cwltoil.main(args=args)
-        if status == 0:
-            self.success = True
-        else:
+        try:
+            status = cwltoil.main(args=args)
+            if status == 0:
+                self.success = True
+            else:
+                self.success = False
+        except FailedJobsException:
             self.success = False
 
     def run(self):

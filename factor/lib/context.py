@@ -28,10 +28,7 @@ class Timer(object):
     def __enter__(self):
         self.start = timer()
 
-    def __exit__(self, type, value, tb):
-        if type is not None:
-            raise type(value).with_traceback(tb)
-
+    def __exit__(self, *args):
         elapsed = timer() - self.start
         self.log.debug('Time for {0}: {1}'.format(self.type,
                        datetime.timedelta(seconds=elapsed)))
