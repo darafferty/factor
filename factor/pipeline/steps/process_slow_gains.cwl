@@ -12,7 +12,7 @@ arguments:
   - '--phsoltabname=phase000'
   - '--normalize=True'
   - '--find_bandpass=False'
-  - '--mooth_phases=False'
+  - '--smooth_phases=False'
 
 inputs:
   - id: slowh5parm
