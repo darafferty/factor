@@ -6,6 +6,8 @@ import logging
 from factor import _logging
 from jinja2 import Environment, FileSystemLoader
 from factor.lib import miscellaneous as misc
+from toil.cwl import cwltoil
+from factor.lib.context import Timer
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 env_parset = Environment(loader=FileSystemLoader(os.path.join(DIR, '..', 'pipeline', 'parsets')))
@@ -18,18 +20,16 @@ class Operation(object):
     An operation is simply a CWL pipeline that performs a part of the
     processing. The corresponding operation object holds the pipeline settings,
     populates the pipeline config and parset templates, and updates the
-    direction object with variables needed by later operations.
+    field object with variables needed by later operations.
 
     Parameters
     ----------
     field : Field object
         Field for this operation
-    direction : Direction object, optional
-        Direction for this operation
     name : str, optional
         Name of the operation
     """
-    def __init__(self, field, direction=None, name=None, index=None):
+    def __init__(self, field, name=None, index=None):
         self.parset = field.parset.copy()
         self.field = field
         self.rootname = name.lower()
@@ -40,10 +40,6 @@ class Operation(object):
             self.name = self.rootname
         self.rootname
         self.parset['op_name'] = name
-        if direction is None:
-            self.direction = field
-        else:
-            self.direction = direction
         _logging.set_level(self.parset['logging_level'])
         self.log = logging.getLogger('factor:{0}'.format(self.name))
 
@@ -52,19 +48,18 @@ class Operation(object):
 
         # Pipeline working dir
         self.pipeline_working_dir = os.path.join(self.factor_working_dir,
-                                                 'pipelines', self.name,
-                                                 self.direction.name)
+                                                 'pipelines', self.name)
         misc.create_directory(self.pipeline_working_dir)
 
         # Temp directory (local to the nodes)
         self.temp_dir = self.parset['cluster_specific']['dir_local']
 
         # Directory that holds the pipeline logs in a convenient place
-        self.log_dir = os.path.join(self.factor_working_dir, 'logs', self.name)
+        self.log_dir = os.path.join(self.factor_working_dir, 'logs')
         misc.create_directory(self.log_dir)
 
         # Log name used for logs in log_dir
-        self.logbasename = os.path.join(self.log_dir, self.direction.name)
+        self.logbasename = os.path.join(self.log_dir, self.name)
 
         # Paths for scripts, etc. in the Factor install directory
         self.factor_root_dir = os.path.split(DIR)[0]
@@ -72,10 +67,15 @@ class Operation(object):
         self.factor_script_dir = os.path.join(self.factor_root_dir, 'scripts')
 
         # Input template name and output parset and inputs filenames for
-        # the pipeline
+        # the pipeline. If the pipeline uses a subworkflow, its template filename must be
+        # defined in the subclass by self.subpipeline_parset_template to the right
+        # path
         self.pipeline_parset_template = '{0}_pipeline.cwl'.format(self.rootname)
+        self.subpipeline_parset_template = None
         self.pipeline_parset_file = os.path.join(self.pipeline_working_dir,
                                                  'pipeline_parset.cwl')
+        self.subpipeline_parset_file = os.path.join(self.pipeline_working_dir,
+                                                    'subpipeline_parset.cwl')
         self.pipeline_inputs_file = os.path.join(self.pipeline_working_dir,
                                                  'pipeline_inputs.yml')
 
@@ -115,6 +115,11 @@ class Operation(object):
         tmp = self.pipeline_parset_template.render(self.parset_parms)
         with open(self.pipeline_parset_file, 'w') as f:
             f.write(tmp)
+        if self.subpipeline_parset_template is not None:
+            self.subpipeline_parset_template = env_parset.get_template(self.subpipeline_parset_template)
+            tmp = self.subpipeline_parset_template.render(self.parset_parms)
+            with open(self.subpipeline_parset_file, 'w') as f:
+                f.write(tmp)
 
         # Save the pipeline inputs to a file
         self.set_input_parameters()
@@ -137,3 +142,56 @@ class Operation(object):
         This should be defined in the subclasses as needed
         """
         pass
+
+    def call_toil():
+        """
+        Calls Toil to run the operation's pipeline
+        """
+        max_nodes = self.parset['cluster_specific']['max_nodes']
+        scratch_dir = self.parset['cluster_specific']['dir_local']
+        batch_system = self.parset['cluster_specific']['batch_system']
+        jobstore = os.path.join(self.pipeline_working_dir, 'jobstore')
+
+        # Build the args list
+        args = []
+        args.extend(['--batchSystem', batch_system])
+        if batch_system == 'slurm':
+            args.extend(['--disableCaching'])
+            args.extend(['--defaultCores', '6'])
+            args.extend(['--defaultMemory', '1M'])
+            args.extend(['--maxNodes', str(max_nodes)])
+        args.extend(['--jobStore', jobstore])
+        if os.path.exists(jobstore):
+            args.extend(['--restart'])
+        args.extend(['--workDir', self.pipeline_working_dir])
+        args.extend(['--logFile', self.logbasename+'.log'])
+        args.extend(['--preserve-entire-environment'])
+        if dir_local is not None:
+            args.extend(['--tmpdir-prefix', scratch_dir])
+        args.extend(['--logLevel', 'DEBUG'])
+        args.extend(['--clean', 'never'])
+        args.extend(['--servicePollingInterval', '10'])
+        args.append(parset)
+        args.append(inputs)
+
+        # Run the pipeline
+        self.log.info('<-- Operation {0} started'.format(self.name))
+        status = cwltoil.main(args=args)
+        if status == 0:
+            self.success = True
+        else:
+            self.success = False
+
+    def run(self):
+        """
+        Runs the operation
+        """
+        self.setup()
+        with Timer(self.log):
+            self.call_toil()
+        if self.success:
+            self.log.info('--> Operation {0} completed'.format(self.name))
+            self.finalize()
+        else:
+            self.log.error('Operation {0} failed due to an error'.format(self.name, direction_name))
+            sys.exit(1)

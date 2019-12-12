@@ -40,7 +40,7 @@ class Mosaic(Operation):
             sector_image_filename.append(sector.I_image_file)
             sector_vertices_filename.append(sector.vertices_file)
             regridded_image_filename.append(sector.I_image_file+'.regridded')
-        self.mosaic_root = os.path.join(self.pipeline_working_dir, self.direction.name)
+        self.mosaic_root = os.path.join(self.pipeline_working_dir)
         template_image_filename = self.mosaic_root + '_template.fits'
         self.mosaic_filename = self.mosaic_root + '-MFS-I-image.fits'
 

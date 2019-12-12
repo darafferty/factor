@@ -9,7 +9,6 @@ from factor.operations.calibrate import Calibrate
 from factor.operations.image import Image
 from factor.operations.mosaic import Mosaic
 from factor.operations.predict import Predict
-from factor.lib.scheduler import Scheduler
 from factor.lib.field import Field
 
 log = logging.getLogger('factor')
@@ -36,9 +35,6 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
     parset['logging_level'] = logging_level
     _logging.set_level(logging_level)
 
-    # Initialize scheduler
-    scheduler = Scheduler(parset)
-
     # Initialize field object
     field = Field(parset)
 
@@ -57,13 +53,13 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
         if step['do_calibrate']:
             field.__dict__.update(step['calibrate_parameters'])
             op = Calibrate(field, iter+1)
-            scheduler.run(op)
+            op.run()
 
         # Predict and subtract sector models
         if step['do_predict']:
             field.__dict__.update(step['predict_parameters'])
             op = Predict(field, iter+1)
-            scheduler.run(op)
+            op.run()
             if field.peel_outliers and len(field.outlier_sectors) > 0:
                 # Update the observations to use the new peeled datasets and remove the
                 # outlier sectors (since, once peeled, they are no longer needed)
@@ -78,19 +74,13 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
             imaging_sectors = [sector for sector in field.sectors if not sector.is_outlier]
             for sector in imaging_sectors:
                 sector.__dict__.update(step['image_parameters'])
-
-            # Put the sectors using multiscale clean first, as they take the longest to
-            # image
-            sorted_sectors = [sector for sector in imaging_sectors if sector.multiscale]
-            sorted_sectors.extend([sector for sector in imaging_sectors
-                                   if not sector.multiscale])
-            ops = [Image(field, sector, iter+1) for sector in sorted_sectors]
-            scheduler.run(ops)
+            op = Image(field, iter+1)
+            op.run()
 
             # Mosaic the sectors
             # TODO: run mosaic ops for IQUV+residuals
             op = Mosaic(field, iter+1)
-            scheduler.run(op)
+            op.run()
 
         # Check for convergence
         if step['do_check']:
