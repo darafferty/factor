@@ -25,11 +25,9 @@ def check_operation(operation):
         Path of operation output
     """
     pipelines = []
-    directions = glob.glob(os.path.join(operation, '*'))
-    for d in directions:
-        jobstore = os.path.join(d, 'jobstore')
-        if os.path.exists(jobstore):
-            pipelines.append('{0}/{1}'.format(os.path.basename(operation), os.path.basename(d)))
+    jobstore = os.path.join(operation, 'jobstore')
+    if os.path.exists(jobstore):
+        pipelines.append(os.path.basename(operation))
 
     return pipelines
 
@@ -94,7 +92,7 @@ def run(parset_file):
     # Initialize field object
     field = Field(parset, mininmal=True)
     field.outlier_sectors = [None]
-    field.imaging_sectors = [None] * get_number_of_sectors(field)
+    field.imaging_sectors = [None] #* get_number_of_sectors(field)
 
     # Get the processing strategy
     strategy_steps = set_strategy(field)
@@ -127,10 +125,7 @@ def run(parset_file):
                 print('    {0}) {1}'.format(i, p))
         try:
             while(True):
-                if sys.version_info < (3,):
-                    p_number_raw = raw_input('Enter number of pipeline to reset or press "q" to quit: ')
-                else:
-                    p_number_raw = input('Enter number of pipeline to reset or press "q" to quit: ')
+                p_number_raw = input('Enter number of pipeline to reset or press "q" to quit: ')
                 if p_number_raw.lower() == "q":
                     sys.exit(0)
                 elif int(p_number_raw) > 0 and int(p_number_raw) <= i:
@@ -144,10 +139,7 @@ def run(parset_file):
         # Ask for confirmation
         try:
             while(True):
-                if sys.version_info < (3,):
-                    answer = raw_input('Reset all pipelines from {} onwards (y/n)? '.format(pipeline))
-                else:
-                    answer = input('Reset all pipelines from {} onwards (y/n)? '.format(pipeline))
+                answer = input('Reset all pipelines from {} onwards (y/n)? '.format(pipeline))
                 if (answer.lower() == "n" or answer.lower() == "no" or
                     answer.lower() == "y" or answer.lower() == "yes"):
                     break
