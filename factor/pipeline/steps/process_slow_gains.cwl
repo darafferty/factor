@@ -24,4 +24,4 @@ outputs:
   - id: outh5parm
     type: string
     outputBinding:
-      outputEval: $(inputs.outh5parm)
+      outputEval: $(inputs.slowh5parm)
