@@ -4,6 +4,7 @@ Module that holds the Image class
 import os
 import logging
 from factor.lib.operation import Operation
+from factor.lib import miscellaneous as misc
 
 log = logging.getLogger('factor:image')
 
