@@ -143,7 +143,7 @@ class Operation(object):
         """
         pass
 
-    def call_toil():
+    def call_toil(self):
         """
         Calls Toil to run the operation's pipeline
         """
