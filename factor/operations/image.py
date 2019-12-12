@@ -49,17 +49,18 @@ class Image(Operation):
         for sector in self.field.sectors:
             if nsectors > 1:
                 # Use the model-subtracted data
-                obs_filename.append(sector.get_obs_parameters('ms_subtracted_filename'))
+                sector_obs_filename = sector.get_obs_parameters('ms_subtracted_filename')
             else:
-                obs_filename.append(sector.get_obs_parameters('ms_filename'))
+                sector_obs_filename = sector.get_obs_parameters('ms_filename')
+            obs_filename.append(sector_obs_filename)
 
             # Each image job must have its own directory, so we create it here
             image_dir = os.path.join(self.pipeline_working_dir, sector.name)
             misc.create_directory(image_dir)
-
             image_root.append(os.path.join(image_dir, sector.name))
+
             prepare_filename.append([os.path.join(image_dir, os.path.basename(of)+'.prep')
-                                     for of in obs_filename])
+                                     for of in sector_obs_filename])
             mask_filename.append(image_root[-1] + '_mask.fits')
             aterms_config_file.append(image_root[-1] + '_aterm.cfg')
             image_freqstep.append(sector.get_obs_parameters('image_freqstep'))
