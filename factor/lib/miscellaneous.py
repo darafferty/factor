@@ -217,9 +217,9 @@ def string2bool(invar):
     if isinstance(invar, bool):
         return invar
     elif isinstance(invar, str):
-        if invar.upper() == 'TRUE' or invar == '1':
+        if 'TRUE' in invar.upper() or invar == '1':
             return True
-        elif invar.upper() == 'FALSE' or invar == '0':
+        elif 'FALSE' in invar.upper() or invar == '0':
             return False
         else:
             raise ValueError('input2bool: Cannot convert string "'+invar+'" to boolean!')
