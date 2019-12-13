@@ -20,9 +20,10 @@ class Operation(object):
     Generic operation class
 
     An operation is simply a CWL pipeline that performs a part of the
-    processing. The corresponding operation object holds the pipeline settings,
-    populates the pipeline config and parset templates, and updates the
-    field object with variables needed by later operations.
+    processing. It holds the pipeline settings, populates the pipeline input and
+    parset templates, and runs the pipeline. The field object is passed between
+    operations, each of which updates it with variables needed by other
+    operations.
 
     Parameters
     ----------
@@ -30,6 +31,8 @@ class Operation(object):
         Field for this operation
     name : str, optional
         Name of the operation
+    index : int, optional
+        Index of the operation
     """
     def __init__(self, field, name=None, index=None):
         self.parset = field.parset.copy()
@@ -107,9 +110,7 @@ class Operation(object):
         """
         Set up this operation
 
-        This involves filling the pipeline parset template and writing the inputs file.
-        Generally, this does not need to be re-defined in the subclasses unless the
-        operation has non-standard template name
+        This involves filling the pipeline parset template and writing the inputs file
         """
         # Fill the parset template and save to a file
         self.set_parset_parameters()
