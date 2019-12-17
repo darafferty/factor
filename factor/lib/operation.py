@@ -166,11 +166,14 @@ class Operation(object):
         args.extend(['--jobStore', jobstore])
         if os.path.exists(jobstore):
             args.extend(['--restart'])
+        args.extend(['--basedir', self.pipeline_working_dir])
         args.extend(['--workDir', self.pipeline_working_dir])
+        args.extend(['--outdir', scratch_dir])
         args.extend(['--logFile', self.logbasename+'.log'])
         args.extend(['--preserve-entire-environment'])
         if scratch_dir is not None:
             args.extend(['--tmpdir-prefix', scratch_dir])
+            args.extend(['--tmp-outdir-prefix', scratch_dir])
         args.extend(['--logLevel', 'DEBUG'])
         args.extend(['--clean', 'never'])
         args.extend(['--servicePollingInterval', '10'])
