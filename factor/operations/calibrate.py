@@ -23,7 +23,8 @@ class Calibrate(Operation):
         self.parset_parms = {'factor_pipeline_dir': self.factor_pipeline_dir,
                              'mode': self.field.mode,
                              'do_slowgain_solve': self.field.do_slowgain_solve,
-                             'use_beam': self.field.use_beam}
+                             'use_beam': self.field.use_beam,
+                             'debug': self.parset['calibration_specific']['debug']}
 
     def set_input_parameters(self):
         """
@@ -60,6 +61,11 @@ class Calibrate(Operation):
                               for i in range(self.field.nfreqchunks)]
         self.combined_slow_h5parm = os.path.join(self.pipeline_working_dir,
                                                  'slow_gains.h5parm')
+        output_slow_h5parm_debug = [str(os.path.join(self.pipeline_working_dir,
+                                    'slow_gain_{}_debug.h5parm'.format(i)))
+                                    for i in range(self.field.nfreqchunks)]
+        combined_slow_h5parm_debug = os.path.join(self.pipeline_working_dir,
+                                                  'slow_gains_debug.h5parm')
         baselines_core = self.get_baselines_core()
         antennaconstraint_core = '[[{}]]'.format(','.join(self.get_superterp_stations()))
         antennaconstraint_remote = '[[{}]]'.format(','.join(self.get_core_stations()))
@@ -107,6 +113,10 @@ class Calibrate(Operation):
                             'sector_bounds_mid_deg': sector_bounds_mid_deg,
                             'output_aterms_root': self.output_aterms_root,
                             'combined_h5parms': self.combined_h5parms}
+
+        if self.parset['calibration_specific']['debug']:
+            self.input_parms.update({'output_slow_h5parm_debug': output_slow_h5parm_debug,
+                                     'combined_slow_h5parm_debug': combined_slow_h5parm_debug})
 
     def get_baselines_core(self):
         """

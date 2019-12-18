@@ -62,6 +62,12 @@ inputs:
     type: string
   - id: combined_h5parms
     type: string
+{% if debug %}
+  - id: output_slow_h5parm_debug
+    type: string[]
+  - id: combined_slow_h5parm_debug
+    type: string[]
+{% endif %}
 
 outputs: []
 
@@ -206,13 +212,66 @@ steps:
     run: {{ factor_pipeline_dir }}/steps/combine_h5parms.cwl
     in:
       - id: inh5parm1
-        source: combine_slow_gains/outh5parm
-      - id: inh5parm2
         source: combine_fast_phases/outh5parm
+      - id: inh5parm2
+        source: combine_slow_gains/outh5parm
       - id: outh5parm
         source: combined_h5parms
     out:
       - id: combinedh5parm
+
+{% if debug %}
+# Solve for slow gains again, applying the first ones
+
+  - id: solve_slow_gains_debug
+    label: solve_slow_gains_debug
+    run: {{ factor_pipeline_dir }}/steps/ddecal_solve_complexgain_debug.cwl
+    in:
+      - id: msin
+        source: freqchunk_filename
+      - id: starttime
+        source: slow_starttime
+      - id: ntimes
+        source: slow_ntimes
+      - id: combined_h5parm
+        source: combine_fast_and_slow_h5parms/combinedh5parm
+      - id: h5parm
+        source: output_slow_h5parm_debug
+      - id: solint
+        source: solint_slow_timestep
+      - id: nchan
+        source: solint_slow_freqstep
+      - id: sourcedb
+        source: make_sourcedb/sourcedb
+      - id: maxiter
+        source: maxiter
+      - id: propagatesolutions
+        source: propagatesolutions
+      - id: stepsize
+        source: stepsize
+      - id: tolerance
+        source: tolerance
+      - id: uvlambdamin
+        source: uvlambdamin
+      - id: smoothnessconstraint
+        source: smoothnessconstraint
+    scatter: [msin, starttime, ntimes, h5parm, solint, nchan]
+    scatterMethod: dotproduct
+    out:
+      - id: slow_gains_h5parm
+
+  - id: combine_slow_gains_debug
+    label: combine_slow_gains_debug
+    run: {{ factor_pipeline_dir }}/steps/collect_h5parms.cwl
+    in:
+      - id: inh5parms
+        source: solve_slow_gains_debug/slow_gains_h5parm
+      - id: outh5parm
+        source: combined_slow_h5parm_debug
+    out:
+      - id: outh5parm
+
+{% endif %}
 
 {% else %}
 # Don't solve for slow gains

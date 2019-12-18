@@ -16,8 +16,10 @@ arguments:
   - solve.usebeammodel=True
   - solve.beammode=array_factor
   - solve.onebeamperpatch=True
-  - solve.applycal.steps=[fastphase]
-  - solve.applycal.fastphase.correction=phase000
+  - solve.applycal.steps=[slowamp,slowphase,fastphase]
+  - solve.applycal.slowamp.correction=amplitude000
+  - solve.applycal.slowphase.correction=phase000
+  - solve.applycal.fastphase.correction=phase001
 
 inputs:
   - id: msin
@@ -35,7 +37,7 @@ inputs:
     inputBinding:
       prefix: msin.ntimes=
       separate: False
-  - id: fast_h5parm
+  - id: combined_h5parm
     type: string
     inputBinding:
       prefix: solve.applycal.parmdb=
