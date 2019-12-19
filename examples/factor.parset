@@ -105,9 +105,9 @@ input_skymodel = /data/skymodel.txt
 
 
 [imaging]
-# Imaging parameters: pixel size in arcsec (default = 1.5 for HBA, 3.0 for LBA), Briggs
+# Imaging parameters: pixel size in arcsec (default = 1.25, suitable for HBA data), Briggs
 # robust parameter (default = -0.5) and minimum uv distance in lambda (default = 80)
-# cellsize_arcsec = 1.5
+# cellsize_arcsec = 1.25
 # robust = -0.5
 # min_uv_lambda = 80.0
 # max_uv_lambda = 0.0
@@ -163,16 +163,18 @@ input_skymodel = /data/skymodel.txt
 
 
 [cluster]
-# Cluster batch system (default = singleMachine). Use batch_system = slurm to use SLURM
+# Cluster batch system (default = singleMachine). Use batch_system = slurm to use a SLURM-
+# based cluster. For clusters, the maximum number of nodes to use at once can be specified
+# with the max_nodes option (default = 12)
 # batch_system = singleMachine
 # max_nodes = 12
 
-# Slurm partition names (default = not used)
+# TODO: Slurm partition names?
 # cpu_partition = batch
 # gpu_partition = batch
 
-# Full path to a local disk on the nodes for I/O-intensive processing (default = not
-# used). The path must be the same for all nodes
+# Full path to a local, non-shared disk on the nodes for I/O-intensive processing
+# (default = not used). The path must be the same for all nodes
 # dir_local = /tmp
 
 # Maximum number of CPUs per node to use

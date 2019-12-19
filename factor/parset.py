@@ -542,7 +542,7 @@ def get_imaging_options(parset):
     else:
         parset_dict['multiscale_scales_pixel'] = None
 
-    # Selfcal imaging parameters: pixel size in arcsec (default = 1.5), Briggs
+    # Selfcal imaging parameters: pixel size in arcsec (default = 1.25), Briggs
     # robust parameter (default = -0.5) and minimum uv distance in lambda
     # (default = 80). These settings apply both to selfcal images and to the
     # full facet image used to make the improved facet model that is subtracted
@@ -550,7 +550,7 @@ def get_imaging_options(parset):
     if 'cellsize_arcsec' in parset_dict:
         parset_dict['cellsize_arcsec'] = parset.getfloat('imaging', 'cellsize_arcsec')
     else:
-        parset_dict['cellsize_arcsec'] = 1.5
+        parset_dict['cellsize_arcsec'] = 1.25
     if 'robust' in parset_dict:
         parset_dict['robust'] = parset.getfloat('imaging', 'robust')
     else:
