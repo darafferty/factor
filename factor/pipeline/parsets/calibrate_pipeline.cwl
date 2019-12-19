@@ -66,7 +66,7 @@ inputs:
   - id: output_slow_h5parm_debug
     type: string[]
   - id: combined_slow_h5parm_debug
-    type: string[]
+    type: string
 {% endif %}
 
 outputs: []
