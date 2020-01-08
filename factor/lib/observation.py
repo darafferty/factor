@@ -28,7 +28,6 @@ class Observation(object):
     """
     def __init__(self, ms_filename, starttime=None, endtime=None):
         self.ms_filename = str(ms_filename)
-        self.ms_field = self.ms_filename + '_field'
         self.name = os.path.basename(self.ms_filename)
         self.log = logging.getLogger('factor:{}'.format(self.name))
         self.starttime = starttime
@@ -43,7 +42,6 @@ class Observation(object):
         else:
             # Include starttime to avoid naming conflicts
             self.infix = '.mjd{}'.format(int(self.starttime))
-        self.ms_field = '{0}{1}_field'.format(self.ms_filename, self.infix)
 
     def scan_ms(self):
         """
@@ -242,7 +240,7 @@ class Observation(object):
         self.parameters['solint_slow_timestep'] = [solint_slow_timestep] * self.nfreqchunks
         self.parameters['solint_slow_freqstep'] = [solint_slow_freqstep] * self.nfreqchunks
 
-    def set_prediction_parameters(self, sector_name, patch_names):
+    def set_prediction_parameters(self, sector_name, patch_names, scratch_dir):
         """
         Sets the prediction parameters
 
@@ -252,19 +250,25 @@ class Observation(object):
             Name of sector for which predict is to be done
         patch_names : list
             List of patch names to predict
+        scratch_dir : str
+            Scratch directory path
         """
         self.parameters['ms_filename'] = self.ms_filename
 
         # The filename of the sector's model data (from predict)
-        ms_model_filename = '{0}{1}.{2}_modeldata'.format(self.ms_filename, self.infix,
+        root_filename = os.path.join(scratch_dir, os.path.basename(self.ms_filename))
+        ms_model_filename = '{0}{1}.{2}_modeldata'.format(root_filename, self.infix,
                                                           sector_name)
         self.parameters['ms_model_filename'] = ms_model_filename
 
         # The filename of the sector's data with all non-sector sources peeled off (i.e.,
         # the data used for imaging)
-        ms_subtracted_filename = '{0}{1}.{2}'.format(self.ms_filename, self.infix,
+        ms_subtracted_filename = '{0}{1}.{2}'.format(root_filename, self.infix,
                                                      sector_name)
         self.parameters['ms_subtracted_filename'] = ms_subtracted_filename
+
+        # The filename of the field data (after subtraction of outlier sources)
+        self.ms_field = '{0}{1}_field'.format(root_filename, self.infix)
 
         # The sky model patch names
         self.parameters['patch_names'] = patch_names

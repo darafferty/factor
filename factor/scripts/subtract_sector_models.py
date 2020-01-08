@@ -141,9 +141,7 @@ def main(msin, msmod_list, msin_column='DATA', model_column='DATA',
     phaseonly = misc.string2bool(phaseonly)
     model_list = misc.string2list(msmod_list)
 
-    # Get the model data filenames. We only use files that contain the root of
-    # msin, so that models for other observations are not picked up (starttime
-    # is also used when a single MS file is used for multiple observations)
+    # Get the model data filenames, filtering any that do not have the right start time
     if starttime is not None:
         # Filter the list of models to include only ones for the given times
         nrows_list = []
@@ -173,6 +171,9 @@ def main(msin, msmod_list, msin_column='DATA', model_column='DATA',
         sys.exit(1)
     print('subtract_sector_models: Found {} model data files'.format(nsectors))
 
+    # Get the scratch directory from the first model filename (they are all the same)
+    scratch_dir = os.path.dirname(model_list[0])
+
     # If starttime is given, figure out startrow and nrows for input MS file
     tin = pt.table(msin, readonly=True, ack=False)
     tarray = tin.getcol("TIME")
@@ -195,7 +196,8 @@ def main(msin, msmod_list, msin_column='DATA', model_column='DATA',
     if peel_outliers and nr_outliers > 0:
         # Open input and output table
         tin = pt.table(msin, readonly=True, ack=False)
-        msout = '{0}{1}_field'.format(msin, infix)
+        root_filename = os.path.join(scratch_dir, os.path.basename(msin))
+        msout = '{0}{1}_field'.format(root_filename, infix)
         if infix != '':
             # This implies we have a subrange of a full dataset, so use a model ms
             # file as source for the copy (since otherwise we could copy the
