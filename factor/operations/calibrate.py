@@ -72,7 +72,8 @@ class Calibrate(Operation):
         calibration_skymodel_file = self.field.calibration_skymodel_file
         calibration_sourcedb = str(os.path.join(self.pipeline_working_dir,
                                                 'calibration_skymodel.sourcedb'))
-        smoothnessconstraint = self.field.smoothnessconstraint
+        fast_smoothnessconstraint = self.field.fast_smoothnessconstraint
+        slow_smoothnessconstraint = self.field.slow_smoothnessconstraint
         maxiter = self.field.maxiter
         propagatesolutions = self.field.propagatesolutions
         stepsize = self.field.stepsize
@@ -103,7 +104,8 @@ class Calibrate(Operation):
                             'combined_slow_h5parm': self.combined_slow_h5parm,
                             'calibration_skymodel_file': calibration_skymodel_file,
                             'calibration_sourcedb': calibration_sourcedb,
-                            'smoothnessconstraint': smoothnessconstraint,
+                            'fast_smoothnessconstraint': fast_smoothnessconstraint,
+                            'slow_smoothnessconstraint': slow_smoothnessconstraint,
                             'maxiter': maxiter,
                             'propagatesolutions': propagatesolutions,
                             'stepsize': stepsize,

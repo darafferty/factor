@@ -138,7 +138,7 @@ class Observation(object):
         target_fast_freqstep = parset['calibration_specific']['fast_freqstep_hz']
         target_slow_timestep = parset['calibration_specific']['slow_timestep_sec']
         target_slow_freqstep = parset['calibration_specific']['slow_freqstep_hz']
-        target_smoothnessconstraint = parset['calibration_specific']['smoothnessconstraint']
+        target_smoothnessconstraint = parset['calibration_specific']['slow_smoothnessconstraint']
 
         # Find solution intervals for fast-phase solve
         timepersample = self.timepersample
@@ -212,7 +212,7 @@ class Observation(object):
         numchannels = self.numchannels
         smoothnesscontraint_freqstep = max(1, self.get_nearest_frequstep(target_smoothnessconstraint /
                                                                          channelwidth))
-        min_freqstep = max(smoothnesscontraint_freqstep, solint_slow_freqstep)
+        min_freqstep = max(2*smoothnesscontraint_freqstep, solint_slow_freqstep)
         target_freq_chunksize, solint_slow_timestep = get_frequency_chunksize(
                                                           parset['cluster_specific'], channelwidth,
                                                           min_freqstep, solint_slow_timestep,

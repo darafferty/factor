@@ -294,10 +294,14 @@ def get_calibration_options(parset):
         parset_dict['slow_freqstep_hz'] = 1e6
 
     # Smoothness constraint
-    if 'smoothnessconstraint' in parset_dict:
-        parset_dict['smoothnessconstraint'] = parset.getfloat('calibration', 'smoothnessconstraint')
+    if 'fast_smoothnessconstraint' in parset_dict:
+        parset_dict['fast_smoothnessconstraint'] = parset.getfloat('calibration', 'fast_smoothnessconstraint')
     else:
-        parset_dict['smoothnessconstraint'] = 6e6
+        parset_dict['fast_smoothnessconstraint'] = 6e6
+    if 'slow_smoothnessconstraint' in parset_dict:
+        parset_dict['slow_smoothnessconstraint'] = parset.getfloat('calibration', 'slow_smoothnessconstraint')
+    else:
+        parset_dict['slow_smoothnessconstraint'] = 3e6
 
     # dTEC solver parameters
     if 'approximatetec' in parset_dict:
@@ -354,7 +358,8 @@ def get_calibration_options(parset):
                        'slow_timestep_sec', 'slow_freqstep_hz',
                        'approximatetec', 'propagatesolutions', 'maxapproxiter',
                        'maxiter', 'stepsize', 'tolerance', 'patch_target_number',
-                       'patch_target_flux_jy', 'smoothnessconstraint',
+                       'patch_target_flux_jy', 'fast_smoothnessconstraint',
+                       'slow_smoothnessconstraint',
                        'use_beam', 'tecscreen_max_order', 'use_idg_predict', 'debug']
     for option in given_options:
         if option not in allowed_options:

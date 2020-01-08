@@ -8,41 +8,23 @@ requirements:
 inputs:
   - id: timechunk_filename
     type: string[]
-  - id: freqchunk_filename
-    type: string[]
   - id: starttime
     type: string[]
   - id: ntimes
     type: int[]
-  - id: slow_starttime
-    type: string[]
-  - id: slow_ntimes
-    type: int[]
-  - id: startchan
-    type: int[]
-  - id: nchan
-    type: int[]
   - id: solint_fast_timestep
     type: int[]
-  - id: solint_slow_timestep
-    type: int[]
   - id: solint_fast_freqstep
-    type: int[]
-  - id: solint_slow_freqstep
     type: int[]
   - id: output_fast_h5parm
     type: string[]
   - id: combined_fast_h5parm
     type: string
-  - id: output_slow_h5parm
-    type: string[]
-  - id: combined_slow_h5parm
-    type: string
   - id: calibration_skymodel_file
     type: string
   - id: calibration_sourcedb
     type: string
-  - id: smoothnessconstraint
+  - id: fast_smoothnessconstraint
     type: float
   - id: maxiter
     type: int
@@ -60,6 +42,27 @@ inputs:
     type: string
   - id: output_aterms_root
     type: string
+{% if do_slowgain_solve %}
+  - id: freqchunk_filename
+    type: string[]
+  - id: slow_starttime
+    type: string[]
+  - id: startchan
+    type: int[]
+  - id: nchan
+    type: int[]
+  - id: slow_ntimes
+    type: int[]
+  - id: solint_slow_timestep
+    type: int[]
+  - id: solint_slow_freqstep
+    type: int[]
+  - id: slow_smoothnessconstraint
+    type: float
+  - id: output_slow_h5parm
+    type: string[]
+  - id: combined_slow_h5parm
+    type: string
   - id: combined_h5parms
     type: string
 {% if debug %}
@@ -67,6 +70,7 @@ inputs:
     type: string[]
   - id: combined_slow_h5parm_debug
     type: string
+{% endif %}
 {% endif %}
 
 outputs: []
@@ -112,7 +116,7 @@ steps:
       - id: uvlambdamin
         source: uvlambdamin
       - id: smoothnessconstraint
-        source: smoothnessconstraint
+        source: fast_smoothnessconstraint
     scatter: [msin, starttime, ntimes, h5parm, solint, nchan]
     scatterMethod: dotproduct
     out:
@@ -163,7 +167,7 @@ steps:
       - id: uvlambdamin
         source: uvlambdamin
       - id: smoothnessconstraint
-        source: smoothnessconstraint
+        source: slow_smoothnessconstraint
     scatter: [msin, starttime, ntimes, h5parm, solint, nchan]
     scatterMethod: dotproduct
     out:
@@ -254,7 +258,7 @@ steps:
       - id: uvlambdamin
         source: uvlambdamin
       - id: smoothnessconstraint
-        source: smoothnessconstraint
+        source: slow_smoothnessconstraint
     scatter: [msin, starttime, ntimes, h5parm, solint, nchan]
     scatterMethod: dotproduct
     out:
