@@ -308,6 +308,10 @@ class Observation(object):
         resolution_deg = 3.0 * cellsize_arcsec / 3600.0  # assume normal sampling of restoring beam
         target_timewidth_sec = min(120.0, self.get_target_timewidth(delta_theta_deg,
                                    resolution_deg, peak_smearing_factor))
+        if 'solint_fast_timestep' in self.parameters:
+            target_timewidth_sec = min(target_timewidth_sec, self.parameters['solint_fast_timestep'])
+        else:
+            target_timewidth_sec = timestep_sec
         target_bandwidth_mhz = min(2.0, self.get_target_bandwidth(mean_freq_mhz,
                                    delta_theta_deg, resolution_deg, peak_smearing_factor))
         self.log.debug('Target timewidth for imaging is {} s'.format(target_timewidth_sec))
