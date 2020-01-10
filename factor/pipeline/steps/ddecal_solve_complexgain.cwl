@@ -35,6 +35,16 @@ inputs:
     inputBinding:
       prefix: msin.ntimes=
       separate: False
+  - id: startchan
+    type: string
+    inputBinding:
+      prefix: msin.startchan=
+      separate: False
+  - id: nchan
+    type: int
+    inputBinding:
+      prefix: msin.nchan=
+      separate: False
   - id: fast_h5parm
     type: string
     inputBinding:
@@ -50,7 +60,7 @@ inputs:
     inputBinding:
       prefix: solve.solint=
       separate: False
-  - id: nchan
+  - id: solve_nchan
     type: int
     inputBinding:
       prefix: solve.nchan=

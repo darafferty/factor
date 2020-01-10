@@ -146,13 +146,17 @@ steps:
         source: slow_starttime
       - id: ntimes
         source: slow_ntimes
+      - id: startchan
+        source: startchan
+      - id: nchan
+        source: nchan
       - id: fast_h5parm
         source: combine_fast_phases/outh5parm
       - id: h5parm
         source: output_slow_h5parm
       - id: solint
         source: solint_slow_timestep
-      - id: nchan
+      - id: solve_nchan
         source: solint_slow_freqstep
       - id: sourcedb
         source: make_sourcedb/sourcedb
@@ -168,7 +172,7 @@ steps:
         source: uvlambdamin
       - id: smoothnessconstraint
         source: slow_smoothnessconstraint
-    scatter: [msin, starttime, ntimes, h5parm, solint, nchan]
+    scatter: [msin, starttime, ntimes, startchan, nchan, h5parm, solint, solve_nchan]
     scatterMethod: dotproduct
     out:
       - id: slow_gains_h5parm
@@ -237,13 +241,17 @@ steps:
         source: slow_starttime
       - id: ntimes
         source: slow_ntimes
+      - id: startchan
+        source: startchan
+      - id: nchan
+        source: nchan
       - id: combined_h5parm
         source: combine_fast_and_slow_h5parms/combinedh5parm
       - id: h5parm
         source: output_slow_h5parm_debug
       - id: solint
         source: solint_slow_timestep
-      - id: nchan
+      - id: solve_nchan
         source: solint_slow_freqstep
       - id: sourcedb
         source: make_sourcedb/sourcedb
@@ -259,7 +267,7 @@ steps:
         source: uvlambdamin
       - id: smoothnessconstraint
         source: slow_smoothnessconstraint
-    scatter: [msin, starttime, ntimes, h5parm, solint, nchan]
+    scatter: [msin, starttime, ntimes, startchan, nchan, h5parm, solint, solve_nchan]
     scatterMethod: dotproduct
     out:
       - id: slow_gains_h5parm
