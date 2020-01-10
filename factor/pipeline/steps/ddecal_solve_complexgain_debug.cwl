@@ -38,7 +38,7 @@ inputs:
       prefix: msin.ntimes=
       separate: False
   - id: startchan
-    type: string
+    type: int
     inputBinding:
       prefix: msin.startchan=
       separate: False
