@@ -332,7 +332,7 @@ def get_frequency_chunksize(cluster_parset, channelwidth, solint_slow_freqstep,
     mem_gb = get_total_memory()
     if antenna == 'HBA':
         # Memory usage in GB/chan/timeslot/dir of a typical HBA observation
-        mem_usage_gb = 1e-3
+        mem_usage_gb = 2e-3
     elif antenna == 'LBA':
         # Memory usage in GB/chan/timeslot/dir of a typical LBA observation
         mem_usage_gb = 2.5e-4
