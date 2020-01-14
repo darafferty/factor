@@ -61,9 +61,11 @@ inputs:
     inputBinding:
       valueFrom: ''
   - id: directions
-    type: string
+    type: string[]
     inputBinding:
+      valueFrom: $('['+self+']')
       prefix: predict.directions=
+      itemSeparator: ','
       separate: False
 
 outputs:

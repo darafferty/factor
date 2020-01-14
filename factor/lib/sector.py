@@ -53,7 +53,8 @@ class Sector(object):
         self.is_outlier = False
 
         # Make copies of the observation objects, as each sector may have its own
-        # observation-specific settings
+        # observation-specific settings. We synchronize some of the attributes later
+        # in other methods as needed
         self.observations = []
         for obs in field.observations:
             obs.log = None  # deepcopy cannot copy the log object
@@ -72,6 +73,13 @@ class Sector(object):
         for obs in self.observations:
             obs.set_prediction_parameters(self.name, self.patches,
                                           os.path.join(self.field.working_dir, 'scratch'))
+
+            # Update MS filename of the field's observation object to match those of
+            # the sector's observation objects. This is required because the sector's
+            # observation objects are distinct copies of the field ones (see init above)
+            for field_obs in self.field.observations:
+                if (field_obs.name == obs.name) and (field_obs.starttime == obs.starttime):
+                    field_obs.ms_field = obs.ms_field
 
     def set_imaging_parameters(self, do_multiscale=None):
         """
@@ -231,7 +239,7 @@ class Sector(object):
         skymodel.write(self.predict_skymodel_file, clobber=True)
 
         # Save list of patches (directions) in the format written by DDECal in the h5parm
-        self.patches = '[{}]'.format(','.join(['{}'.format(p) for p in skymodel.getPatchNames()]))
+        self.patches = ['[{}]'.format(p) for p in skymodel.getPatchNames()]
 
         # Find nearest patch to flux-weighted center of the sector sky model
         if not self.is_outlier:

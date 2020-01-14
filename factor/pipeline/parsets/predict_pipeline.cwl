@@ -15,7 +15,11 @@ inputs:
   - id: sector_ntimes
     type: int[]
   - id: sector_patches
-    type: string[]
+    type:
+      type: array
+      items:
+        type: array
+        items: string
   - id: h5parm
     type: string
   - id: sector_skymodel

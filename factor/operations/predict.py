@@ -53,19 +53,20 @@ class Predict(Operation):
             sector_patches.extend(sector.get_obs_parameters('patch_names'))
             sector_starttime.extend(sector.get_obs_parameters('predict_starttime'))
             sector_ntimes.extend(sector.get_obs_parameters('predict_ntimes'))
-        sector_patches = ["'{}'".format(sp) for sp in sector_patches]
+
+        # Set observation-specific parameters
         obs_filename = []
         obs_starttime = []
         obs_infix = []
         obs_solint_sec = []
         obs_solint_hz = []
         for obs in self.field.observations:
-            # Set observation-specific parameters
             obs_filename.append(obs.ms_filename)
             obs_starttime.append(obs.convert_mjd(obs.starttime))
             obs_infix.append(obs.infix)
             obs_solint_sec.append(obs.parameters['solint_fast_timestep'][0] * obs.timepersample)
             obs_solint_hz.append(obs.parameters['solint_slow_freqstep'][0] * obs.channelwidth)
+
         nr_outliers = len(self.field.outlier_sectors)
         peel_outliers = self.field.peel_outliers
         min_uv_lambda = self.field.parset['imaging_specific']['min_uv_lambda']
