@@ -163,6 +163,8 @@ class Operation(object):
             args.extend(['--defaultCores', '6'])
             args.extend(['--defaultMemory', '1M'])
             args.extend(['--maxLocalJobs', str(max_nodes)])
+        if batch_system == 'singleMachine':
+            args.extend(['--maxLocalJobs', str(1)])
         args.extend(['--jobStore', jobstore])
         if os.path.exists(jobstore):
             args.extend(['--restart'])
