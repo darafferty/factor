@@ -668,10 +668,10 @@ def get_cluster_options(parset):
         import multiprocessing
         parset_dict['ncpu'] = multiprocessing.cpu_count()
 
-    # Cluster type (default = localhost). Use cluster_type = pbs to use PBS / torque
+    # Cluster type (default = singleMachine). Use cluster_type = pbs to use PBS / torque
     # reserved nodes and cluster_type = slurm to use SLURM reserved ones
     if 'batch_system' not in parset_dict:
-        parset_dict['batch_system'] = 'SingleMachine'
+        parset_dict['batch_system'] = 'singleMachine'
     if 'max_nodes' in parset_dict:
         parset_dict['max_nodes'] = parset.getint('cluster', 'max_nodes')
     else:
