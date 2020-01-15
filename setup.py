@@ -47,11 +47,8 @@ setup(
     scripts=['bin/runfactor', 'bin/resetfactor', 'bin/plotfactor'],
     packages=['factor', 'factor.operations', 'factor.lib'],
     package_data={'factor': [
-        'parsets/*',
-        'pipeline/*.cfg',
         'pipeline/parsets/*',
-        'pipeline/plugins/*',
-        'pipeline/recipes/nodes/*',
+        'pipeline/steps/*',
         'scripts/*',
         'skymodels/*']},
     cmdclass={'test': PyTest},
