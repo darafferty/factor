@@ -69,7 +69,7 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
 
 def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
          bounds_mid_deg=None, skymodel=None, solsetname='sol000',
-         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.1, smooth_deg=0,
+         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.03, smooth_deg=0,
          gsize_deg=0, time_avg_factor=1, fasth5parm=None):
     """
     Make a-term FITS images

@@ -19,9 +19,9 @@ arguments:
     prefix: -pol
   - valueFrom: '0.6'
     prefix: -mgain
-  - valueFrom: '5'
-    prefix: -deconvolution-channels
   - valueFrom: '4'
+    prefix: -deconvolution-channels
+  - valueFrom: '3'
     prefix: -fit-spectral-pol
   - valueFrom: 'gaussian'
     prefix: -multiscale-shape
@@ -33,7 +33,7 @@ arguments:
     prefix: -local-rms-window
   - valueFrom: 'rms-with-min'
     prefix: -local-rms-method
-  - valueFrom: '32'
+  - valueFrom: '64'
     prefix: -aterm-kernel-size
   - valueFrom: '8'
     prefix: -nmiter
