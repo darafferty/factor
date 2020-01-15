@@ -293,7 +293,7 @@ steps:
     run: {{ factor_pipeline_dir }}/steps/make_fast_aterms.cwl
     in:
       - id: fasth5parm
-        source: combine_fast_gains/outh5parm
+        source: combine_fast_phases/outh5parm
       - id: skymodel
         source: calibration_skymodel_file
       - id: outroot

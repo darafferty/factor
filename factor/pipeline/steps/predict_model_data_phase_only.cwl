@@ -1,7 +1,7 @@
 cwlVersion: v1.0
 class: CommandLineTool
 baseCommand: [DPPP]
-label: "Calibrates a dataset using DDECal"
+label: "Predicts and corrupts model visibilities with DPPP"
 
 requirements:
   InlineJavascriptRequirement: {}
