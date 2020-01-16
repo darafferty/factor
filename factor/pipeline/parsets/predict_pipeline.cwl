@@ -107,6 +107,8 @@ steps:
       - id: h5parm
         source: h5parm
       - id: sourcedb
+        source: sector_obs_sourcedb
+      - id: sourcedb2
         source: make_sourcedb/sourcedb
       - id: directions
         source: sector_patches
