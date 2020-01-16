@@ -8,8 +8,8 @@ requirements:
 
 arguments:
   - '--soltabname=gain000'
-  - '--smooth_deg=0.05'
-  - '--gsize_deg=0.05'
+  - '--smooth_deg=0.1'
+  - '--gsize_deg=0.1'
   - '--time_avg_factor=1'
 
 inputs:

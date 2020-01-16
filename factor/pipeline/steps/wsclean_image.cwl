@@ -33,7 +33,7 @@ arguments:
     prefix: -local-rms-window
   - valueFrom: 'rms-with-min'
     prefix: -local-rms-method
-  - valueFrom: '64'
+  - valueFrom: '32'
     prefix: -aterm-kernel-size
   - valueFrom: '8'
     prefix: -nmiter
