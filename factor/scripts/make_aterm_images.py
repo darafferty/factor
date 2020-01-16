@@ -69,8 +69,8 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
 
 def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
          bounds_mid_deg=None, skymodel=None, solsetname='sol000',
-         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.03, smooth_deg=0,
-         gsize_deg=0, time_avg_factor=1, fasth5parm=None):
+         ressoltabname='', padding_fraction=1.4, cellsize_deg=0.1, smooth_deg=0,
+         gsize_deg=0, time_avg_factor=1, fasth5parm=None, interp_kind='nearest'):
     """
     Make a-term FITS images
 
@@ -105,6 +105,10 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
         Averaging factor in time for fast-phase corrections
     fasth5parm : str, optional
         Filename of fast-phase h5parm to be added together with input h5parm
+        (interpolation of the input h5parm is done first)
+    interp_kind : str, optional
+        Kind of interpolation to use, if fasth5parm is given. Can be any
+        supported by scipy.interpolate.interp1d
 
     Returns
     -------
@@ -178,13 +182,16 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
             vals = np.resize(vals, new_shape)
             vals_ph = np.resize(vals, new_shape)
         else:
-            f = si.interp1d(times, vals, axis=time_ind, kind='linear', fill_value='extrapolate')
-            vals = f(times_fast)
-            f = si.interp1d(freqs, vals, axis=freq_ind, kind='linear', fill_value='extrapolate')
-            vals = f(freqs_fast)
-            f = si.interp1d(times, vals_ph, axis=time_ind, kind='linear', fill_value='extrapolate')
+            # Interpolate (in log space for amps)
+            logvals = np.log10(vals)
+            f = si.interp1d(times, logvals, axis=time_ind, kind=interp_kind, fill_value='extrapolate')
+            logvals = f(times_fast)
+            f = si.interp1d(freqs, logvals, axis=freq_ind, kind=interp_kind, fill_value='extrapolate')
+            logvals = f(freqs_fast)
+            vals = 10**(logvals)
+            f = si.interp1d(times, vals_ph, axis=time_ind, kind=interp_kind, fill_value='extrapolate')
             vals_ph = f(times_fast)
-            f = si.interp1d(freqs, vals_ph, axis=freq_ind, kind='linear', fill_value='extrapolate')
+            f = si.interp1d(freqs, vals_ph, axis=freq_ind, kind=interp_kind, fill_value='extrapolate')
             vals_ph = f(freqs_fast)
         for p in range(2):
             vals_ph[:, :, :, :, p] += soltab_fast.val
