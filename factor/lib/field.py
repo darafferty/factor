@@ -28,7 +28,8 @@ class Field(object):
         If True, only initialize the minimal required parameters
     """
     def __init__(self, parset, mininmal=False):
-        # Initialize basic attributes
+        # Initialize basic attributes. These can be overridden later by the strategy
+        # values
         self.name = 'field'
         self.log = logging.getLogger('factor:{}'.format(self.name))
         self.parset = parset.copy()
@@ -57,6 +58,7 @@ class Field(object):
         self.tecscreen_max_order = self.parset['calibration_specific']['tecscreen_max_order']
         self.use_beam = self.parset['calibration_specific']['use_beam']
         self.use_idg_predict = self.parset['calibration_specific']['use_idg_predict']
+        self.debug = self.parset['calibration_specific']['debug']
 
         if not mininmal:
             # Scan MS files to get observation info

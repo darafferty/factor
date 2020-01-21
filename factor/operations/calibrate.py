@@ -24,7 +24,7 @@ class Calibrate(Operation):
                              'mode': self.field.mode,
                              'do_slowgain_solve': self.field.do_slowgain_solve,
                              'use_beam': self.field.use_beam,
-                             'debug': self.parset['calibration_specific']['debug']}
+                             'debug': self.field.debug}
 
     def set_input_parameters(self):
         """
