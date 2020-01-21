@@ -116,7 +116,7 @@ class Calibrate(Operation):
                             'output_aterms_root': self.output_aterms_root,
                             'combined_h5parms': self.combined_h5parms}
 
-        if self.parset['calibration_specific']['debug']:
+        if self.field.debug:
             self.input_parms.update({'output_slow_h5parm_debug': output_slow_h5parm_debug,
                                      'combined_slow_h5parm_debug': combined_slow_h5parm_debug})
 
