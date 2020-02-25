@@ -6,9 +6,6 @@ label: "Make a blank FITS image for use as a clean mask"
 requirements:
   InlineJavascriptRequirement: {}
 
-arguments:
-  - '--make_blank_image=True'
-
 inputs:
   - id: imagefile
     type: string[]
@@ -49,6 +46,11 @@ inputs:
     type: string
     inputBinding:
       prefix: --region_file=
+      separate: false
+  - id: make_blank_image
+    type: string
+    inputBinding:
+      prefix: --make_blank_image=
       separate: false
 
 outputs:

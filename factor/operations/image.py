@@ -35,6 +35,8 @@ class Image(Operation):
         nsectors = len(self.field.sectors)
         obs_filename = []
         prepare_filename = []
+        make_blank_image = []
+        previous_image_filename = []
         mask_filename = []
         aterms_config_file = []
         starttime = []
@@ -61,6 +63,14 @@ class Image(Operation):
 
             prepare_filename.append([os.path.join(image_dir, os.path.basename(of)+'.prep')
                                      for of in sector_obs_filename])
+            if sector.I_image_file_apparent_sky is not None:
+                # Set make_blank_image = False and use the previous image for masking
+                make_blank_image.append(False)
+                previous_image_filename.append(sector.I_image_file_apparent_sky)
+            else:
+                # Set make_blank_image = True and use a dummy filename
+                make_blank_image.append(True)
+                previous_image_filename.append(image_root[-1] + '_dummy.fits')
             mask_filename.append(image_root[-1] + '_mask.fits')
             aterms_config_file.append(image_root[-1] + '_aterm.cfg')
             image_freqstep.append(sector.get_obs_parameters('image_freqstep'))
@@ -84,6 +94,8 @@ class Image(Operation):
 
         self.input_parms = {'obs_filename': obs_filename,
                             'prepare_filename': prepare_filename,
+                            'make_blank_image': make_blank_image,
+                            'previous_image_filename': previous_image_filename,
                             'mask_filename': mask_filename,
                             'aterms_config_file': aterms_config_file,
                             'starttime': starttime,
@@ -124,8 +136,9 @@ class Image(Operation):
         # pols, save them all
         for sector in self.field.sectors:
             image_root = os.path.join(self.pipeline_working_dir, sector.name, sector.name)
-            sector.I_image_file = image_root + '-MFS-image-pb.fits'
-            sector.I_model_file = image_root + '-MFS-model-pb.fits'
+            sector.I_image_file_true_sky = image_root + '-MFS-image-pb.fits'
+            sector.I_image_file_apparent_sky = image_root + '-MFS-image.fits'
+            sector.I_model_file_true_sky = image_root + '-MFS-model-pb.fits'
 
             # The sky models, both true sky and apparent sky (the filenames are defined
             # in the factor/scripts/filter_skymodel.py file)

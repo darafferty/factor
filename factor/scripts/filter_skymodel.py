@@ -40,7 +40,7 @@ def dec2ddmmss(deg):
 def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
          threshisl=5.0, threshpix=7.5, rmsbox=(150, 50), rmsbox_bright=(35, 7),
          adaptive_rmsbox=True, use_adaptive_threshold=False, adaptive_thresh=75.0,
-         beamMS=None):
+         beamMS=None, save_mask=True):
     """
     Filter the input sky model so that they lie in islands in the image
 
@@ -72,6 +72,8 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
     adaptive_thresh : float, optional
         If adaptive_rmsbox is True, this value sets the threshold above
         which a source will use the small rms box
+    save_mask : bool, optional
+        If True, save the mask as a FITS image as output_root+'.mask.fits'
     """
     if rmsbox is not None and isinstance(rmsbox, str):
         rmsbox = eval(rmsbox)
@@ -111,7 +113,10 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
                              thresh_pix=threshpix, thresh_isl=threshisl,
                              thresh='hard', adaptive_rms_box=adaptive_rmsbox,
                              adaptive_thresh=adaptive_thresh, rms_box_bright=rmsbox_bright,
-                             rms_map=True, quiet=True, stop_at='isl')
+                             atrous_do=True, atrous_jmax=6, rms_map=True, quiet=True)
+    if save_mask:
+        img.export_image(img_type='island_mask', mask_dilation=0,
+                         outfile=output_root+'.mask.fits', clobber=True)
 
     emptysky = False
     if img.nisl > 0:
