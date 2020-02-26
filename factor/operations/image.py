@@ -36,7 +36,7 @@ class Image(Operation):
         obs_filename = []
         prepare_filename = []
         make_blank_image = []
-        previous_image_filename = []
+        previous_mask_filename = []
         mask_filename = []
         aterms_config_file = []
         starttime = []
@@ -63,14 +63,14 @@ class Image(Operation):
 
             prepare_filename.append([os.path.join(image_dir, os.path.basename(of)+'.prep')
                                      for of in sector_obs_filename])
-            if sector.I_image_file_apparent_sky is not None:
-                # Set make_blank_image = False and use the previous image for masking
+            if sector.I_mask_file is not None:
+                # Set make_blank_image = False and use the existing mask
                 make_blank_image.append(False)
-                previous_image_filename.append(sector.I_image_file_apparent_sky)
+                previous_mask_filename.append(sector.I_mask_file)
             else:
                 # Set make_blank_image = True and use a dummy filename
                 make_blank_image.append(True)
-                previous_image_filename.append(image_root[-1] + '_dummy.fits')
+                previous_mask_filename.append(image_root[-1] + '_dummy.fits')
             mask_filename.append(image_root[-1] + '_mask.fits')
             aterms_config_file.append(image_root[-1] + '_aterm.cfg')
             image_freqstep.append(sector.get_obs_parameters('image_freqstep'))
@@ -95,7 +95,7 @@ class Image(Operation):
         self.input_parms = {'obs_filename': obs_filename,
                             'prepare_filename': prepare_filename,
                             'make_blank_image': make_blank_image,
-                            'previous_image_filename': previous_image_filename,
+                            'previous_mask_filename': previous_mask_filename,
                             'mask_filename': mask_filename,
                             'aterms_config_file': aterms_config_file,
                             'starttime': starttime,
@@ -107,14 +107,14 @@ class Image(Operation):
                             'image_name': image_root,
                             'multiscale_scales_pixel': multiscale_scales_pixel,
                             'local_dir': local_dir,
-                            'do_slowgain_solve': ["'{}'".format(self.field.do_slowgain_solve)] * nsectors,
+                            'do_slowgain_solve': [self.field.do_slowgain_solve] * nsectors,
                             'channels_out': [sector.wsclean_nchannels for sector in self.field.sectors],
                             'ra': [sector.ra for sector in self.field.sectors],
                             'dec': [sector.dec for sector in self.field.sectors],
                             'wsclean_imsize': [sector.imsize for sector in self.field.sectors],
                             'vertices_file': [sector.vertices_file for sector in self.field.sectors],
                             'region_file': [sector.region_file for sector in self.field.sectors],
-                            'use_beam': ["'{}'".format(sector.use_beam) for sector in self.field.sectors],
+                            'use_beam': [sector.use_beam for sector in self.field.sectors],
                             'wsclean_niter': [sector.wsclean_niter for sector in self.field.sectors],
                             'robust': [sector.robust for sector in self.field.sectors],
                             'wsclean_image_padding': [sector.wsclean_image_padding for sector in self.field.sectors],
@@ -139,6 +139,15 @@ class Image(Operation):
             sector.I_image_file_true_sky = image_root + '-MFS-image-pb.fits'
             sector.I_image_file_apparent_sky = image_root + '-MFS-image.fits'
             sector.I_model_file_true_sky = image_root + '-MFS-model-pb.fits'
+
+            # Check to see if a clean mask image was made (only made when at least one
+            # island is found in the I image). The filename is defined
+            # in the factor/scripts/filter_skymodel.py file
+            mask_filename = image_root + '.mask.fits'
+            if os.path.exits(mask_filename):
+                sector.I_mask_file = mask_filename
+            else:
+                sector.I_mask_file = None
 
             # The sky models, both true sky and apparent sky (the filenames are defined
             # in the factor/scripts/filter_skymodel.py file)

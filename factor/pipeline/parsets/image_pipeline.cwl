@@ -45,7 +45,7 @@ inputs:
         items: int
   - id: make_blank_image
     type: string[]
-  - id: previous_image_filename
+  - id: previous_mask_filename
     type: string[]
   - id: mask_filename
     type: string[]
@@ -123,8 +123,8 @@ steps:
         source: image_timestep
       - id: make_blank_image
         source: make_blank_image
-      - id: previous_image_filename
-        source: previous_image_filename
+      - id: previous_mask_filename
+        source: previous_mask_filename
       - id: mask_filename
         source: mask_filename
       - id: phasecenter
@@ -176,7 +176,7 @@ steps:
       - id: threshpix
         source: threshpix
     scatter: [obs_filename, prepare_filename, starttime, ntimes, image_freqstep,
-              image_timestep, make_blank_image, previous_image_filename,
+              image_timestep, make_blank_image, previous_mask_filename,
               mask_filename, phasecenter, ra, dec, image_name, cellsize_deg,
               wsclean_imsize, vertices_file, region_file, aterms_config_file,
               aterm_image_filenames, use_beam, channels_out, wsclean_niter,

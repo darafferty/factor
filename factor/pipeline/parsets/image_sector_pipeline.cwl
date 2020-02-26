@@ -20,7 +20,7 @@ inputs:
     type: int[]
   - id: make_blank_image
     type: string
-  - id: previous_image_filename
+  - id: previous_mask_filename
     type: string
   - id: mask_filename
     type: string
@@ -104,7 +104,7 @@ steps:
     run: {{ factor_pipeline_dir }}/steps/blank_image.cwl
     in:
       - id: imagefile
-        source: previous_image_filename
+        source: previous_mask_filename
       - id: maskfile
         source: mask_filename
       - id: wsclean_imsize

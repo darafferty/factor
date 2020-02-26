@@ -113,15 +113,16 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
                              thresh_pix=threshpix, thresh_isl=threshisl,
                              thresh='hard', adaptive_rms_box=adaptive_rmsbox,
                              adaptive_thresh=adaptive_thresh, rms_box_bright=rmsbox_bright,
-                             atrous_do=True, atrous_jmax=6, rms_map=True, quiet=True)
-    if save_mask:
-        img.export_image(img_type='island_mask', mask_dilation=0,
-                         outfile=output_root+'.mask.fits', clobber=True)
+                             atrous_do=True, atrous_jmax=3, rms_map=True, quiet=True)
 
     emptysky = False
     if img.nisl > 0:
         maskfile = input_image + '.mask'
         img.export_image(outfile=maskfile, clobber=True, img_type='island_mask')
+        if save_mask:
+            img.export_image(img_type='island_mask', mask_dilation=0,
+                             outfile=output_root+'.mask.fits', clobber=True)
+        del img
 
         # TODO: remove the following once WSClean correctly produces pb-corrected and
         # uncorrected sky models. For now, we use WSClean without the

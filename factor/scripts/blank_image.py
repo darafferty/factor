@@ -21,7 +21,7 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
     Parameters
     ----------
     input_image : str
-        Filename of input image to blank
+        Filename of input image/mask to blank
     output_image : str
         Filename of output image
     vertices_file : str, optional
