@@ -10,6 +10,7 @@ import numpy as np
 import sys
 from astropy.io import fits as pyfits
 from astropy import wcs
+import os
 
 
 def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
