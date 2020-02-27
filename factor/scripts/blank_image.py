@@ -101,10 +101,8 @@ if __name__ == '__main__':
     parser.add_argument('--reference_dec_deg', help='Reference Dec', type=float, default=None)
     parser.add_argument('--cellsize_deg', help='Cellsize', type=float, default=None)
     parser.add_argument('--imsize', help='Image size', type=str, default=None)
-    parser.add_argument('--make_blank_image', help='Make blank image', type=str, default='True')
     parser.add_argument('--region_file', help='Filename of region file', type=str, default='[]')
     args = parser.parse_args()
     main(args.input_image_file, args.output_image_file, vertices_file=args.vertices_file,
          reference_ra_deg=args.reference_ra_deg, reference_dec_deg=args.reference_dec_deg,
-         cellsize_deg=args.cellsize_deg, imsize=args.imsize, make_blank_image=args.make_blank_image,
-         region_file=args.region_file)
+         cellsize_deg=args.cellsize_deg, imsize=args.imsize, region_file=args.region_file)
