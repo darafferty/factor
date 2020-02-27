@@ -35,7 +35,6 @@ class Image(Operation):
         nsectors = len(self.field.sectors)
         obs_filename = []
         prepare_filename = []
-        make_blank_image = []
         previous_mask_filename = []
         mask_filename = []
         aterms_config_file = []
@@ -64,12 +63,10 @@ class Image(Operation):
             prepare_filename.append([os.path.join(image_dir, os.path.basename(of)+'.prep')
                                      for of in sector_obs_filename])
             if sector.I_mask_file is not None:
-                # Set make_blank_image = False and use the existing mask
-                make_blank_image.append(False)
+                # Use the existing mask
                 previous_mask_filename.append(sector.I_mask_file)
             else:
-                # Set make_blank_image = True and use a dummy filename
-                make_blank_image.append(True)
+                # Use a dummy mask
                 previous_mask_filename.append(image_root[-1] + '_dummy.fits')
             mask_filename.append(image_root[-1] + '_mask.fits')
             aterms_config_file.append(image_root[-1] + '_aterm.cfg')
@@ -94,7 +91,6 @@ class Image(Operation):
 
         self.input_parms = {'obs_filename': obs_filename,
                             'prepare_filename': prepare_filename,
-                            'make_blank_image': make_blank_image,
                             'previous_mask_filename': previous_mask_filename,
                             'mask_filename': mask_filename,
                             'aterms_config_file': aterms_config_file,
@@ -141,9 +137,9 @@ class Image(Operation):
             sector.I_model_file_true_sky = image_root + '-MFS-model-pb.fits'
 
             # Check to see if a clean mask image was made (only made when at least one
-            # island is found in the I image). The filename is defined
+            # island is found in the Stokes I image). The filename is defined
             # in the factor/scripts/filter_skymodel.py file
-            mask_filename = image_root + '.mask.fits'
+            mask_filename = sector.I_image_file_apparent_sky + '.mask'
             if os.path.exits(mask_filename):
                 sector.I_mask_file = mask_filename
             else:

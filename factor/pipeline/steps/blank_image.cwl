@@ -46,11 +46,6 @@ inputs:
     inputBinding:
       prefix: --region_file=
       separate: false
-  - id: make_blank_image
-    type: string
-    inputBinding:
-      prefix: --make_blank_image=
-      separate: false
 
 outputs:
   - id: maskimg

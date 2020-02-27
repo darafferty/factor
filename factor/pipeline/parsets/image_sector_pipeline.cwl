@@ -18,8 +18,6 @@ inputs:
     type: int[]
   - id: image_timestep
     type: int[]
-  - id: make_blank_image
-    type: string
   - id: previous_mask_filename
     type: string
   - id: mask_filename
@@ -119,8 +117,6 @@ steps:
         source: cellsize_deg
       - id: region_file
         source: region_file
-      - id: make_blank_image
-        source: make_blank_image
     out:
       - id: maskimg
 

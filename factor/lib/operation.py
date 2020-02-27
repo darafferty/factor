@@ -131,9 +131,9 @@ class Operation(object):
         for k, v in self.input_parms.items():
             keys.append(k)
             if type(v) is bool:
-                vals.append("'{}'".format(v))
+                vals.append("\"'{}'\"".format(v))
             elif type(v) is list and type(v[0]) is bool:
-                vals.append('[{}]'.format(','.join(["'{}'".format(ve) for ve in v])))
+                vals.append('[{}]'.format(','.join(["\"'{}'\"".format(ve) for ve in v])))
             else:
                 vals.append(v)
         tmp = '\n'.join(['{0}: {1}'.format(k, v) for k, v in zip(keys, vals)])

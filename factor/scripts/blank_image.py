@@ -13,8 +13,7 @@ from astropy import wcs
 
 
 def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
-         reference_dec_deg=None, cellsize_deg=None, imsize=None, make_blank_image=False,
-         region_file='[]'):
+         reference_dec_deg=None, cellsize_deg=None, imsize=None, region_file='[]'):
     """
     Blank a region in an image
 
@@ -34,15 +33,12 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
         Size of a pixel in degrees
     imsize : int, optional
         Size of image as "xsize ysize"
-    make_blank_image : bool, optional
-        If True, a blank template image is made. In this case, reference_ra_deg
-        and reference_dec_deg must be specified
     region_file : list, optional
         Filenames of region files in CASA format to use as the mask (NYI)
     """
-    make_blank_image = misc.string2bool(make_blank_image)
-    if make_blank_image:
-        print('Making empty image...')
+    if not os.path.exists(input_image):
+        print('Input image not found. Making empty image...')
+        make_blank_image = True
         if reference_ra_deg is not None and reference_dec_deg is not None:
             reference_ra_deg = float(reference_ra_deg)
             reference_dec_deg = float(reference_dec_deg)
@@ -55,6 +51,8 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
         else:
             print('ERROR: a reference position must be given to make an empty template image')
             sys.exit(1)
+    else:
+        make_blank_image = False
 
     if vertices_file is not None:
         # Construct polygon
@@ -88,6 +86,8 @@ def main(input_image, output_image, vertices_file=None, reference_ra_deg=None,
 
         hdu[0].data = data
         hdu.writeto(output_image, overwrite=True)
+        if make_blank_image:
+            os.remove(temp_image)
 
 
 if __name__ == '__main__':
