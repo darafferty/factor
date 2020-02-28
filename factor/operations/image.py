@@ -140,7 +140,7 @@ class Image(Operation):
             # island is found in the Stokes I image). The filename is defined
             # in the factor/scripts/filter_skymodel.py file
             mask_filename = sector.I_image_file_apparent_sky + '.mask'
-            if os.path.exits(mask_filename):
+            if os.path.exists(mask_filename):
                 sector.I_mask_file = mask_filename
             else:
                 sector.I_mask_file = None
