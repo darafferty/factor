@@ -123,12 +123,12 @@ class Sector(object):
         self.imsize = [int(self.width_ra / self.cellsize_deg * 1.1),
                        int(self.width_dec / self.cellsize_deg * 1.1)]
 
-        # IDG does not yet support rectangular images
+        # IDG does not yet support rectangular images, so ensure image is square
         self.imsize = [max(self.imsize), max(self.imsize)]
 
-        # IDG has problems with small images, so set minimum size to 1500 and adjust
+        # IDG has problems with small images, so set minimum size to 500 pixels and adjust
         # padded polygon
-        minsize = 1500
+        minsize = 500
         if max(self.imsize) < minsize:
             dec_width_pix = self.width_dec / abs(self.field.wcs.wcs.cdelt[1])
             padding_pix = dec_width_pix * (self.wsclean_image_padding - 1.0)

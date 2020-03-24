@@ -176,7 +176,7 @@ class Observation(object):
         else:
             nchunks = 1
         time_chunksize = (myendtime - mystarttime) / nchunks
-        samplesperchunk = int(round(time_chunksize / timepersample))
+        samplesperchunk = int(time_chunksize / timepersample)
         starttimes = [mystarttime+(chunksize * i) for i in range(nchunks)]
         if starttimes[-1] >= myendtime:
             # Make sure the last start time does not equal or exceed the end time

@@ -134,8 +134,11 @@ def make_template_image(image_name, reference_ra_deg, reference_dec_deg,
     if times is not None:
         ref_time = times[0]
         if ntimes > 1:
+            # Find CDELT as the smallest delta time, but ignore last delta, as it
+            # may be smaller due to the number of time slots not being a divisor of
+            # the solution interval
             deltas = times[1:] - times[:-1]
-            del_time = np.min(deltas)
+            del_time = np.min(deltas[:-1])
         else:
             del_time = 1.0
         header['CRVAL{}'.format(i)] = ref_time
