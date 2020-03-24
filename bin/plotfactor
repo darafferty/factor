@@ -86,7 +86,7 @@ def main(h5file, soltype, root=None, refstat=None, soltab=None, dir=None):
     print('Plotting {} solutions...'.format(soltype))
     if dir is not None:
         st.setSelection(dir=dir)
-    plot.run(st, ['time'], axisInTable='ant', axisInCol=color, NColFig=ncol, refAnt=ref,
+    plot.run(st, ['time', 'freq'], axisInTable='ant', axisInCol=color, NColFig=ncol, refAnt=ref,
              prefix=root, minmax=minmax, plotFlag=True, markerSize=4)
     h.close()
 
