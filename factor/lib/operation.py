@@ -163,7 +163,7 @@ class Operation(object):
         if batch_system == 'slurm':
             args.extend(['--disableCaching'])
             args.extend(['--defaultCores', '6'])
-            args.extend(['--defaultMemory', '0'])
+            args.extend(['--defaultMemory', '1M'])
             args.extend(['--maxLocalJobs', str(max_nodes)])
         if batch_system == 'singleMachine':
             args.extend(['--maxLocalJobs', str(1)])
