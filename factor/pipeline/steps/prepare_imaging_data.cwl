@@ -12,7 +12,7 @@ arguments:
   - msin.datacolumn=DATA
   - msout.overwrite=True
   - msout.writefullresflag=False
-  - steps=[shift,avg]
+  - steps=[shift,avg,applybeam]
   - shift.type=phaseshifter
   - avg.type=squash
   - msout.storagemanager=Dysco
@@ -54,6 +54,12 @@ inputs:
     inputBinding:
       prefix: avg.timestep=
       separate: False
+  - id: beamdir
+    type: string
+    inputBinding:
+      prefix: applybeam.direction=
+      separate: False
+      shellQuote: False
 
 outputs:
   - id: msimg

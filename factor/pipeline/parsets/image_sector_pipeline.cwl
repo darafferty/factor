@@ -92,6 +92,8 @@ steps:
         source: image_freqstep
       - id: timestep
         source: image_timestep
+      - id: beamdir
+        source: phasecenter
     scatter: [msin, msout, starttime, ntimes, freqstep, timestep]
     scatterMethod: dotproduct
     out:
