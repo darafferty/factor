@@ -2,6 +2,8 @@
 """
 Script to process gain solutions
 """
+import argparse
+from argparse import RawTextHelpFormatter
 from losoto.h5parm import h5parm
 import numpy as np
 import scipy.interpolate as si
@@ -281,8 +283,8 @@ def remove_soltabs(solset, soltabnames):
 
 
 def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
-         phsoltabname=None, ref_id=0, calculate_weights=False,
-         smooth_phases=False, normalize=False, find_bandpass=False):
+         phsoltabname=None, ref_id=0, smooth_phases=False,
+         normalize=False, find_bandpass=False):
     """
     Fit screens to gain solutions
 
@@ -298,10 +300,15 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
         Name of error soltab
     ref_id : int, optional
         Index of reference station
+    smooth_phases : bool, optional
+        Smooth phase solutions
+    normalize : bool, optional
+        Normalize amp solutions
+    find_bandpass : bool, optional
+        Find and apply bandpass corrections
     """
     ref_id = int(ref_id)
     normalize = misc.string2bool(normalize)
-    calculate_weights = misc.string2bool(calculate_weights)
     smooth_phases = misc.string2bool(smooth_phases)
     find_bandpass = misc.string2bool(find_bandpass)
 
@@ -316,7 +323,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
         if ampsoltabname != 'origamplitude000':
             ampsoltab.rename('origamplitude000', overwrite=True)
         if normalize:
-#             amp, damp = normalize_values(ampsoltab)
+#             amp, damp = normalize_full(ampsoltab)
             amp, damp = normalize_station(ampsoltab)
             if find_bandpass:
                 amp, damp = find_bandpass_correction(ampsoltab, amp)
@@ -362,7 +369,7 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
         if smooth_phases:
             ph, dph = smooth(phsoltab, ref_id=ref_id)
         if normalize:
-#             ph, dph = normalize_values(phsoltab)
+#             ph, dph = normalize_full(phsoltab)
             pass
         remove_soltabs(solset, 'phase000')
         if 'pol' in axis_names:
@@ -373,5 +380,23 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
             solset.makeSoltab('phase', 'phase000', axesNames=['time', 'freq', 'ant', 'dir'],
                               axesVals=[times, phsoltab.freq[:], phsoltab.ant[:],
                               phsoltab.dir[:]], vals=ph, weights=dph)
-
     H.close()
+
+
+if __name__ == '__main__':
+    descriptiontext = "Process gain solutions.\n"
+
+    parser = argparse.ArgumentParser(description=descriptiontext, formatter_class=RawTextHelpFormatter)
+    parser.add_argument('h5parmfile', help='Filename of input h5parm')
+    parser.add_argument('--solsetname', help='Solset name', type=str, default='sol000')
+    parser.add_argument('--ampsoltabname', help='Amplitude soltab name', type=str, default=None)
+    parser.add_argument('--phsoltabname', help='Phase soltab name', type=str, default=None)
+    parser.add_argument('--ref_id', help='Reference station', type=int, default=0)
+    parser.add_argument('--smooth_phases', help='Smooth phase solutions', type=str, default='False')
+    parser.add_argument('--normalize', help='Normalize amplitude solutions', type=str, default='False')
+    parser.add_argument('--find_bandpass', help='Find bandpass corrections', type=str, default='False')
+    args = parser.parse_args()
+    main(args.h5parmfile, solsetname=args.solsetname, ampsoltabname=args.ampsoltabname,
+         phsoltabname=args.phsoltabname, ref_id=args.ref_id,
+         smooth_phases=args.smooth_phases, normalize=args.normalize,
+         find_bandpass=args.find_bandpass)
