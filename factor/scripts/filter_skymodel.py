@@ -119,11 +119,8 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         img.export_image(outfile=maskfile, clobber=True, img_type='island_mask')
         del img
 
-        # TODO: remove the following once WSClean correctly produces pb-corrected and
-        # uncorrected sky models. For now, we use WSClean without the
-        # "-apply-primary-beam" option, which produces only a pb-corrected sky
-        # model (but with out the "-pb" infix), so we use that and attenuate it to get
-        # the apparent sky
+        # TODO: remove the following attenuation once WSClean correctly produces
+        # non-pb-corrected sky models
         if len(beamMS) > 1:
             ms_times = []
             for ms in beamMS:
@@ -137,7 +134,7 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
             beam_ind = 0
         try:
     #         s = lsmtool.load(input_skymodel_nonpb)  # normally, load nonpb model and don't attenuate!
-            s = lsmtool.load(input_skymodel_nonpb, beamMS=beamMS[beam_ind])  # nonpb model is really the pb model!
+            s = lsmtool.load(input_skymodel_pb, beamMS=beamMS[beam_ind])
             s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
             if len(s) == 0:
                 emptysky = True
@@ -146,8 +143,7 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         #         s.write(output_root+'.apparent_sky', clobber=True)  # normally don't attenuate!
                 s.write(output_root+'.apparent_sky', clobber=True, applyBeam=True)
 
-        #         s = lsmtool.load(input_skymodel_pb)  # normally load the pb model here!
-                s = lsmtool.load(input_skymodel_nonpb)  # nonpb model is really the pb model!
+                s = lsmtool.load(input_skymodel_pb)
                 s.select('{} == True'.format(maskfile))  # keep only those in PyBDSF masked regions
                 s.group(maskfile)  # group the sky model by mask islands
                 s.write(output_root+'.true_sky', clobber=True)
@@ -171,7 +167,7 @@ def main(input_image, input_skymodel_nonpb, input_skymodel_pb, output_root,
         sdec = decsign+str(dec[0]).zfill(2)+'.'+str(dec[1]).zfill(2)+'.'+str("%.6f" % (dec[2])).zfill(6)
         dummylines.append(',,p1,{0},{1}\n'.format(sra, sdec))
         dummylines.append('s0c0,POINT,p1,{0},{1},0.00000001,'
-                           '[0.0,0.0],false,100000000.0,,,\n'.format(sra, sdec))
+                          '[0.0,0.0],false,100000000.0,,,\n'.format(sra, sdec))
         with open(output_root+'.apparent_sky', 'w') as f:
             f.writelines(dummylines)
         with open(output_root+'.true_sky', 'w') as f:
