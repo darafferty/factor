@@ -181,7 +181,8 @@ class Sector(object):
         for obs in self.observations:
             # Set imaging parameters
             obs.set_imaging_parameters(self.cellsize_arcsec, max_peak_smearing,
-                                       self.width_ra, self.width_dec)
+                                       self.width_ra, self.width_dec,
+                                       self.target_fast_timestep, self.target_slow_freqstep)
 
         # Set BL-dependent averaging
         do_bl_averaging = False  # does not yet work with IDG
