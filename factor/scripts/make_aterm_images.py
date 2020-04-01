@@ -420,7 +420,7 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
                         if gsize_pix > 0:
                             for i, (x, y) in enumerate(xy):
                                 # Only do this if patch is inside the region of interest
-                                if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
+                                if int(x) >= 0 and int(x) < data.shape[5] and int(y) >= 0 and int(y) < data.shape[4]:
                                     if 'pol' in axis_names:
                                         val_amp_xx = vals[t+g_start, f, s, i, 0]
                                         val_amp_yy = vals[t+g_start, f, s, i, 1]
