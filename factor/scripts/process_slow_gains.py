@@ -63,7 +63,8 @@ def normalize_full(soltab):
 
 def normalize_station(soltab):
     """
-    Normalize values so that mean is equal to unity for amplitudes per direction
+    Normalize values so that mean is equal to unity for amplitudes per direction per
+    station
 
     Parameters
     ----------
@@ -91,6 +92,45 @@ def normalize_station(soltab):
         for s in range(len(soltab.ant[:])):
             norm_factor = np.nanmean(parms[:, :, s, dir, :][initial_unflagged_indx[:, :, s, dir, :]])
             parms[:, :, s, dir, :] -= norm_factor
+
+    # Make sure flagged solutions are still flagged
+    if soltype == 'amplitude':
+        parms = 10**parms
+    parms[initial_flagged_indx] = np.nan
+    weights[initial_flagged_indx] = 0.0
+
+    return parms, weights
+
+
+def normalize_direction(soltab):
+    """
+    Normalize values so that mean is equal to unity for amplitudes per direction
+
+    Parameters
+    ----------
+    soltab : solution table
+        Input table with solutions
+
+    Returns
+    -------
+    parms, weights : arrays
+        The normalized parameters and weights
+    """
+    soltype = soltab.getType()
+    parms = soltab.val[:]  # ['time', 'freq', 'ant', 'dir', 'pol']
+    weights = soltab.weight[:]
+    initial_flagged_indx = np.logical_or(np.isnan(parms), weights == 0.0)
+    initial_unflagged_indx = np.logical_and(~np.isnan(parms), weights != 0.0)
+    parms[initial_flagged_indx] = np.nan
+
+    # Normalize each station per direction separately to have a mean of unity over all
+    # times, frequencies, and pols. Note that we work in log space
+    # for these operations if the solutions are amplitudes
+    if soltype == 'amplitude':
+        parms = np.log10(parms)
+    for dir in range(len(soltab.dir[:])):
+        norm_factor = np.nanmean(parms[:, :, :, dir, :][initial_unflagged_indx[:, :, :, dir, :]])
+        parms[:, :, :, dir, :] -= norm_factor
 
     # Make sure flagged solutions are still flagged
     if soltype == 'amplitude':
@@ -324,7 +364,8 @@ def main(h5parmfile, solsetname='sol000', ampsoltabname=None,
             ampsoltab.rename('origamplitude000', overwrite=True)
         if normalize:
 #             amp, damp = normalize_full(ampsoltab)
-            amp, damp = normalize_station(ampsoltab)
+#             amp, damp = normalize_station(ampsoltab)
+            amp, damp = normalize_direction(ampsoltab)
             if find_bandpass:
                 amp, damp = find_bandpass_correction(ampsoltab, amp)
         remove_soltabs(solset, 'amplitude000')
