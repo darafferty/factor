@@ -11,7 +11,7 @@ import numpy as np
 from factor.lib import miscellaneous as misc
 from astropy.io import fits as pyfits
 from astropy import wcs
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 from scipy.spatial import Voronoi
 import shapely.geometry
 import shapely.ops
@@ -30,9 +30,9 @@ def gaussian_fcn(g, x1, x2):
     from math import radians, sin, cos
 
     A, C1, C2, S1, S2, Th = g
-    fwsig=2.35482
-    S1 = S1/fwsig
-    S2 = S2/fwsig
+    fwsig = 2.35482
+    S1 = S1 / fwsig
+    S2 = S2 / fwsig
     Th = Th + 90.0 # Define theta = 0 on x-axis
 
     th = radians(Th)
@@ -56,11 +56,11 @@ def guassian_image(A, x, y, xsize, ysize, gsize):
     gsize : size as FWHM in pixels
     """
     im = np.zeros((ysize, xsize))
-    g = [A, y, x, gsize, gsize, 0.0]
+    g = [A, int(y), int(x), gsize, gsize, 0.0]
     bbox = np.s_[0:ysize, 0:xsize]
     x_ax, y_ax = np.mgrid[bbox]
     gimg = gaussian_fcn(g, x_ax, y_ax)
-    ind = np.where(np.abs(gimg) > abs(A)/3.0)
+    ind = np.where(np.abs(gimg) > abs(A)/5.0)
     if len(ind[0]) > 0:
         im[ind[0], ind[1]] += gimg[ind]
 
@@ -281,6 +281,19 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
         poly_raster = misc.rasterize(verts, data_template.copy()) * (poly.index+1)
         filled = np.where(poly_raster > 0)
         data_rasertize_template[filled] = poly_raster[filled]
+    zeroind = np.where(data_rasertize_template == 0)
+    if len(zeroind[0]) > 0:
+        nonzeroind = np.where(data_rasertize_template != 0)
+        data_rasertize_template[zeroind] = si.griddata((nonzeroind[0], nonzeroind[1]), data_rasertize_template[nonzeroind],
+                                                    (zeroind[0], zeroind[1]), method='nearest')
+
+    # Calculate Gaussian template for each direction if needed
+    gimg = [None] * len(xy)
+    if gsize_pix > 0:
+        for i, (x, y) in enumerate(xy):
+            # Only do this if patch is inside the region of interest
+            if int(x) >= 0 and int(x) < data.shape[4] and int(y) >= 0 and int(y) < data.shape[3]:
+                gimg[i] = guassian_image(1.0, x, y, data.shape[4], data.shape[3], gsize_pix)
 
     # Identify any duplicate times and remove
     delta_times = times[1:] - times[:-1]  # time at center of solution interval
@@ -432,13 +445,14 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
                                         val_phase_xx = vals_ph[t+g_start, f, s, i]
                                         val_phase_yy = vals_ph[t+g_start, f, s, i]
                                     A = val_amp_xx * np.cos(val_phase_xx) - data[t, f, s, 0, int(y), int(x)]
-                                    data[t, f, s, 0, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
+                                    data[t, f, s, 0, :, :] += A * gimg[i]
                                     A = val_amp_yy * np.cos(val_phase_yy) - data[t, f, s, 2, int(y), int(x)]
-                                    data[t, f, s, 2, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
+                                    data[t, f, s, 2, :, :] += A * gimg[i]
                                     A = val_amp_xx * np.sin(val_phase_xx) - data[t, f, s, 1, int(y), int(x)]
-                                    data[t, f, s, 1, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
+                                    data[t, f, s, 1, :, :] += A * gimg[i]
                                     A = val_amp_yy * np.sin(val_phase_yy) - data[t, f, s, 3, int(y), int(x)]
-                                    data[t, f, s, 3, :, :] += guassian_image(A, x, y, data.shape[5], data.shape[4], gsize_pix)
+                                    data[t, f, s, 3, :, :] += A * gimg[i]
+                                    gind = np.where(gimg[i] > 0.0)
 
             # If averaging in time, make a new template image with
             # fewer times and write to that instead
