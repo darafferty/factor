@@ -38,12 +38,17 @@ inputs:
     type: string
   - id: region_file
     type: string
+{% if use_screens %}
   - id: aterms_config_file
     type: string
   - id: aterm_image_filenames
     type: string
-  - id: use_beam
+{% else %}
+  - id: h5parm
     type: string
+  - id: central_patch_name
+    type: string
+{% endif %}
   - id: channels_out
     type: int
   - id: wsclean_niter
@@ -76,7 +81,19 @@ outputs: []
 steps:
   - id: prepare_imaging_data
     label: prepare_imaging_data
+{% if use_screens %}
+
     run: {{ factor_pipeline_dir }}/steps/prepare_imaging_data.cwl
+
+{% else %}
+
+{% if do_slowgain_solve %}
+    run: {{ factor_pipeline_dir }}/steps/prepare_imaging_data_no_screens.cwl
+{% else %}
+    run: {{ factor_pipeline_dir }}/steps/prepare_imaging_data_no_screens_phase_only.cwl
+{% endif %}
+
+{% endif %}
     in:
       - id: msin
         source: obs_filename
@@ -94,7 +111,15 @@ steps:
         source: image_timestep
       - id: beamdir
         source: phasecenter
+{% if use_screens %}
     scatter: [msin, msout, starttime, ntimes, freqstep, timestep]
+{% else %}
+      - id: h5parm
+        source: h5parm
+      - id: central_patch_name
+        source: central_patch_name
+    scatter: [msin, msout, starttime, ntimes, freqstep, timestep]
+{% endif %}
     scatterMethod: dotproduct
     out:
       - id: msimg
@@ -130,14 +155,16 @@ steps:
         source: aterms_config_file
       - id: gain_filenames
         source: aterm_image_filenames
-      - id: use_beam
-        source: use_beam
     out:
       - id: aterms_config
 
   - id: image
     label: image
+{% if use_screens %}
     run: {{ factor_pipeline_dir }}/steps/wsclean_image.cwl
+{% else %}
+    run: {{ factor_pipeline_dir }}/steps/wsclean_image_no_screens.cwl
+{% endif %}
     in:
       - id: msin
         source: prepare_imaging_data/msimg
@@ -145,8 +172,10 @@ steps:
         source: image_name
       - id: mask
         source: premask/maskimg
+{% if use_screens %}
       - id: config
         source: make_aterm_config/aterms_config
+{% endif %}
       - id: wsclean_imsize
         source: wsclean_imsize
       - id: wsclean_niter

@@ -1,5 +1,5 @@
 """
-Definition of the Sector class that holds parameters for each iamge sector
+Definition of the Sector class that holds parameters for an image sector
 """
 import logging
 import numpy as np
@@ -101,9 +101,6 @@ class Sector(object):
         self.max_uv_lambda = self.field.parset['imaging_specific']['max_uv_lambda']
         self.idg_mode = self.field.parset['imaging_specific']['idg_mode']
         self.reweight = self.field.parset['imaging_specific']['reweight']
-        self.use_tec_screens = self.field.parset['imaging_specific']['use_tec_screens']
-        self.use_gain_screens = self.field.parset['imaging_specific']['use_gain_screens']
-        self.use_beam = self.field.parset['imaging_specific']['use_beam']
         self.wsclean_image_padding = self.field.parset['imaging_specific']['wsclean_image_padding']
         self.flag_abstime = self.field.parset['flag_abstime']
         self.flag_baseline = self.field.parset['flag_baseline']

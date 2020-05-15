@@ -22,7 +22,7 @@ class Operation(object):
     An operation is simply a CWL pipeline that performs a part of the
     processing. It holds the pipeline settings, populates the pipeline input and
     parset templates, and runs the pipeline. The field object is passed between
-    operations, each of which updates it with variables needed by other
+    operations, each of which updates it with variables needed by other, subsequent,
     operations.
 
     Parameters

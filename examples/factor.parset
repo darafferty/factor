@@ -94,9 +94,6 @@ input_skymodel = /data/skymodel.txt
 # slow_freqstep_hz = 1e6
 # slow_smoothnessconstraint = 3e6
 
-# Use the beam model during calibration (default = False)?
-# use_beam = False
-
 # Use the IDG for predict during calibration (default = False)?
 # use_idg_predict = False
 
@@ -115,16 +112,13 @@ input_skymodel = /data/skymodel.txt
 # multiscale_scales_pixel = [0, 5, 10, 15]
 # do_multiscale = auto
 
-# Use screens during imaging (default = False).
-# use_tec_screens = False
-# use_gain_screens = False
+# Use screens during imaging (default = False). If False, the solutions closest to the
+# image centers will be used
+# use_screens = False
 
 # IDG (image domain gridder) mode to use in WSClean (default = hybrid). The mode can be
 # cpu or hybrid.
 # idg_mode = hybrid
-
-# Use the beam model during imaging (default = False)?
-# use_beam = False
 
 # Reweight the visibility data before imaging (default = True)
 # reweight = True

@@ -16,11 +16,6 @@ inputs:
     inputBinding:
       prefix: --gain_filenames=
       separate: false
-  - id: use_beam
-    type: string
-    inputBinding:
-      prefix: --use_beam=
-      separate: false
 
 outputs:
   - id: aterms_config

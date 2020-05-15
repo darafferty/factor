@@ -67,12 +67,17 @@ inputs:
     type: string[]
   - id: region_file
     type: string[]
+{% if use_screens %}
   - id: aterms_config_file
     type: string[]
   - id: aterm_image_filenames
     type: string[]
-  - id: use_beam
+{% else %}
+  - id: h5parm
     type: string[]
+  - id: central_patch_name
+    type: string[]
+{% endif %}
   - id: channels_out
     type: int[]
   - id: wsclean_niter
@@ -139,12 +144,17 @@ steps:
         source: vertices_file
       - id: region_file
         source: region_file
+{% if use_screens %}
       - id: aterms_config_file
         source: aterms_config_file
       - id: aterm_image_filenames
         source: aterm_image_filenames
-      - id: use_beam
-        source: use_beam
+{% else %}
+      - id: h5parm
+        source: h5parm
+      - id: central_patch_name
+        source: central_patch_name
+{% endif %}
       - id: channels_out
         source: channels_out
       - id: wsclean_niter
@@ -171,13 +181,23 @@ steps:
         source: threshisl
       - id: threshpix
         source: threshpix
+{% if use_screens %}
     scatter: [obs_filename, prepare_filename, starttime, ntimes, image_freqstep,
               image_timestep, previous_mask_filename, mask_filename,
               phasecenter, ra, dec, image_name, cellsize_deg, wsclean_imsize,
               vertices_file, region_file, aterms_config_file,
-              aterm_image_filenames, use_beam, channels_out, wsclean_niter,
+              aterm_image_filenames, channels_out, wsclean_niter,
               robust, wsclean_image_padding, min_uv_lambda, max_uv_lambda,
               multiscale_scales_pixel, local_dir, taper_arcsec, auto_mask,
               idg_mode, threshisl, threshpix]
+{% else %}
+    scatter: [obs_filename, prepare_filename, starttime, ntimes, image_freqstep,
+              image_timestep, previous_mask_filename, mask_filename,
+              phasecenter, ra, dec, image_name, cellsize_deg, wsclean_imsize,
+              vertices_file, region_file, h5parm, central_patch_name, channels_out,
+              wsclean_niter, robust, wsclean_image_padding, min_uv_lambda,
+              max_uv_lambda, multiscale_scales_pixel, local_dir, taper_arcsec,
+              auto_mask, idg_mode, threshisl, threshpix]
+{% endif %}
     scatterMethod: dotproduct
     out: []

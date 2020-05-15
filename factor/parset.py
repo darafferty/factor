@@ -334,12 +334,6 @@ def get_calibration_options(parset):
     else:
         parset_dict['tecscreen_max_order'] = 20
 
-    # Use the beam model during calibration (default = False)?
-    if 'use_beam' in parset_dict:
-        parset_dict['use_beam'] = parset.getboolean('calibration', 'use_beam')
-    else:
-        parset_dict['use_beam'] = False
-
     # Use the IDG for predict during calibration (default = False)?
     if 'use_idg_predict' in parset_dict:
         parset_dict['use_idg_predict'] = parset.getboolean('calibration', 'use_idg_predict')
@@ -360,8 +354,8 @@ def get_calibration_options(parset):
                        'approximatetec', 'propagatesolutions', 'maxapproxiter',
                        'maxiter', 'stepsize', 'tolerance', 'patch_target_number',
                        'patch_target_flux_jy', 'fast_smoothnessconstraint',
-                       'slow_smoothnessconstraint',
-                       'use_beam', 'tecscreen_max_order', 'use_idg_predict', 'debug']
+                       'slow_smoothnessconstraint', 'tecscreen_max_order',
+                       'use_idg_predict', 'debug']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [calibration] section of the '
@@ -504,20 +498,10 @@ def get_imaging_options(parset):
         parset_dict['idg_mode'] = 'hybrid'
 
     # Use screens during imaging (default = False).
-    if 'use_tec_screens' in parset_dict:
-        parset_dict['use_tec_screens'] = parset.getboolean('imaging', 'use_tec_screens')
+    if 'use_screens' in parset_dict:
+        parset_dict['use_screens'] = parset.getboolean('imaging', 'use_screens')
     else:
-        parset_dict['use_tec_screens'] = False
-    if 'use_gain_screens' in parset_dict:
-        parset_dict['use_gain_screens'] = parset.getboolean('imaging', 'use_gain_screens')
-    else:
-        parset_dict['use_gain_screens'] = False
-
-    # Use the beam model during imaging (default = False)?
-    if 'use_beam' in parset_dict:
-        parset_dict['use_beam'] = parset.getboolean('imaging', 'use_beam')
-    else:
-        parset_dict['use_beam'] = False
+        parset_dict['use_screens'] = False
 
     # Reweight the visibility data before imaging (default = True)
     if 'reweight' in parset_dict:
@@ -606,7 +590,7 @@ def get_imaging_options(parset):
                        'robust', 'padding', 'sector_center_ra_list', 'sector_center_dec_list',
                        'sector_width_ra_deg_list', 'sector_width_dec_deg_list',
                        'idg_mode', 'sector_do_multiscale_list', 'target_ra',
-                       'target_dec', 'target_radius_arcmin', 'use_beam']
+                       'target_dec', 'target_radius_arcmin', 'use_screens']
     for option in given_options:
         if option not in allowed_options:
             log.warning('Option "{}" was given in the [imaging] section of the '

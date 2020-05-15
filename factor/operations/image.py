@@ -26,7 +26,7 @@ class Image(Operation):
         self.parset_parms = {'factor_pipeline_dir': self.factor_pipeline_dir,
                              'pipeline_working_dir': self.pipeline_working_dir,
                              'do_slowgain_solve': self.field.do_slowgain_solve,
-                             'use_beam': self.field.use_beam}
+                             'use_screens': self.field.use_screens}
 
     def set_input_parameters(self):
         """
@@ -47,6 +47,7 @@ class Image(Operation):
         local_dir = []
         phasecenter = []
         image_root = []
+        central_patch_name = []
         for sector in self.field.sectors:
             if nsectors > 1:
                 # Use the model-subtracted data
@@ -85,6 +86,7 @@ class Image(Operation):
             else:
                 local_dir.append(self.temp_dir)
             multiscale_scales_pixel.append("'{}'".format(sector.multiscale_scales_pixel))
+            central_patch_name.append(sector.central_patch)
 
             # The following attribute was set by the preceding calibrate operation
             aterm_image_filenames.append("'[{}]'".format(','.join(self.field.aterm_image_filenames)))
@@ -93,10 +95,8 @@ class Image(Operation):
                             'prepare_filename': prepare_filename,
                             'previous_mask_filename': previous_mask_filename,
                             'mask_filename': mask_filename,
-                            'aterms_config_file': aterms_config_file,
                             'starttime': starttime,
                             'ntimes': ntimes,
-                            'aterm_image_filenames': aterm_image_filenames,
                             'image_freqstep': image_freqstep,
                             'image_timestep': image_timestep,
                             'phasecenter': phasecenter,
@@ -110,7 +110,6 @@ class Image(Operation):
                             'wsclean_imsize': [sector.imsize for sector in self.field.sectors],
                             'vertices_file': [sector.vertices_file for sector in self.field.sectors],
                             'region_file': [sector.region_file for sector in self.field.sectors],
-                            'use_beam': [sector.use_beam for sector in self.field.sectors],
                             'wsclean_niter': [sector.wsclean_niter for sector in self.field.sectors],
                             'robust': [sector.robust for sector in self.field.sectors],
                             'wsclean_image_padding': [sector.wsclean_image_padding for sector in self.field.sectors],
@@ -122,6 +121,13 @@ class Image(Operation):
                             'idg_mode': [sector.idg_mode for sector in self.field.sectors],
                             'threshisl': [sector.threshisl for sector in self.field.sectors],
                             'threshpix': [sector.threshpix for sector in self.field.sectors]}
+        if self.field.use_screens:
+            self.input_parms.update({'aterms_config_file': aterms_config_file,
+                                     'aterm_image_filenames': aterm_image_filenames})
+        else:
+            self.input_parms.update({'h5parm': [self.field.h5parm_filename] * nsectors})
+            self.input_parms.update({'central_patch_name': central_patch_name})
+
 
     def finalize(self):
         """

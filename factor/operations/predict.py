@@ -20,8 +20,7 @@ class Predict(Operation):
         Define parameters needed for the pipeline parset template
         """
         self.parset_parms = {'factor_pipeline_dir': self.factor_pipeline_dir,
-                             'do_slowgain_solve': self.field.do_slowgain_solve,
-                             'use_beam': self.field.use_beam}
+                             'do_slowgain_solve': self.field.do_slowgain_solve}
 
     def set_input_parameters(self):
         """

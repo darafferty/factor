@@ -23,7 +23,6 @@ class Calibrate(Operation):
         self.parset_parms = {'factor_pipeline_dir': self.factor_pipeline_dir,
                              'mode': self.field.mode,
                              'do_slowgain_solve': self.field.do_slowgain_solve,
-                             'use_beam': self.field.use_beam,
                              'debug': self.field.debug}
 
     def set_input_parameters(self):
