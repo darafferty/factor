@@ -77,7 +77,6 @@ inputs:
       valueFrom: $('['+self+']')
       prefix: applycal.directions=
       separate: False
-      shellQuote: False
 
 outputs:
   - id: msimg
