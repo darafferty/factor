@@ -147,6 +147,7 @@ steps:
     out:
       - id: maskimg
 
+{% if use_screens %}
   - id: make_aterm_config
     label: make_aterm_config
     run: {{ factor_pipeline_dir }}/steps/make_aterm_config.cwl
@@ -157,6 +158,7 @@ steps:
         source: aterm_image_filenames
     out:
       - id: aterms_config
+{% endif %}
 
   - id: image
     label: image
