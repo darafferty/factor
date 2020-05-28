@@ -75,7 +75,7 @@ inputs:
     type: string
     inputBinding:
       valueFrom: $('['+self+']')
-      prefix: applycal.directions=
+      prefix: applycal.direction=
       separate: False
 
 outputs:
