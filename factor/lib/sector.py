@@ -109,6 +109,7 @@ class Sector(object):
         self.mode = self.field.parset['calibration_specific']['mode']
         self.target_fast_timestep = self.field.parset['calibration_specific']['fast_timestep_sec']
         self.target_slow_freqstep = self.field.parset['calibration_specific']['slow_freqstep_hz']
+        self.use_screens = self.field.use_screens
         self.auto_mask = 3.0
         self.threshisl = 4.0
         self.threshpix = 5.0
@@ -179,9 +180,10 @@ class Sector(object):
             # Set imaging parameters
             obs.set_imaging_parameters(self.cellsize_arcsec, max_peak_smearing,
                                        self.width_ra, self.width_dec,
-                                       self.target_fast_timestep, self.target_slow_freqstep)
+                                       self.target_fast_timestep, self.target_slow_freqstep,
+                                       self.use_screens)
 
-        # Set BL-dependent averaging
+        # Set BL-dependent averaging parameters
         do_bl_averaging = False  # does not yet work with IDG
         if do_bl_averaging:
             timestep_sec = (self.observations[0].timepersample *

@@ -283,7 +283,8 @@ class Observation(object):
             self.parameters['predict_ntimes'] = self.numsamples
 
     def set_imaging_parameters(self, cellsize_arcsec, max_peak_smearing, width_ra,
-                               width_dec, solve_fast_timestep, solve_slow_freqstep):
+                               width_dec, solve_fast_timestep, solve_slow_freqstep,
+                               use_screens):
         """
         Sets the imaging parameters
 
@@ -297,10 +298,12 @@ class Observation(object):
             Width in RA of image in degrees
         width_dec : float
             Width in Dec of image in degrees
-         : float
+        solve_fast_timestep : float
             Solution interval in sec for fast solve
         solve_slow_freqstep : float
             Solution interval in Hz for slow solve
+        use_screens : bool
+            If True, use setup appropriate for screens
         """
         mean_freq_mhz = self.referencefreq / 1e6
         peak_smearing_factor = np.sqrt(1.0 - max_peak_smearing)
@@ -313,7 +316,11 @@ class Observation(object):
         resolution_deg = 3.0 * cellsize_arcsec / 3600.0  # assume normal sampling of restoring beam
         target_timewidth_sec = min(120.0, self.get_target_timewidth(delta_theta_deg,
                                    resolution_deg, peak_smearing_factor))
-        target_timewidth_sec = min(target_timewidth_sec, solve_fast_timestep)
+        if use_screens:
+            # Ensure we don't average more than the solve time step, as we want to
+            # preserve the time resolution that matches that of the screens
+            target_timewidth_sec = min(target_timewidth_sec, solve_fast_timestep)
+
         target_bandwidth_mhz = min(2.0, self.get_target_bandwidth(mean_freq_mhz,
                                    delta_theta_deg, resolution_deg, peak_smearing_factor))
         target_bandwidth_mhz = min(target_bandwidth_mhz, solve_slow_freqstep/1e6)

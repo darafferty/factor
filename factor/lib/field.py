@@ -111,7 +111,7 @@ class Field(object):
                     self.observations.append(obs)
         obs0 = self.observations[0]
 
-        # Check that all MSs have the same antenna type
+        # Check that all observations have the same antenna type
         self.antenna = obs0.antenna
         for obs in self.observations:
             if self.antenna != obs.antenna:
@@ -132,7 +132,7 @@ class Field(object):
                                       'Exiting!'.format(self.obs.ms_filename, self.obs0.ms_filename))
                     sys.exit(1)
 
-        # Check that all MSs have the same pointing
+        # Check that all observations have the same pointing
         self.ra = obs0.ra
         self.dec = obs0.dec
         for obs in self.observations:

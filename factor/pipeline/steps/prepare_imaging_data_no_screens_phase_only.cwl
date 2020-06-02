@@ -12,7 +12,7 @@ arguments:
   - msin.datacolumn=DATA
   - msout.overwrite=True
   - msout.writefullresflag=False
-  - steps=[shift,applycal,avg,applybeam]
+  - steps=[applybeam,shift,applycal,avg]
   - shift.type=phaseshifter
   - avg.type=squash
   - applycal.type=applycal

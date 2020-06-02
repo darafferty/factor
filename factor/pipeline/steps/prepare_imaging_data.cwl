@@ -12,7 +12,7 @@ arguments:
   - msin.datacolumn=DATA
   - msout.overwrite=True
   - msout.writefullresflag=False
-  - steps=[shift,avg,applybeam]
+  - steps=[applybeam,shift,avg]
   - shift.type=phaseshifter
   - avg.type=squash
   - msout.storagemanager=Dysco

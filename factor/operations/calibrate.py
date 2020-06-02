@@ -176,6 +176,7 @@ class Calibrate(Operation):
                         'CS026LBA', 'CS028LBA', 'CS030LBA', 'CS031LBA', 'CS032LBA', 'CS101LBA',
                         'CS103LBA', 'CS201LBA', 'CS301LBA', 'CS302LBA', 'CS401LBA', 'CS501LBA',
                         'RS106LBA', 'RS205LBA', 'RS305LBA', 'RS306LBA', 'RS503LBA']
+
         return [a for a in all_core if a in self.field.stations]
 
     def finalize(self):
