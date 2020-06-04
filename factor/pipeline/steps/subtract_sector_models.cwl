@@ -7,7 +7,6 @@ requirements:
   InlineJavascriptRequirement: {}
 
 arguments:
-  - '--reweight=True'
   - '--weights_colname=WEIGHT_SPECTRUM'
   - '--phaseonly=True'
 
@@ -60,6 +59,11 @@ inputs:
     type: string
     inputBinding:
       prefix: --peel_outliers=
+      separate: False
+  - id: reweight
+    type: string
+    inputBinding:
+      prefix: --reweight=
       separate: False
 
 outputs: []

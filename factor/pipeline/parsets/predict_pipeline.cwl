@@ -46,6 +46,8 @@ inputs:
     type: int
   - id: peel_outliers
     type: string
+  - id: reweight
+    type: string
 
 outputs: []
 
@@ -143,6 +145,8 @@ steps:
         source: nr_outliers
       - id: peel_outliers
         source: peel_outliers
+      - id: reweight
+        source: reweight
     scatter: [msobs, obs_starttime, solint_sec, solint_hz, infix]
     scatterMethod: dotproduct
     out: []

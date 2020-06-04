@@ -68,6 +68,7 @@ class Predict(Operation):
 
         nr_outliers = len(self.field.outlier_sectors)
         peel_outliers = self.field.peel_outliers
+        reweight = self.field.reweight
         min_uv_lambda = self.field.parset['imaging_specific']['min_uv_lambda']
         max_uv_lambda = self.field.parset['imaging_specific']['max_uv_lambda']
 
@@ -88,4 +89,5 @@ class Predict(Operation):
                             'obs_starttime': obs_starttime,
                             'obs_infix': obs_infix,
                             'nr_outliers': nr_outliers,
-                            'peel_outliers': peel_outliers}
+                            'peel_outliers': peel_outliers,
+                            'reweight': reweight}
