@@ -222,7 +222,7 @@ steps:
       - id: inh5parm1
         source: combine_fast_phases/outh5parm
       - id: inh5parm2
-        source: combine_slow_gains/outh5parm
+        source: process_slow_gains/outh5parm
       - id: outh5parm
         source: combined_h5parms
     out:
