@@ -232,13 +232,13 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
         ra_dec[0][Decind] = Decvert
         xy.append((w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind]))
 
-    # Get boundary for imaging region in pixels
+    # Get boundary of tessellation region in pixels
     ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-    ra_dec[0][RAind] = bounds_deg[0]
-    ra_dec[0][Decind] = bounds_deg[1]
+    ra_dec[0][RAind] = np.max(ra_deg)
+    ra_dec[0][Decind] = np.min(dec_deg)
     field_minxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
-    ra_dec[0][RAind] = bounds_deg[2]
-    ra_dec[0][Decind] = bounds_deg[3]
+    ra_dec[0][RAind] = np.min(ra_deg)
+    ra_dec[0][Decind] = np.max(dec_deg)
     field_maxxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
 
     # Generate array of outer points used to constrain the facets
@@ -268,6 +268,7 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
         for poly in polygons:
             if poly.contains(Point(xypos)):
                 poly.index = i
+#     polygons = [poly for poly in polygons if hasattr(poly, 'index')]
 
     # Rasterize the polygons to an array, with the value being equal to the
     # polygon's index+1
