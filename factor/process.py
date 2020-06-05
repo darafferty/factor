@@ -77,7 +77,7 @@ def run(parset_file, logging_level='info', sectors_to_export=[], export_correcte
             op = Image(field, iter+1)
             op.run()
 
-            # Mosaic the sectors
+            # Mosaic the sectors, for now just Stokes I
             # TODO: run mosaic ops for IQUV+residuals
             op = Mosaic(field, iter+1)
             op.run()

@@ -10,6 +10,7 @@ from reproject import reproject_interp
 from astropy.io import fits as pyfits
 from astropy.wcs import WCS as pywcs
 import numpy as np
+import os
 
 
 def main(input_image, template_image, vertices_file, output_image, skip=False):
@@ -19,7 +20,7 @@ def main(input_image, template_image, vertices_file, output_image, skip=False):
     Parameters
     ----------
     input_image : str
-        Filename of input FITS image to blank
+        Filename of input FITS image to regrid
     template_image : str
         Filename of mosaic template FITS image
     vertices_file : str
@@ -31,6 +32,9 @@ def main(input_image, template_image, vertices_file, output_image, skip=False):
     """
     skip = misc.string2bool(skip)
     if skip:
+        if os.path.exists(output_image):
+            os.remove(output_image)
+        shutil.copyfile(input_image, output_image)
         return
 
     # Read template header and data

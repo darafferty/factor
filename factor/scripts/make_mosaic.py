@@ -8,6 +8,7 @@ from factor.lib import miscellaneous as misc
 from astropy.io import fits as pyfits
 import numpy as np
 import shutil
+import os
 
 
 def main(input_image_list, template_image, output_image, skip=False):
@@ -28,6 +29,8 @@ def main(input_image_list, template_image, output_image, skip=False):
     input_image_list = misc.string2list(input_image_list)
     skip = misc.string2bool(skip)
     if skip:
+        if os.path.exists(output_image):
+            os.remove(output_image)
         shutil.copyfile(input_image_list[0], output_image)
         return
 
