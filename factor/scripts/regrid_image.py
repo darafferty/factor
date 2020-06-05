@@ -11,6 +11,7 @@ from astropy.io import fits as pyfits
 from astropy.wcs import WCS as pywcs
 import numpy as np
 import os
+import shutil
 
 
 def main(input_image, template_image, vertices_file, output_image, skip=False):
