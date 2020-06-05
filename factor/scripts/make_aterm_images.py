@@ -33,7 +33,7 @@ def gaussian_fcn(g, x1, x2):
     fwsig = 2.35482
     S1 = S1 / fwsig
     S2 = S2 / fwsig
-    Th = Th + 90.0 # Define theta = 0 on x-axis
+    Th = Th + 90.0  # Define theta = 0 on x-axis
 
     th = radians(Th)
     cs = cos(th)
@@ -234,33 +234,39 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
 
     # Get boundary of tessellation region in pixels
     ra_dec = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-    ra_dec[0][RAind] = np.max(ra_deg)
-    ra_dec[0][Decind] = np.min(dec_deg)
+    ra_dec[0][RAind] = max(bounds_deg[0], np.max(ra_deg))
+    ra_dec[0][Decind] = min(bounds_deg[1], np.min(dec_deg))
     field_minxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
-    ra_dec[0][RAind] = np.min(ra_deg)
-    ra_dec[0][Decind] = np.max(dec_deg)
+    ra_dec[0][RAind] = min(bounds_deg[2], np.min(ra_deg))
+    ra_dec[0][Decind] = max(bounds_deg[3], np.max(dec_deg))
     field_maxxy = (w.wcs_world2pix(ra_dec, 0)[0][RAind], w.wcs_world2pix(ra_dec, 0)[0][Decind])
 
-    # Generate array of outer points used to constrain the facets
-    nouter = 64
-    means = np.ones((nouter, 2)) * np.array(xy).mean(axis=0)
-    offsets = []
-    angles = [np.pi/(nouter/2.0)*i for i in range(0, nouter)]
-    for ang in angles:
-        offsets.append([np.cos(ang), np.sin(ang)])
-    radius = 2.0*np.sqrt( (field_maxxy[0]-field_minxy[0])**2 + (field_maxxy[1]-field_minxy[1])**2 )
-    scale_offsets = radius * np.array(offsets)
-    outer_box = means + scale_offsets
+    if len(xy) == 1:
+        # If there is only a single direction, just make a single rectangular polygon
+        box = [field_minxy, (field_minxy[0], field_maxxy[1]), field_maxxy, (field_maxxy[0], field_minxy[1]), field_minxy]
+        polygons = [shapely.geometry.Polygon(box)]
+    else:
+        # For more than one direction, tessellate
+        # Generate array of outer points used to constrain the facets
+        nouter = 64
+        means = np.ones((nouter, 2)) * np.array(xy).mean(axis=0)
+        offsets = []
+        angles = [np.pi/(nouter/2.0)*i for i in range(0, nouter)]
+        for ang in angles:
+            offsets.append([np.cos(ang), np.sin(ang)])
+        radius = 2.0*np.sqrt( (field_maxxy[0]-field_minxy[0])**2 + (field_maxxy[1]-field_minxy[1])**2 )
+        scale_offsets = radius * np.array(offsets)
+        outer_box = means + scale_offsets
 
-    # Tessellate and clip
-    points_all = np.vstack([xy, outer_box])
-    vor = Voronoi(points_all)
-    lines = [
-        shapely.geometry.LineString(vor.vertices[line])
-        for line in vor.ridge_vertices
-        if -1 not in line
-    ]
-    polygons = [poly for poly in shapely.ops.polygonize(lines)]
+        # Tessellate and clip
+        points_all = np.vstack([xy, outer_box])
+        vor = Voronoi(points_all)
+        lines = [
+            shapely.geometry.LineString(vor.vertices[line])
+            for line in vor.ridge_vertices
+            if -1 not in line
+        ]
+        polygons = [poly for poly in shapely.ops.polygonize(lines)]
 
     # Index polygons to directions
     ind = []
@@ -286,7 +292,7 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
     if len(zeroind[0]) > 0:
         nonzeroind = np.where(data_rasertize_template != 0)
         data_rasertize_template[zeroind] = si.griddata((nonzeroind[0], nonzeroind[1]), data_rasertize_template[nonzeroind],
-                                                    (zeroind[0], zeroind[1]), method='nearest')
+                                                       (zeroind[0], zeroind[1]), method='nearest')
 
     # Calculate Gaussian template for each direction if needed
     gimg = [None] * len(xy)
@@ -364,7 +370,9 @@ def main(h5parmfile, soltabname='phase000', outroot='', bounds_deg=None,
                         # Smooth if desired
                         if smooth_pix > 0:
                             data[t, f, s, :, :] = ndimage.gaussian_filter(data[t, f, s, :, :],
-                                                  sigma=(smooth_pix, smooth_pix), order=0)
+                                                                          sigma=(smooth_pix,
+                                                                                 smooth_pix),
+                                                                          order=0)
 
                         # Add Gaussians at patch positions if desired
                         if gsize_pix > 0:
