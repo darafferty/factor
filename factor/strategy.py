@@ -49,7 +49,9 @@ def set_strategy(field):
             else:
                 strategy_steps[i]['calibrate_parameters']['do_slowgain_solve'] = True
 
-            if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
+            if (nr_imaging_sectors > 1 or
+                nr_outlier_sectors > 0 or
+                field.parset['imaging_specific']['reweight']):
                 strategy_steps[i]['do_predict'] = True
             else:
                 strategy_steps[i]['do_predict'] = False
@@ -108,7 +110,9 @@ def set_strategy(field):
             else:
                 strategy_steps[i]['calibrate_parameters']['do_slowgain_solve'] = True
 
-            if nr_imaging_sectors > 1 or (i == 0 and nr_outlier_sectors > 0):
+            if (nr_imaging_sectors > 1 or
+                (i == 0 and nr_outlier_sectors > 0) or
+                field.parset['imaging_specific']['reweight']):
                 strategy_steps[i]['do_predict'] = True
             else:
                 strategy_steps[i]['do_predict'] = False
@@ -154,7 +158,9 @@ def set_strategy(field):
 
         strategy_steps[0]['do_calibrate'] = False
 
-        if nr_imaging_sectors > 1 or nr_outlier_sectors > 0:
+        if (nr_imaging_sectors > 1 or
+            nr_outlier_sectors > 0 or
+            field.parset['imaging_specific']['reweight']):
             strategy_steps[0]['do_predict'] = True
         else:
             strategy_steps[0]['do_predict'] = False
@@ -185,4 +191,3 @@ def set_strategy(field):
 
     log.info('Using "{}" processing strategy'.format(field.parset['strategy']))
     return strategy_steps
-
